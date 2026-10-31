@@ -222,3 +222,52 @@ test('guidad Rust+-parning visar steg, avbrott och mottagna serverförslag', asy
     '/api/live/pairing/accept',
   ]);
 });
+
+test('kartan har lager, markeringsdetaljer och statusprick även i kretsbyggaren', async ({
+  page,
+}) => {
+  const state = initial();
+  state.team[0] = { ...state.team[0], x: 250, y: 500, isLeader: true };
+  state.world = {
+    profileId: 'p1',
+    info: { name: 'Test', mapSize: 1000, wipeTime: 1, players: 2, maxPlayers: 100 },
+    map: {
+      revision: 'map-test',
+      width: 1000,
+      height: 1000,
+      oceanMargin: 50,
+      mapSize: 1000,
+      monuments: [{ token: 'harbor', x: 300, y: 300 }],
+    },
+    markers: [{ id: 2, type: 5, x: 600, y: 600, name: 'Cargo Ship' }],
+    updatedAt: Date.now(),
+    error: '',
+  };
+  await page.route('**/api/live/**', async (route) => {
+    if (route.request().method() === 'POST') {
+      if (route.request().url().endsWith('/disconnect')) state.connection = 'disconnected';
+      await route.fulfill({ json: { ok: true } });
+    } else await route.fulfill({ json: state });
+  });
+  await page.goto('/');
+  await expect(page.getByRole('img', { name: 'Rust+-status: Ansluten' })).toBeVisible();
+  await page.getByRole('button', { name: 'Live', exact: true }).click();
+  await page.getByRole('button', { name: 'Karta', exact: true }).click();
+  await expect(page.getByLabel('Rust-serverns livekarta')).toBeVisible();
+  await page.getByRole('button', { name: 'Cargo Ship', exact: true }).click();
+  await expect(page.locator('.live-map-detail')).toContainText('Cargo Ship');
+  await page.getByLabel('Event', { exact: true }).uncheck();
+  await expect(page.getByRole('button', { name: 'Cargo Ship', exact: true })).toHaveCount(0);
+  const before = await page.getByLabel('Rust-serverns livekarta').getAttribute('viewBox');
+  await page.getByRole('button', { name: 'Zooma in kartan' }).click();
+  await expect(page.getByLabel('Rust-serverns livekarta')).not.toHaveAttribute('viewBox', before!);
+  await page.getByRole('button', { name: 'Visa hela kartan' }).click();
+  await expect(page.getByLabel('Rust-serverns livekarta')).toHaveAttribute(
+    'viewBox',
+    '0 0 1000 1000',
+  );
+  await page.getByRole('button', { name: 'Koppla från', exact: true }).click();
+  await expect(page.getByText(/Inaktuell information · anslut/)).toBeVisible();
+  await page.getByRole('button', { name: 'Kretsbyggare', exact: true }).click();
+  await expect(page.getByRole('img', { name: 'Rust+-status: Frånkopplad' })).toBeVisible();
+});

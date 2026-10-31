@@ -1,3 +1,4 @@
+import { LiveWorld } from './world.ts';
 import { PairingManager } from './pairing.ts';
 import { resolve } from 'node:path';
 import { LiveDB } from './db.ts';
@@ -11,6 +12,7 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Ogilti
 const db = new LiveDB(resolve(process.env.ELRUSTY_DATA_DIR || '.private', 'live.sqlite'));
 const service = new LiveService(db, (p) => new RustConnection(p)),
   bot = new DiscordBot(service);
+new LiveWorld(service);
 const pairing = new PairingManager(service, resolve(process.env.ELRUSTY_DATA_DIR || '.private'));
 const server = createLiveHttp(service, bot, {
   port,

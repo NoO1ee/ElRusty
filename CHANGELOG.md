@@ -1,5 +1,12 @@
 # Ändringslogg
 
+## 0.7.0 — 2026-10-31
+
+- Livekarta med Rust+-kartbild, SVG-lager, teampositioner, monument, vending machines och eventmarkörer.
+- Gemensam Live-store med statusprick även utanför Live-fliken.
+- Separat kartbilds-API, sessionscache, serverbyte och inaktuell status vid avbrott.
+- Markörbaslinjer hindrar historiska eventnotiser vid återanslutning.
+
 ## 0.6.5 — 2026-10-31
 
 - Accepterar teamkartnoteringar utan AppTeamInfo.Note.type och teaminformation utan leaderSteamId, verifierat med en läsande kontroll mot användarens server.

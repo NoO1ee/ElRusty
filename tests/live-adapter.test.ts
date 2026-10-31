@@ -122,7 +122,12 @@ it('översätter nya chatt- och enhetshändelser och avbryter anrop vid stängni
         }),
       ).finish(),
     );
-  expect(await incoming).toEqual({ steamId: '76561198000000000', message: '!time', time: 123 });
+  expect(await incoming).toEqual({
+    name: 'Owner',
+    steamId: '76561198000000000',
+    message: '!time',
+    time: 123,
+  });
   const pending = client.time();
   client.close();
   await expect(pending).rejects.toThrow('Frånkopplad');
@@ -144,7 +149,7 @@ it('accepterar serversvar utan queuedPlayers och fortsätter med team och tid', 
   expect(fields.queuedPlayers.required).toBe(false);
   expect(fields.name.required).toBe(true);
   expect(fields.players.required).toBe(true);
-  await expect(client.info()).resolves.toBeUndefined();
+  await expect(client.info()).resolves.toMatchObject({ name: 'Local Rust fixture' });
   expect((await client.team())[0].name).toBe('Owner');
   expect(await client.time()).toBeCloseTo(18.7);
 });
@@ -221,7 +226,7 @@ it('accepterar teamkartnotering utan type och fortsätter till speltiden', async
   expect(fields.type.required).toBe(false);
   expect(fields.x.required).toBe(true);
   expect(fields.y.required).toBe(true);
-  await expect(client.info()).resolves.toBeUndefined();
+  await expect(client.info()).resolves.toMatchObject({ name: 'Local Rust fixture' });
   expect((await client.team())[0].name).toBe('Owner');
   expect(await client.time()).toBeCloseTo(18.7);
 });

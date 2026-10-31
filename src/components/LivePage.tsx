@@ -1,3 +1,5 @@
+import { LiveMap } from './LiveMap';
+import { useLive, refreshLive, liveAction } from '../live-store';
 import { RustPairing } from './RustPairing';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import {
@@ -43,53 +45,18 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 }
 export function LivePage() {
   const [tab, setTab] = useState('Översikt'),
-    [data, setData] = useState<LiveSnapshot | null>(null),
-    [offline, setOffline] = useState(false),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
     [results, setResults] = useState<CommandResult[]>([]);
-  const csrf = useRef('');
-  async function refresh() {
-    try {
-      const res = await fetch('/api/live/state');
-      if (!res.ok) throw Error();
-      const value = await res.json();
-      if (typeof value.csrf !== 'string') throw Error();
-      csrf.current = value.csrf;
-      setData(value);
-      setOffline(false);
-    } catch {
-      setOffline(true);
-    }
-  }
-  useEffect(() => {
-    void refresh();
-    const events = new EventSource('/api/live/events');
-    events.onmessage = (e) => {
-      try {
-        setData(JSON.parse(e.data));
-        setOffline(false);
-        if (!csrf.current) void refresh();
-      } catch {
-        setOffline(true);
-      }
-    };
-    events.onerror = () => setOffline(true);
-    return () => events.close();
-  }, []);
+  const data = useLive((s) => s.data),
+    offline = useLive((s) => s.offline);
+  const refresh = refreshLive;
   async function act(path: string, body: unknown = {}, after?: () => void) {
     setBusy(true);
     setError('');
     setResults([]);
     try {
-      if (!csrf.current) throw Error('Live-tjänsten är inte tillgänglig.');
-      const res = await fetch('/api/live/' + path, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-ElRusty-CSRF': csrf.current },
-        body: JSON.stringify(body),
-      });
-      const value = await res.json();
-      if (!res.ok) throw Error(value.error || 'Begäran misslyckades.');
+      const value = await liveAction(path, body);
       if (Array.isArray(value)) setResults(value);
       after?.();
       await refresh();
@@ -186,6 +153,7 @@ export function LivePage() {
         <nav className="live-tabs" aria-label="Live-menyer">
           {[
             ['Översikt', Radio],
+            ['Karta', Radio],
             ['Enheter', Power],
             ['Team', Users],
             ['Lägen', Layers],
@@ -264,6 +232,7 @@ export function LivePage() {
                 <Plus size={14} /> Hantera servrar
               </button>
             </section>
+            {tab === 'Karta' && <LiveMap data={data} offline={offline} />}
             {tab === 'Översikt' && (
               <>
                 <div className="live-stats">

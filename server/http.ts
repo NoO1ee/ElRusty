@@ -62,6 +62,20 @@ export function createLiveHttp(
       const url = new URL(req.url || '/', 'http://127.0.0.1'),
         path = url.pathname;
       if (path.startsWith('/api/live')) {
+        if (req.method === 'GET' && path === '/api/live/map/image') {
+          const bytes = service.world?.bytes(url.searchParams.get('revision') || '');
+          if (!bytes) {
+            json(res, 404, { error: 'Kartbild saknas.' });
+            return;
+          }
+          res.writeHead(200, {
+            'Content-Type': 'image/jpeg',
+            'Cache-Control': 'no-store',
+            'X-Content-Type-Options': 'nosniff',
+          });
+          res.end(bytes);
+          return;
+        }
         if (req.method === 'GET' && path === '/api/live/state') {
           json(res, 200, { ...service.snapshot(), csrf });
           return;
@@ -99,6 +113,10 @@ export function createLiveHttp(
           return;
         }
         switch (path) {
+          case '/api/live/map/load':
+            insist(service.world, 'Karta är inte tillgänglig.');
+            await service.world.load();
+            break;
           case '/api/live/pairing/register':
             insist(options.pairing, 'Parning är inte tillgänglig.');
             options.pairing.start('register');

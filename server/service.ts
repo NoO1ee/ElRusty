@@ -1,3 +1,4 @@
+import type { LiveWorld } from './world.ts';
 import type { PairingStatus } from '../shared/live.ts';
 import { EventEmitter } from 'node:events';
 import type { LiveSnapshot, Entity, DeviceState, CommandResult, Activity } from '../shared/live.ts';
@@ -12,6 +13,7 @@ export function formatTime(hour: number): string {
 }
 export class LiveService extends EventEmitter {
   config: Config;
+  world?: LiveWorld;
   pairing: PairingStatus = {
     status: 'idle',
     message: '',
@@ -49,6 +51,7 @@ export class LiveService extends EventEmitter {
   snapshot(): LiveSnapshot {
     const { discord, profiles, activeProfileId } = this.config;
     return structuredClone({
+      world: this.world?.snapshot(),
       pairing: this.pairing,
       profiles: profiles.map(({ playerToken, ...p }) => p),
       activeProfileId,
@@ -111,6 +114,7 @@ export class LiveService extends EventEmitter {
   }
   private stop() {
     this.generation++;
+    this.world?.stop();
     clearTimeout(this.retry);
     clearTimeout(this.stable);
     clearInterval(this.poll);
@@ -141,6 +145,7 @@ export class LiveService extends EventEmitter {
     );
     this.stop();
     this.config.activeProfileId = id;
+    this.world?.select(id);
     this.retries = 0;
     this.timeLast = -Infinity;
     this.seenChat.clear();
@@ -167,6 +172,7 @@ export class LiveService extends EventEmitter {
       lost = true;
       this.generation++;
       clearTimeout(this.stable);
+      this.world?.stop();
       adapter.close();
       this.adapter = null;
       clearInterval(this.poll);
@@ -208,9 +214,10 @@ export class LiveService extends EventEmitter {
     try {
       await adapter.open();
       if (gen !== this.generation) return;
-      await adapter.info();
+      const information = await adapter.info();
       if (gen !== this.generation) return;
       this.connection = 'connected';
+      this.world?.connected(information);
       this.log('info', `Ansluten till ${p.name}.`);
       await this.refreshTeam(gen);
       for (const d of this.config.devices.filter((d) => d.profileId === p.id)) {
@@ -228,7 +235,7 @@ export class LiveService extends EventEmitter {
       }
       if (gen !== this.generation) return;
       this.changed();
-      this.poll = setInterval(() => void this.refreshTeam(gen), 15000);
+      this.poll = setInterval(() => void this.refreshTeam(gen), 5000);
       this.stable = setTimeout(() => {
         if (gen === this.generation && this.connection === 'connected') this.retries = 0;
       }, 30000);
@@ -257,6 +264,12 @@ export class LiveService extends EventEmitter {
     } finally {
       if (this.refreshingGeneration === gen) this.refreshingGeneration = null;
     }
+  }
+  liveSession() {
+    return this.session();
+  }
+  assertSession(gen: number) {
+    this.current(gen);
   }
   private session() {
     insist(this.connection === 'connected' && this.adapter, 'Rust+ är inte anslutet.');

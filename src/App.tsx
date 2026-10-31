@@ -1,3 +1,4 @@
+import { useLive, startLive, liveStatus } from './live-store';
 import { useEffect, useRef, useState } from 'react';
 import {
   Workflow,
@@ -217,6 +218,9 @@ function Library() {
 }
 
 export default function App() {
+  const liveData = useLive((s) => s.data),
+    liveOffline = useLive((s) => s.offline);
+  useEffect(() => startLive(), []);
   const [view, setView] = useState<'circuit' | 'filters' | 'saved' | 'examples' | 'live'>(
       'circuit',
     ),
@@ -503,9 +507,27 @@ export default function App() {
             <FolderOpen size={16} />
             Sparat <span className="nav-count">{records.length}</span>
           </button>
-          <button className={view === 'live' ? 'active' : ''} onClick={() => setView('live')}>
+          <button
+            aria-label="Live"
+            title={'Rust+: ' + liveStatus(liveData, liveOffline)}
+            className={view === 'live' ? 'active' : ''}
+            onClick={() => setView('live')}
+          >
             <Zap size={16} />
-            Live
+            Live{' '}
+            <span
+              role="img"
+              aria-label={'Rust+-status: ' + liveStatus(liveData, liveOffline)}
+              className={
+                'live-tab-dot ' +
+                (!liveOffline && liveData?.connection === 'connected'
+                  ? 'green'
+                  : !liveOffline &&
+                      ['connecting', 'reconnecting'].includes(liveData?.connection || '')
+                    ? 'yellow'
+                    : 'red')
+              }
+            />
           </button>
         </nav>
         <a
@@ -802,7 +824,7 @@ export default function App() {
             ? 'Live-tjänsten behöver köras även när webbläsaren är stängd.'
             : message}
         </span>
-        <span className="version-label">ElRusty 0.6.5 · lokalt</span>
+        <span className="version-label">ElRusty 0.7.0 · lokalt</span>
       </footer>
       <input
         ref={fileInput}

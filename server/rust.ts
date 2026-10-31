@@ -1,3 +1,4 @@
+import type { ServerInfo, MapData, MapMarker } from '../shared/world.ts';
 import RustPlus from '@liamcottle/rustplus.js';
 import { EventEmitter } from 'node:events';
 import type { PrivateProfile } from './db.ts';
@@ -6,11 +7,15 @@ export interface ChatMessage {
   steamId: string;
   message: string;
   time: number;
+  name?: string;
 }
 export interface RustAdapter extends EventEmitter {
   open(): Promise<void>;
   close(): void;
-  info(): Promise<void>;
+  info(): Promise<void | ServerInfo>;
+  map?(): Promise<MapData>;
+  markers?(): Promise<MapMarker[]>;
+  promote?(steamId: string): Promise<void>;
   team(): Promise<Member[]>;
   entity(id: number): Promise<Entity>;
   set(id: number, value: boolean): Promise<void>;
@@ -90,6 +95,7 @@ export class RustConnection extends EventEmitter implements RustAdapter {
         if (b?.teamMessage?.message) {
           const x = b.teamMessage.message;
           this.emit('chat', {
+            name: String(x.name || 'Spelare'),
             steamId: String(x.steamId),
             message: String(x.message),
             time: Number(x.time),
@@ -139,16 +145,62 @@ export class RustConnection extends EventEmitter implements RustAdapter {
   async info() {
     const r = await this.request({ getInfo: {} });
     if (!r.info) throw new Error('Ingen serverinformation.');
+    const i = r.info;
+    return {
+      name: String(i.name),
+      mapSize: Number(i.mapSize),
+      wipeTime: Number(i.wipeTime),
+      seed: Object.hasOwn(i, 'seed') ? Number(i.seed) : undefined,
+      players: Number(i.players),
+      maxPlayers: Number(i.maxPlayers),
+      ...(Object.hasOwn(i, 'queuedPlayers') ? { queuedPlayers: Number(i.queuedPlayers) } : {}),
+    } satisfies ServerInfo;
   }
   async team() {
     const r = await this.request({ getTeamInfo: {} });
     if (!r.teamInfo) throw new Error('Team saknas.');
     return (r.teamInfo.members || []).map((m: any) => ({
       steamId: String(m.steamId),
+      x: Number.isFinite(m.x) ? Number(m.x) : undefined,
+      y: Number.isFinite(m.y) ? Number(m.y) : undefined,
+      isLeader: String(r.teamInfo.leaderSteamId) === String(m.steamId),
       name: String(m.name),
       isOnline: !!m.isOnline,
       isAlive: !!m.isAlive,
     }));
+  }
+  async map(): Promise<MapData> {
+    const r = await this.request({ getMap: {} });
+    if (!r.map) throw Error('Karta saknas.');
+    return {
+      width: Number(r.map.width),
+      height: Number(r.map.height),
+      oceanMargin: Number(r.map.oceanMargin),
+      jpgImage: new Uint8Array(r.map.jpgImage),
+      monuments: (r.map.monuments || [])
+        .filter((m: any) => Number.isFinite(m.x) && Number.isFinite(m.y))
+        .map((m: any) => ({ token: String(m.token), x: Number(m.x), y: Number(m.y) })),
+    };
+  }
+  async markers(): Promise<MapMarker[]> {
+    const r = await this.request({ getMapMarkers: {} });
+    if (!r.mapMarkers) throw Error('Markörer saknas.');
+    return (r.mapMarkers.markers || [])
+      .filter(
+        (m: any) =>
+          [2, 3, 4, 5, 6, 8].includes(m.type) && Number.isFinite(m.x) && Number.isFinite(m.y),
+      )
+      .map((m: any) => ({
+        id: Number(m.id),
+        type: Number(m.type),
+        x: Number(m.x),
+        y: Number(m.y),
+        name: m.name ? String(m.name) : '',
+        outOfStock: Object.hasOwn(m, 'outOfStock') ? !!m.outOfStock : undefined,
+      }));
+  }
+  async promote(steamId: string) {
+    await this.request({ promoteToLeader: { steamId } });
   }
   async entity(id: number) {
     return normalizeEntity((await this.request({ entityId: id, getEntityInfo: {} })).entityInfo);

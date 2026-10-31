@@ -1,3 +1,4 @@
+import type { WorldSnapshot } from './world';
 export type DeviceType = 'switch' | 'alarm' | 'storage';
 export interface Profile {
   id: string;
@@ -22,6 +23,9 @@ export interface Mode {
   values: { deviceId: string; value: boolean }[];
 }
 export interface Member {
+  x?: number;
+  y?: number;
+  isLeader?: boolean;
   steamId: string;
   name: string;
   isOnline: boolean;
@@ -49,6 +53,7 @@ export interface DiscordConfig {
   roleIds: string[];
 }
 export interface LiveSnapshot {
+  world?: WorldSnapshot;
   pairing?: PairingStatus;
   profiles: Profile[];
   activeProfileId: string | null;

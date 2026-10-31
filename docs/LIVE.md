@@ -1,4 +1,4 @@
-# ElRusty Live 0.6.5
+# ElRusty Live 0.7.0
 
 Live är en separat tjänst för riktiga Rust+-enheter. Kretsbyggaren och dess simulering styr inga enheter i spelet. Tjänsten använder det inofficiella MIT-licensierade [rustplus.js](https://github.com/liamcottle/rustplus.js) och [discord.js](https://discord.js.org/); inga källkodsfiler har kopierats från EgorLis/Rustplusbot eller Smartrust.
 
@@ -104,3 +104,8 @@ Patchen i patches/ och dess hash i pnpm-lock.yaml måste följa med vid installa
 Patchen gör också AppTeamInfo.Note.type valfritt (int32, fältnummer 2). En läsande kontroll identifierade detta utelämnade fält på användarens server. Noteringarnas x/y förblir obligatoriska. Retry-räknaren återställs först efter 30 sekunders stabil anslutning; lyckad getInfo räcker inte för att återställa väntetiden.
 
 Serverkontrollen visade också utelämnat AppTeamInfo.leaderSteamId (uint64, fältnummer 1). Det fältet är nu valfritt; tom teaminformation blir en tom teamlista, inte ett anslutningsfel. Inga ledar-ID:n eller spelvärden fabriceras.
+
+
+## Livekarta 0.7
+
+Karta visar serverns JPEG med separata SVG-lager för koordinatrutor, monument, team, vending machines och event. Kartbilden hämtas vid öppning och cachelagras i minnet för aktuell server/wipe. Team och markörer läses var femte sekund. Vid avbrott markeras data som inaktuell; serverbyte rensar kartan. Markörer som försvinner beskrivs enbart som inte längre synliga, aldrig som bekräftat förstörda. Statuspricken på Live-fliken följer anslutningen även i kretsbyggaren. Grön = Rust+ anslutet, gul = ansluter/återansluter, röd = frånkopplat eller lokal tjänst saknas.
