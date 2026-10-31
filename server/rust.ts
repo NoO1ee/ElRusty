@@ -64,10 +64,12 @@ export class RustConnection extends EventEmitter implements RustAdapter {
         }
         resolve();
       });
-      this.client.on('error', () => {
+      this.client.on('error', (error: { code?: string }) => {
+        if (this.stopped) return;
         complete();
         reject(new Error('Kunde inte ansluta.'));
-        this.emit('lost');
+        this.close();
+        this.emit('lost', error?.code === 'ELRUSTY_PROTOCOL' ? 'protocol' : undefined);
       });
       this.client.on('disconnected', () => {
         complete();

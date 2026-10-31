@@ -1,3 +1,4 @@
+import RustPlus from '@liamcottle/rustplus.js';
 import { afterEach, expect, it, vi } from 'vitest';
 import { WebSocketServer } from 'ws';
 import protobuf from 'protobufjs';
@@ -9,13 +10,14 @@ const clients: RustConnection[] = [],
   servers: WebSocketServer[] = [];
 afterEach(async () => {
   vi.useRealTimers();
+  vi.restoreAllMocks();
   for (const c of clients.splice(0)) c.close();
   for (const s of servers.splice(0)) {
     for (const c of s.clients) c.terminate();
     await new Promise<void>((r) => s.close(() => r()));
   }
 });
-async function setup() {
+async function setup(omitQueuedPlayers = false) {
   const schema = await protobuf.load(
     join(dirname(require.resolve('@liamcottle/rustplus.js')), 'rustplus.proto'),
   );
@@ -43,7 +45,7 @@ async function setup() {
           wipeTime: 0,
           players: 1,
           maxPlayers: 100,
-          queuedPlayers: 0,
+          ...(omitQueuedPlayers ? {} : { queuedPlayers: 0 }),
         };
       if (request.getTeamInfo)
         response.teamInfo = {
@@ -80,7 +82,7 @@ async function setup() {
   });
   clients.push(client);
   await client.open();
-  return { client, server, Message, requests };
+  return { client, server, Message, requests, schema };
 }
 it('använder bibliotekets riktiga WebSocket/protobuf för autentiserade anrop', async () => {
   const { client, requests } = await setup();
@@ -131,4 +133,80 @@ it('ger timeout när protokollservern inte svarar', async () => {
   const check = expect(client.time()).rejects.toThrow('svarade inte i tid');
   await vi.advanceTimersByTimeAsync(8000);
   await check;
+});
+
+it('accepterar serversvar utan queuedPlayers och fortsätter med team och tid', async () => {
+  const { client, schema } = await setup(true);
+  const fields = schema.lookupType('rustplus.AppInfo').fields;
+  expect(fields.queuedPlayers.id).toBe(9);
+  expect(fields.queuedPlayers.type).toBe('uint32');
+  expect(fields.queuedPlayers.required).toBe(false);
+  expect(fields.name.required).toBe(true);
+  expect(fields.players.required).toBe(true);
+  await expect(client.info()).resolves.toBeUndefined();
+  expect((await client.team())[0].name).toBe('Owner');
+  expect(await client.time()).toBeCloseTo(18.7);
+});
+it('trasig protobuf avbryter väntande anrop och signalerar förlust en gång utan processkrasch', async () => {
+  const { client, server } = await setup();
+  const lost = vi.fn();
+  client.on('lost', lost);
+  for (const socket of server.clients) socket.removeAllListeners('message');
+  const check = expect(client.time()).rejects.toThrow('Frånkopplad');
+  for (const socket of server.clients) socket.send(Buffer.from([10, 255]));
+  await check;
+  await new Promise((r) => setImmediate(r));
+  expect(lost).toHaveBeenCalledTimes(1);
+  expect(lost).toHaveBeenCalledWith('protocol');
+  await expect(client.team()).rejects.toThrow('Frånkopplad');
+});
+it('misslyckad protokolladdning fångas utan att exponera råa fel', async () => {
+  vi.spyOn(protobuf, 'load').mockRejectedValueOnce(
+    Object.assign(new Error('private-token'), { instance: { token: 'secret' } }),
+  );
+  const client = new RustConnection({
+    id: 'schema',
+    name: 'schema',
+    host: '127.0.0.1',
+    port: 9,
+    playerId: '76561198000000000',
+    playerToken: 123,
+    useProxy: false,
+  });
+  clients.push(client);
+  const lost = vi.fn();
+  client.on('lost', lost);
+  await expect(client.open()).rejects.toThrow('Kunde inte ansluta');
+  expect(lost).toHaveBeenCalledWith('protocol');
+  expect(lost).toHaveBeenCalledTimes(1);
+});
+
+it('bibliotekets protokollfel exponerar inte partiella protobuf-objekt', async () => {
+  const { server } = await setup();
+  const port = (server.address() as { port: number }).port;
+  const raw = new RustPlus('127.0.0.1', port, '76561198000000000', 123);
+  // A valid envelope containing an incomplete AppInfo with a private test marker.
+  const packet = protobuf.Writer.create()
+    .uint32(10)
+    .fork()
+    .uint32(8)
+    .uint32(1)
+    .uint32(50)
+    .fork()
+    .uint32(10)
+    .string('private-marker')
+    .ldelim()
+    .ldelim()
+    .finish();
+  server.once('connection', (socket) => socket.send(packet));
+  const errorPromise = new Promise<Error>((resolve) => raw.once('error', resolve));
+  try {
+    raw.connect();
+    const error = await errorPromise;
+    expect(error).toMatchObject({ message: 'Rust+ protocol error', code: 'ELRUSTY_PROTOCOL' });
+    expect(error).not.toHaveProperty('instance');
+    expect(JSON.stringify(error)).not.toContain('private-marker');
+  } finally {
+    raw.disconnect();
+  }
 });

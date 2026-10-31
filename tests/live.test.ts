@@ -323,3 +323,20 @@ describe('validering, parning och Discord-behörigheter', () => {
     expect(() => s.saveProfile({ ...input, playerId: 123 })).toThrow();
   });
 });
+
+it('protokollfel visas tydligt och återansluter med bibehållen profil', async () => {
+  vi.useFakeTimers();
+  const { s, a, id, adapters } = await setup();
+  const device = await s.addDevice({ name: 'Ljus', entityId: 1 });
+  a.emit('lost', 'protocol');
+  expect(s.snapshot().connection).toBe('reconnecting');
+  expect(s.snapshot().connectionError).toContain('meddelande som inte kunde tolkas');
+  expect(s.snapshot().activeProfileId).toBe(id);
+  expect(s.config.profiles[0].playerToken).toBe(input.playerToken);
+  expect(s.snapshot().verified).toEqual([]);
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(s.snapshot().connection).toBe('connected');
+  expect(adapters[1].entity).toHaveBeenCalledWith(1);
+  expect(adapters[1].set).not.toHaveBeenCalled();
+  expect(s.snapshot().devices[0].id).toBe(device.id);
+});

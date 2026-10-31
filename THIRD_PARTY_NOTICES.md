@@ -33,3 +33,8 @@ Exempelbibliotekets källor och attribution redovisas i [docs/EXAMPLES.md](docs/
 ## Live dependencies
 
 Rust+-integration: @liamcottle/rustplus.js 2.5.0 (MIT), https://github.com/liamcottle/rustplus.js. Discord-integration: discord.js (Apache-2.0), https://github.com/discordjs/discord.js. Dependencies retain their own licenses; consult package metadata and pnpm-lock.yaml for transitive dependencies. No source code from Smartrust or EgorLis/Rustplusbot was copied.
+
+
+### Local rustplus.js compatibility patch
+
+ElRusty 0.6.4 patches @liamcottle/rustplus.js 2.5.0 (MIT): optional AppInfo.queuedPlayers and sanitized decoding/schema-loading failures. The patch preserves upstream copyright and license; see patches/ and pnpm-workspace.yaml.

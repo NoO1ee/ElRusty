@@ -9,3 +9,5 @@
 *.mjs text eol=lf
 *.cmd text eol=crlf
 *.webp binary
+
+*.patch text eol=lf

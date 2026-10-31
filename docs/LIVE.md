@@ -1,4 +1,4 @@
-# ElRusty Live 0.6.3
+# ElRusty Live 0.6.4
 
 Live är en separat tjänst för riktiga Rust+-enheter. Kretsbyggaren och dess simulering styr inga enheter i spelet. Tjänsten använder det inofficiella MIT-licensierade [rustplus.js](https://github.com/liamcottle/rustplus.js) och [discord.js](https://discord.js.org/); inga källkodsfiler har kopierats från EgorLis/Rustplusbot eller Smartrust.
 
@@ -71,7 +71,7 @@ För Live-backup: stoppa tjänsten och kopiera den privata datakatalogen säkert
 
 ## Raspberry Pi Zero 2 W — förberett, inte hårdvaruverifierat
 
-Använd 64-bitars Raspberry Pi OS Lite och Node.js 24 för Linux arm64, med en uppdaterad distribution som stöds av Node. Bygg på datorn. Överför `dist`, `server`, `shared`, `package.json`, `pnpm-lock.yaml` och `pnpm-workspace.yaml` till `/opt/elrusty`; kör `pnpm install --prod --frozen-lockfile` på Pi:n. Kopiera inte Windows node_modules. Ingen webbläsare, Vite, Docker eller bildrendering behövs på Pi:n.
+Använd 64-bitars Raspberry Pi OS Lite och Node.js 24 för Linux arm64, med en uppdaterad distribution som stöds av Node. Bygg på datorn. Överför `dist`, `server`, `shared`, `package.json`, `pnpm-lock.yaml` och `pnpm-workspace.yaml` och katalogen `patches` till `/opt/elrusty`; kör `pnpm install --prod --frozen-lockfile` på Pi:n. Kopiera inte Windows node_modules. Ingen webbläsare, Vite, Docker eller bildrendering behövs på Pi:n.
 
 Skapa en tjänsteanvändare `elrusty` utan interaktiv inloggning, gör koden läsbar för användaren och installera `deploy/elrusty.service` i `/etc/systemd/system`. Kontrollera Node-sökvägen i ExecStart. Aktivera med `sudo systemctl enable --now elrusty`. Tjänsten får privat datalagring i `/var/lib/elrusty` och startar om vid processfel. Öppna panelen från datorn med `ssh -L 5173:127.0.0.1:5173 <pi-användare>@<pi-adress>` och besök localhost:5173. Stäng lokal ElRusty på samma port först.
 
@@ -90,3 +90,10 @@ Automatiska tester täcker adapteroberoende beteende, API-skydd och webbflöden.
 5. Stäng webbläsaren och upprepa Discord, larm och `!time`. Bryt nätet och kontrollera att gamla kommandon inte återspelas.
 
 Karta, BattleMetrics, scheman, automation, publika teamkonton och direkta kopplingar från simulerade kretsar till riktiga enheter ingår inte i 0.6.
+
+
+### Protokollkompatibilitet i 0.6.4
+
+En versionshanterad pnpm-patch för rustplus.js 2.5.0 gör AppInfo.queuedPlayers valfritt (samma uint32 och fältnummer 9). Detta motsvarar observerade servermeddelanden där köfältet utelämnas. Övriga obligatoriska fält behålls. Patchen fångar avkodnings- och protokolladdningsfel och rapporterar endast ELRUSTY_PROTOCOL, utan rådata. Adaptern stänger berörd anslutning och avbryter väntande anrop; Live visar ett protokollfel och försöker återansluta utan att återspela gamla kommandon.
+
+Patchen i patches/ och dess hash i pnpm-lock.yaml måste följa med vid installation och Pi-flytt. Kör pnpm install --frozen-lockfile efter uppdatering. Inga profiler eller registreringar behöver raderas eller paras om.

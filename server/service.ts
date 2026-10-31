@@ -160,7 +160,7 @@ export class LiveService extends EventEmitter {
     this.connectionError = '';
     this.changed();
     let lost = false;
-    const fail = () => {
+    const fail = (reason?: string) => {
       if (gen !== this.generation || lost) return;
       lost = true;
       this.generation++;
@@ -172,7 +172,9 @@ export class LiveService extends EventEmitter {
       this.timeBusy = false;
       this.connection = 'reconnecting';
       this.connectionError =
-        'Kunde inte nå eller autentisera mot Rust+. Kontrollera server, app.port och parning.';
+        reason === 'protocol'
+          ? 'Rust+-servern skickade ett meddelande som inte kunde tolkas. Anslutningen återupprättas; din parning finns kvar.'
+          : 'Kunde inte nå eller autentisera mot Rust+. Kontrollera server, app.port och parning.';
       this.changed();
       this.retry = setTimeout(
         () => void this.establish(true),

@@ -1,5 +1,12 @@
 # Ändringslogg
 
+## 0.6.4 — 2026-10-31
+
+- Kompatibilitetspatch för serversvar utan queuedPlayers.
+- Avkodningsfel och misslyckad protokolladdning rapporteras säkert i stället för att krascha Node-processen.
+- Väntande anrop avbryts, ett tydligt protokollfel visas och befintlig återanslutning används. Sparad parning behålls.
+- Regressionstester för saknat köfält, trasiga meddelanden, protokolladdning och återanslutning.
+
 ## 0.6.3 — 2026-10-31
 
 - Väntar på att det egna inloggningsfönstret stängts och försöker igen vid låsta profilfiler på Windows.
