@@ -1,5 +1,15 @@
 # Ändringslogg
 
+## 0.4.0 — 2026-10-31
+
+- Ny flik Exempelbyggen med sökning, kategorier, ursprung och schematiska förhandsvisningar med Rust-bilder.
+- Nih Core, BCN Core, Inline Backup och NEXUS Core som källhänvisade kopplingsreferenser. NEXUS återger 24 komponenter och 32 anslutningar från den delade kretsen.
+- Fem egna, modelltestade förlagor för reservkraft, prioriterad fördelning, latch, timer, smältlinje och fristående sektorer.
+- Ny kopia vid varje öppning; det föregående bygget sparas innan bytet. Guider och rollnamn följer med i sparning och backup.
+- Referenssimulering spärras i både motor och gränssnitt. Tydlig skillnad mellan kopplingsreferens och modelltestad förlaga.
+- Redigerbara rollnamn på komponentkort; portnamn behålls på engelska.
+- Branch tillåter 1 rW enligt aktuella Rust-regler.
+
 ## 0.3.0 — 2026-10-31
 
 - Electric Furnace har enbart Power In bland elportarna. Den felaktiga Passthrough-porten och dess simulerade utgång är borttagna.

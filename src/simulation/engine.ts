@@ -23,6 +23,18 @@ export function step(circuit: Circuit, previous: SimulationResult, dt = 0.25): S
     transfers: previous.transfers,
     memory: structuredClone(previous.memory),
   };
+  if (circuit.example?.mode === 'reference') {
+    result.time = 0;
+    result.warnings = ['Kopplingsreferens: simulering är avstängd. ' + circuit.example.notice];
+    for (const n of circuit.nodes)
+      result.nodeStates[n.id] = {
+        input: 0,
+        active: false,
+        message: 'Kopplingsreferens · ej simulerad',
+        inventory: initialInventory(n),
+      };
+    return result;
+  }
   const nodes = circuit.nodes,
     edges = circuit.edges,
     byNode = Object.fromEntries(nodes.map((n) => [n.id, n]));
@@ -77,7 +89,7 @@ export function step(circuit: Circuit, previous: SimulationResult, dt = 0.25): S
           out = { 'Combined Power Out': read('Root Power 1') + read('Root Power 2') };
           break;
         case 'branch': {
-          const branch = Math.min(power, Math.max(2, s.branch));
+          const branch = Math.min(power, Math.max(1, s.branch));
           out = { 'Branch Out': branch, 'Power Out': Math.max(0, power - branch) };
           break;
         }

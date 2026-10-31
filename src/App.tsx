@@ -50,6 +50,8 @@ import {
 import { CircuitCanvas } from './components/CircuitCanvas';
 import { Inspector } from './components/Inspector';
 import { FilterEditor } from './components/FilterEditor';
+import { ExampleLibrary, ExampleGuide } from './components/ExampleLibrary';
+import { openExample } from './data/examples';
 import { ItemImage } from './components/ItemImage';
 
 function useSimulator() {
@@ -67,6 +69,7 @@ function useSimulator() {
       definition: n.data.definition,
       settings: n.data.settings,
     })),
+    exampleMode: circuit.example?.mode,
     edges: circuit.edges.map((e) => ({
       id: e.id,
       source: e.source,
@@ -109,7 +112,7 @@ function useSimulator() {
     send('reset', 0);
   }, [signature]);
   useEffect(() => {
-    if (!running) return;
+    if (!running || circuit.example?.mode === 'reference') return;
     const interval = setInterval(() => send('step'), 250);
     return () => clearInterval(interval);
   }, [running]);
@@ -194,7 +197,7 @@ function Library() {
 }
 
 export default function App() {
-  const [view, setView] = useState<'circuit' | 'filters' | 'saved'>('circuit'),
+  const [view, setView] = useState<'circuit' | 'filters' | 'saved' | 'examples'>('circuit'),
     [records, setRecords] = useState<SavedRecord[]>([]),
     [filter, setFilter] = useState<ConveyorFilter>(emptyFilter),
     [filterId, setFilterId] = useState<string>(() => crypto.randomUUID()),
@@ -462,6 +465,13 @@ export default function App() {
             Conveyor-filter
           </button>
           <button
+            className={view === 'examples' ? 'active' : ''}
+            onClick={() => setView('examples')}
+          >
+            <Workflow size={16} />
+            Exempelbyggen
+          </button>
+          <button
             className={view === 'saved' ? 'active' : ''}
             onClick={() => {
               setView('saved');
@@ -550,12 +560,18 @@ export default function App() {
               <button
                 aria-label="Stega simulering"
                 className="icon-button"
-                disabled={running}
+                disabled={running || circuit.example?.mode === 'reference'}
                 onClick={simulator.step}
               >
                 <StepForward size={16} />
               </button>
               <button
+                disabled={circuit.example?.mode === 'reference'}
+                title={
+                  circuit.example?.mode === 'reference'
+                    ? 'Kopplingsreferens: nödvändiga spelregler stöds ännu inte.'
+                    : undefined
+                }
                 className={running ? 'running-button' : ''}
                 onClick={() => useStudio.setState({ running: !running })}
               >
@@ -577,6 +593,7 @@ export default function App() {
               </button>
             </div>
           </div>
+          <ExampleGuide key={circuit.id} circuit={circuit} />
           <div className="workspace">
             {left && <Library />}
             <CircuitCanvas />
@@ -584,7 +601,12 @@ export default function App() {
           </div>
           <div className="simulation-strip">
             <span className={'simulation-state ' + (running ? 'active' : '')}>
-              {running ? '● Kör' : 'Ⅱ Pausad'} <small>{simulation.time.toFixed(2)} s</small>
+              {circuit.example?.mode === 'reference'
+                ? 'Kopplingsreferens · simulering avstängd'
+                : running
+                  ? '● Kör'
+                  : 'Ⅱ Pausad'}{' '}
+              <small>{simulation.time.toFixed(2)} s</small>
             </span>
             <span>{simulation.transfers.toLocaleString('sv-SE')} flyttade items</span>
             <span className="muted">Fast sol / vind · batterier alltid laddade</span>
@@ -596,6 +618,33 @@ export default function App() {
             )}
           </div>
         </main>
+      )}
+      {view === 'examples' && (
+        <ExampleLibrary
+          onOpen={async (id) => {
+            try {
+              const previous = JSON.parse(persistedCircuit) as Circuit;
+              await saveRecord({
+                id: previous.id,
+                name: previous.name,
+                kind: 'circuit',
+                updatedAt: Date.now(),
+                payload: previous,
+              });
+              const copy = openExample(id);
+              useStudio.getState().replace(copy);
+              setView('circuit');
+              notify(
+                'Öppnade en egen kopia av ' +
+                  copy.example!.name +
+                  '. Ditt tidigare bygge finns kvar i Sparat.',
+              );
+              await refresh();
+            } catch (e) {
+              notify('Kunde inte öppna exemplet: ' + (e as Error).message);
+            }
+          }}
+        />
       )}
       {view === 'filters' && <main className="scroll-page">{filterView}</main>}
       {view === 'saved' && (
@@ -720,7 +769,7 @@ export default function App() {
         <span role="status" aria-live="polite">
           {message}
         </span>
-        <span className="version-label">ElRusty 0.3 · lokalt</span>
+        <span className="version-label">ElRusty 0.4 · lokalt</span>
       </footer>
       <input
         ref={fileInput}

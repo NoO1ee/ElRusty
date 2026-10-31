@@ -24,3 +24,7 @@ These services are references; their application code has not been copied into E
 ## Software
 
 React (MIT), React Flow / xyflow (MIT), Zustand (MIT), Dexie (Apache-2.0), Lucide (ISC), Vite (MIT), TypeScript (Apache-2.0), Vitest (MIT), Playwright (Apache-2.0), Sharp (Apache-2.0). Their respective license texts remain in their distributed packages. DM Sans and Space Grotesk are bundled locally via Fontsource and are licensed under the SIL Open Font License. Their license notices are included in the corresponding npm packages.
+
+## Kretsreferenser
+
+Exempelbibliotekets källor och attribution redovisas i [docs/EXAMPLES.md](docs/EXAMPLES.md). Namnen Nih Core, BCN Core och NEXUS Core används för att identifiera referensbyggen. Portanslutningar och numeriska inställningar återges som tekniska data med egen layout och egna guider. Inga originaldiagram, sidtexter eller programfiler från Rustrician ingår i distributionen.

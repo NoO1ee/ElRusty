@@ -18,6 +18,7 @@ import { ItemImage } from './ItemImage';
 import { FilterEditor } from './FilterEditor';
 export function Inspector() {
   const node = useStudio((s) => s.circuit.nodes.find((n) => n.selected)),
+    reference = useStudio((s) => s.circuit.example?.mode === 'reference'),
     runtime = useStudio((s) => (node ? s.simulation.nodeStates[node.id] : undefined)),
     change = useStudio((s) => s.settings),
     notify = useStudio((s) => s.notify);
@@ -106,18 +107,38 @@ export function Inspector() {
       </div>
       <div className="inspector-component">
         <ItemImage item={def.shortname} />
-        <h2>{def.name}</h2>
+        <h2>{node.data.label || def.name}</h2>
         <span className={'status-chip ' + (runtime?.active ? 'good' : '')}>
-          {runtime && powerStatus(def, runtime.input) === 'missing'
-            ? 'Saknar ström'
-            : runtime && powerStatus(def, runtime.input) === 'insufficient'
-              ? 'För lite ström'
-              : runtime?.active
-                ? 'Aktiv'
-                : 'Avstängd'}
+          {reference
+            ? 'Kopplingsreferens'
+            : runtime && powerStatus(def, runtime.input) === 'missing'
+              ? 'Saknar ström'
+              : runtime && powerStatus(def, runtime.input) === 'insufficient'
+                ? 'För lite ström'
+                : runtime?.active
+                  ? 'Aktiv'
+                  : 'Avstängd'}
         </span>
       </div>
       <section>
+        <label>
+          Komponentnamn
+          <input
+            aria-label="Komponentnamn"
+            value={node.data.label || ''}
+            placeholder={def.name}
+            maxLength={120}
+            onFocus={() => useStudio.getState().checkpoint()}
+            onChange={(e) => {
+              const s = useStudio.getState();
+              s.setGraph(
+                s.circuit.nodes.map((n) =>
+                  n.id === node.id ? { ...n, data: { ...n.data, label: e.target.value } } : n,
+                ),
+              );
+            }}
+          />
+        </label>
         <label className="check-label">
           <input
             type="checkbox"
@@ -131,12 +152,12 @@ export function Inspector() {
             Branch Out (rW)
             <input
               type="number"
-              min={2}
+              min={1}
               max={10000}
               value={settings.branch}
               onChange={(e) =>
                 change(node.id, {
-                  branch: Math.max(2, Math.min(10000, Math.floor(+e.target.value))),
+                  branch: Math.max(1, Math.min(10000, Math.floor(+e.target.value))),
                 })
               }
             />

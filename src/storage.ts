@@ -48,6 +48,34 @@ export function validateCircuit(value: unknown): asserts value is Circuit {
     c.edges.length > 2000
   )
     fail('Ogiltig krets eller formatversion.');
+  if (c.example !== undefined) {
+    const e = c.example;
+    if (
+      !e ||
+      !['reference', 'model'].includes(e.mode) ||
+      ![e.id, e.name, e.author].every((v) => typeof v === 'string' && v.length <= 200) ||
+      typeof e.notice !== 'string' ||
+      e.notice.length > 1500 ||
+      !Array.isArray(e.steps) ||
+      e.steps.length > 12 ||
+      e.steps.some((v) => typeof v !== 'string' || v.length > 800)
+    )
+      fail('Ogiltig exempelguide.');
+    if (e.source) {
+      let url: URL;
+      try {
+        url = new URL(e.source.url);
+      } catch {
+        fail('Ogiltig exempellänk.');
+      }
+      if (
+        url.protocol !== 'https:' ||
+        typeof e.source.title !== 'string' ||
+        e.source.title.length > 300
+      )
+        fail('Ogiltig exempellänk.');
+    }
+  }
   const nodeIds = new Set();
   for (const n of c.nodes) {
     if (
@@ -59,6 +87,11 @@ export function validateCircuit(value: unknown): asserts value is Circuit {
       !Number.isFinite(n.position?.y)
     )
       fail('Ogiltig komponent.');
+    if (
+      n.data.label !== undefined &&
+      (typeof n.data.label !== 'string' || n.data.label.length > 120)
+    )
+      fail('Ogiltigt komponentnamn.');
     nodeIds.add(n.id);
     const s = n.data.settings;
     if (
@@ -66,7 +99,7 @@ export function validateCircuit(value: unknown): asserts value is Circuit {
       typeof s.enabled !== 'boolean' ||
       typeof s.sensor !== 'boolean' ||
       !Number.isSafeInteger(s.branch) ||
-      s.branch < 2 ||
+      s.branch < 1 ||
       s.branch > 10000 ||
       !Number.isFinite(s.seconds) ||
       s.seconds < 0.1 ||

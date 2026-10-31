@@ -1,4 +1,4 @@
-# Simuleringsmodell 0.3
+# Simuleringsmodell 0.4
 
 ## Källor och verifieringsnivå
 
@@ -21,7 +21,7 @@ Motorn kör 250 ms tidssteg i en Web Worker. Kombinatoriska signaler beräknas t
 
 Solpanel: 20 rW, vind: 150 rW, generator: 40 rW. Batterier: 15, 50 eller 100 rW med ständig laddning. `Fully Charged` modelleras som 1 rW. Ingen vädermodell eller laddningskurva.
 
-Branch reserverar sitt värde och skickar resten till Power Out. Splitter fördelar mellan anslutna utgångar. AND kräver båda signalerna; OR väljer den högsta; XOR släpper endast en ensam signal. Förbrukare med Passthrough och conveyors drar sin effekt före utgången.
+Branch kan ställas från 1 rW och reserverar sitt värde och skickar resten till Power Out. Splitter fördelar mellan anslutna utgångar. AND kräver båda signalerna; OR väljer den högsta; XOR släpper endast en ensam signal. Förbrukare med Passthrough och conveyors drar sin effekt före utgången.
 
 **Electric Furnace har bara en elektrisk port: Power In. Ingen Passthrough finns.** Industrial In/Out på ugnskortet tillhör den inkluderade Storage Adaptorn. Äldre sparningar och importer med den felaktiga elektriska utgången får den anslutningen borttagen vid inläsning, med ett synligt meddelande. Övriga komponenter och anslutningar bevaras; ursprungsobjektet ändras inte av inläsningen.
 
@@ -84,3 +84,7 @@ Ingredienser och output-kapacitet kontrolleras före en atomär sats. Fullt lage
 Följ [testscenarierna för Rust](GAME_CHECKS.md) för tider, blandade material, fulla lager och blueprint-prioritet. Modelltester kontrollerar reglerna ovan, inte vad en aktuell Rust-server faktiskt gör.
 
 Återstående arbete omfattar fler recept, matförbränning, övriga ugnstyper, workbench-upgrades, återstående elkomponenter och mätning av transport- och signalbeteenden. Rust-filterexportens struktur och roundtrip är testade. Copy(JSON)/Paste(JSON), kategori-ID och blueprint-regler behöver även jämföras i ett körande Rust-spel.
+
+## Exempel och referensläge
+
+Kretsar från exempelbiblioteket kan bära en sparad guide och ett referensläge. Nih, BCN, NEXUS och Inline är kopplingsreferenser; motorn returnerar ingen simulerad effekt och gränssnittet spärrar start/stegning. Detta förhindrar att förenklad batteri- eller minneslogik presenteras som ett korrekt resultat. De egna förlagorna är testade mot appens nuvarande modell. Se [Exempelbibliotek](EXAMPLES.md).

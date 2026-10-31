@@ -34,7 +34,8 @@ const ComponentCard = memo(function ComponentCard({
   const def = byDefinition[data.definition];
   const runtime = useStudio((s) => s.simulation.nodeStates[id]),
     outputs = useStudio((s) => s.simulation.outputs);
-  const powerIssue = runtime ? powerStatus(def, runtime.input) : null;
+  const reference = useStudio((s) => s.circuit.example?.mode === 'reference');
+  const powerIssue = runtime && !reference ? powerStatus(def, runtime.input) : null;
   return (
     <article
       className={
@@ -51,9 +52,9 @@ const ComponentCard = memo(function ComponentCard({
       <header className="component-header">
         <ItemImage item={def.shortname} />
         <div>
-          <strong>{def.name}</strong>
+          <strong>{data.label || def.name}</strong>
           <span>
-            {def.category} {def.watts > 0 ? '· ' + def.watts + ' rW' : ''}
+            {data.label ? def.name : def.category} {def.watts > 0 ? '· ' + def.watts + ' rW' : ''}
           </span>
         </div>
         <i

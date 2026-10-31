@@ -79,9 +79,22 @@ export interface ComponentSettings {
   recipe: string;
   workbench: number;
 }
-export type ComponentNode = Node<{ definition: string; settings: ComponentSettings }, 'component'>;
+export type ComponentNode = Node<
+  { definition: string; settings: ComponentSettings; label?: string },
+  'component'
+>;
 export type WireEdge = Edge<{ color: string; kind: PortKind; waypoints: XYPosition[] }, 'wire'>;
+export interface ExampleContext {
+  id: string;
+  name: string;
+  mode: 'reference' | 'model';
+  notice: string;
+  steps: string[];
+  author: string;
+  source?: { title: string; url: string };
+}
 export interface Circuit {
+  example?: ExampleContext;
   schemaVersion: 1;
   id: string;
   name: string;

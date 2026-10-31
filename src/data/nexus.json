@@ -1,0 +1,374 @@
+{
+  "source": "https://www.rustrician.io/?circuit=36f93e0d67cc7a2c6cb29ea948a7cfae",
+  "retrieved": "2026-10-31",
+  "nodes": [
+    {
+      "id": "115",
+      "definition": "branch",
+      "label": "Utgående huvudbudget · 10 rW",
+      "x": 2040,
+      "y": 0,
+      "branch": 10
+    },
+    {
+      "id": "125",
+      "definition": "turret",
+      "label": "Exempellast · Auto Turret",
+      "x": 3400,
+      "y": 0
+    },
+    {
+      "id": "130",
+      "definition": "or",
+      "label": "Välj huvudväg / separat reserv",
+      "x": 3060,
+      "y": 0
+    },
+    {
+      "id": "2",
+      "definition": "root",
+      "label": "Huvudkällornas Root Combiner",
+      "x": 340,
+      "y": 0
+    },
+    {
+      "id": "6",
+      "definition": "wind",
+      "label": "Vindkälla A · original 75 rW",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "9",
+      "definition": "wind",
+      "label": "Vindkälla B · original 75 rW",
+      "x": 0,
+      "y": 420
+    },
+    {
+      "id": "12",
+      "definition": "branch",
+      "label": "Huvudbudget · 10 rW",
+      "x": 680,
+      "y": 0,
+      "branch": 10
+    },
+    {
+      "id": "16",
+      "definition": "branch",
+      "label": "Huvudsignal · 1 rW",
+      "x": 680,
+      "y": 420,
+      "branch": 1
+    },
+    {
+      "id": "20",
+      "definition": "memory",
+      "label": "Minnescell · huvudväg",
+      "x": 1020,
+      "y": 0
+    },
+    {
+      "id": "30",
+      "definition": "blocker",
+      "label": "Blockera reservsignal",
+      "x": 1020,
+      "y": 420
+    },
+    {
+      "id": "37",
+      "definition": "or",
+      "label": "Huvud-/batteriväljare",
+      "x": 1700,
+      "y": 0
+    },
+    {
+      "id": "42",
+      "definition": "battery-large",
+      "label": "Huvudbatteri A",
+      "x": 2040,
+      "y": 840
+    },
+    {
+      "id": "46",
+      "definition": "battery-large",
+      "label": "Huvudbatteri B",
+      "x": 2380,
+      "y": 840
+    },
+    {
+      "id": "50",
+      "definition": "or",
+      "label": "Samla laddningsmatning",
+      "x": 1360,
+      "y": 420
+    },
+    {
+      "id": "56",
+      "definition": "memory",
+      "label": "Minnescell · laddningsfördelning",
+      "x": 1700,
+      "y": 420
+    },
+    {
+      "id": "64",
+      "definition": "splitter",
+      "label": "Fördela till huvudbatterier",
+      "x": 2040,
+      "y": 420
+    },
+    {
+      "id": "72",
+      "definition": "root",
+      "label": "Kombinera huvudbatterier",
+      "x": 2720,
+      "y": 420
+    },
+    {
+      "id": "78",
+      "definition": "branch",
+      "label": "Batteribudget · 10 rW",
+      "x": 3060,
+      "y": 420,
+      "branch": 10
+    },
+    {
+      "id": "85",
+      "definition": "battery-small",
+      "label": "Litet kontrollbatteri",
+      "x": 680,
+      "y": 840
+    },
+    {
+      "id": "89",
+      "definition": "branch",
+      "label": "Kontrollbudget · 2 rW",
+      "x": 1020,
+      "y": 840,
+      "branch": 2
+    },
+    {
+      "id": "103",
+      "definition": "and",
+      "label": "Båda huvudbatterier laddade",
+      "x": 2380,
+      "y": 420
+    },
+    {
+      "id": "97",
+      "definition": "splitter",
+      "label": "Reservens laddningsfördelare",
+      "x": 2720,
+      "y": 840
+    },
+    {
+      "id": "110",
+      "definition": "battery-large",
+      "label": "Separat reservbatteri",
+      "x": 3060,
+      "y": 840
+    },
+    {
+      "id": "120",
+      "definition": "branch",
+      "label": "Reservbudget · 10 rW",
+      "x": 3400,
+      "y": 840,
+      "branch": 10
+    }
+  ],
+  "edges": [
+    {
+      "source": "56",
+      "sourcePort": "Output",
+      "target": "97",
+      "targetPort": "Power In"
+    },
+    {
+      "source": "37",
+      "sourcePort": "Power Out",
+      "target": "115",
+      "targetPort": "Power In"
+    },
+    {
+      "source": "120",
+      "sourcePort": "Branch Out",
+      "target": "130",
+      "targetPort": "Input B"
+    },
+    {
+      "source": "115",
+      "sourcePort": "Branch Out",
+      "target": "130",
+      "targetPort": "Input A"
+    },
+    {
+      "source": "130",
+      "sourcePort": "Power Out",
+      "target": "125",
+      "targetPort": "Power In"
+    },
+    {
+      "source": "6",
+      "sourcePort": "Power Out",
+      "target": "2",
+      "targetPort": "Root Power 1"
+    },
+    {
+      "source": "9",
+      "sourcePort": "Power Out",
+      "target": "2",
+      "targetPort": "Root Power 2"
+    },
+    {
+      "source": "12",
+      "sourcePort": "Branch Out",
+      "target": "20",
+      "targetPort": "Power In"
+    },
+    {
+      "source": "12",
+      "sourcePort": "Power Out",
+      "target": "16",
+      "targetPort": "Power In"
+    },
+    {
+      "source": "2",
+      "sourcePort": "Combined Power Out",
+      "target": "12",
+      "targetPort": "Power In"
+    },
+    {
+      "source": "30",
+      "sourcePort": "Power Out",
+      "target": "20",
+      "targetPort": "Set"
+    },
+    {
+      "source": "16",
+      "sourcePort": "Branch Out",
+      "target": "30",
+      "targetPort": "Block Passthrough"
+    },
+    {
+      "source": "20",
+      "sourcePort": "Inverted Output",
+      "target": "37",
+      "targetPort": "Input A"
+    },
+    {
+      "source": "20",
+      "sourcePort": "Output",
+      "target": "50",
+      "targetPort": "Input A"
+    },
+    {
+      "source": "16",
+      "sourcePort": "Power Out",
+      "target": "50",
+      "targetPort": "Input B"
+    },
+    {
+      "source": "50",
+      "sourcePort": "Power Out",
+      "target": "56",
+      "targetPort": "Power In"
+    },
+    {
+      "source": "56",
+      "sourcePort": "Inverted Output",
+      "target": "64",
+      "targetPort": "Power In"
+    },
+    {
+      "source": "64",
+      "sourcePort": "Power Out 1",
+      "target": "42",
+      "targetPort": "Power In"
+    },
+    {
+      "source": "64",
+      "sourcePort": "Power Out 2",
+      "target": "46",
+      "targetPort": "Power In"
+    },
+    {
+      "source": "42",
+      "sourcePort": "Power Output",
+      "target": "72",
+      "targetPort": "Root Power 1"
+    },
+    {
+      "source": "46",
+      "sourcePort": "Power Output",
+      "target": "72",
+      "targetPort": "Root Power 2"
+    },
+    {
+      "source": "72",
+      "sourcePort": "Combined Power Out",
+      "target": "78",
+      "targetPort": "Power In"
+    },
+    {
+      "source": "78",
+      "sourcePort": "Branch Out",
+      "target": "37",
+      "targetPort": "Input B"
+    },
+    {
+      "source": "85",
+      "sourcePort": "Power Output",
+      "target": "89",
+      "targetPort": "Power In"
+    },
+    {
+      "source": "89",
+      "sourcePort": "Branch Out",
+      "target": "20",
+      "targetPort": "Reset"
+    },
+    {
+      "source": "42",
+      "sourcePort": "Fully Charged",
+      "target": "103",
+      "targetPort": "Input A"
+    },
+    {
+      "source": "46",
+      "sourcePort": "Fully Charged",
+      "target": "103",
+      "targetPort": "Input B"
+    },
+    {
+      "source": "103",
+      "sourcePort": "Power Out",
+      "target": "56",
+      "targetPort": "Set"
+    },
+    {
+      "source": "97",
+      "sourcePort": "Power Out 3",
+      "target": "110",
+      "targetPort": "Power In"
+    },
+    {
+      "source": "110",
+      "sourcePort": "Power Output",
+      "target": "120",
+      "targetPort": "Power In"
+    },
+    {
+      "source": "78",
+      "sourcePort": "Power Out",
+      "target": "30",
+      "targetPort": "Power In"
+    },
+    {
+      "source": "89",
+      "sourcePort": "Power Out",
+      "target": "56",
+      "targetPort": "Reset"
+    }
+  ]
+}

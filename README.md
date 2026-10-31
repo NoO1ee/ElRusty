@@ -39,6 +39,12 @@ GitHub Actions kör typkontroll, tester, produktionsbygge och Chromium-scenarier
 
 Tryck **Simulera** eller stega manuellt. Boxarnas startlager redigeras i inställningspanelen. Redigering av komponentinställningar eller kopplingar återställer simuleringskörningen; positioner och kabelfärger gör det inte. Sparade lager är startlager, inte tillfälliga simuleringsresultat.
 
+## Exempelbyggen
+
+Sök bland nio förlagor: Nih Core, BCN Core, NEXUS Core, Inline Backup och fem egna byggen inom reservkraft, fördelning, logik och industrial. Varje öppning skapar en redigerbar kopia med guide, rollnamn och individuella kabelfärger. Nuvarande bygge sparas först.
+
+Kopplingsreferenser har simuleringen avstängd när nödvändiga spelregler saknas. De fem egna förlagorna har beteendetester för appens modell. NEXUS bygger på den delade kretsens 24 komponenter och 32 anslutningar. Se [biblioteksdokumentationen](docs/EXAMPLES.md) för källor, attribution och begränsningar.
+
 ## Conveyor-filter
 
 Sök bland 1 309 importerade spelitems eller välj en hel kategori. Regler kan ha Min, Max, Buffer och Blueprint. Lägena är Any Item, Require All och Exclude Listed Items.
@@ -53,7 +59,7 @@ Kretsar och filter autosparas i IndexedDB och visas under **Sparat**. Öppna, du
 
 ## Simuleringsmodell och aktuell täckning
 
-Version 0.3 innehåller 28 komponenter: energikällor, batteristorlekar, fördelning, grundlogik, timer, memory cell, två manuella sensorer, grundförbrukare, conveyors, industrial-fördelare, boxar med adaptrar, elektrisk ugn och crafter.
+Version 0.4 innehåller 28 komponenter: energikällor, batteristorlekar, fördelning, grundlogik, timer, memory cell, två manuella sensorer, grundförbrukare, conveyors, industrial-fördelare, boxar med adaptrar, elektrisk ugn och crafter.
 
 Solpanel och vind ger konstant 20 respektive 150 rW. Batterier har alltid laddning, med respektive maxutgång. Det är avsiktliga förenklingar. Industriella lager använder spelkatalogens stackstorlekar och begränsade lagerplatser. Ugn och crafter har separata input/output-områden; blueprints skiljs från vanliga items.
 
