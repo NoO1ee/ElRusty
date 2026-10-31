@@ -46,7 +46,7 @@ async function setup() {
       req.on('error', reject);
       req.end(body ? JSON.stringify(body) : undefined);
     });
-  return { s, call };
+  return { s, call, port };
 }
 it('kräver CSRF, kontrollerar Host/Origin och döljer token i API-svaret', async () => {
   const { call } = await setup();
@@ -92,4 +92,46 @@ it('felaktig import skriver inte över befintlig profil', async () => {
   );
   const saved = await call('state');
   expect(saved.data.profiles[0].name).toBe('A');
+});
+it('SSE skickar initial status och nya ändringar utan privata token', async () => {
+  const { s, port } = await setup();
+  const messages: any[] = [];
+  await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => reject(Error('SSE-timeout')), 2000);
+    const req = request(
+      { hostname: '127.0.0.1', port, path: '/api/live/events', headers: { Host: '127.0.0.1:0' } },
+      (res) => {
+        expect(res.headers['content-type']).toBe('text/event-stream');
+        let buffer = '';
+        res.on('data', (chunk) => {
+          buffer += chunk;
+          let boundary: number;
+          while ((boundary = buffer.indexOf('\n\n')) >= 0) {
+            const frame = buffer.slice(0, boundary);
+            buffer = buffer.slice(boundary + 2);
+            if (!frame.startsWith('data: ')) continue;
+            messages.push(JSON.parse(frame.slice(6)));
+            if (messages.length === 1)
+              s.saveProfile({
+                name: 'Stream profile',
+                host: '127.0.0.1',
+                port: 28082,
+                playerId: '76561198000000000',
+                playerToken: 998877,
+              });
+            if (messages.length === 2) {
+              clearTimeout(timer);
+              res.destroy();
+              resolve();
+            }
+          }
+        });
+      },
+    );
+    req.on('error', reject);
+    req.end();
+  });
+  expect(messages[0].profiles).toEqual([]);
+  expect(messages[1].profiles[0].name).toBe('Stream profile');
+  expect(JSON.stringify(messages)).not.toContain('998877');
 });
