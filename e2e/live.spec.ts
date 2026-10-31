@@ -254,7 +254,11 @@ test('kartan har lager, markeringsdetaljer och statusprick även i kretsbyggaren
   await page.getByRole('button', { name: 'Live', exact: true }).click();
   await page.getByRole('button', { name: 'Karta', exact: true }).click();
   await expect(page.getByLabel('Rust-serverns livekarta')).toBeVisible();
-  await page.getByRole('button', { name: 'Cargo Ship', exact: true }).click();
+  const marker = page.getByRole('button', { name: 'Cargo Ship', exact: true });
+  await expect
+    .poll(() => marker.locator('circle').evaluate((el) => el.getBoundingClientRect().width))
+    .toBeGreaterThan(12);
+  await marker.click();
   await expect(page.locator('.live-map-detail')).toContainText('Cargo Ship');
   await page.getByLabel('Event', { exact: true }).uncheck();
   await expect(page.getByRole('button', { name: 'Cargo Ship', exact: true })).toHaveCount(0);

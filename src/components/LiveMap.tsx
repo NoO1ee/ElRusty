@@ -7,6 +7,7 @@ export function LiveMap({ data, offline }: { data: LiveSnapshot; offline: boolea
     map = world?.map,
     [error, setError] = useState(''),
     [loading, setLoading] = useState(false),
+    [unit, setUnit] = useState(1),
     [view, setView] = useState({ x: 0, y: 0, z: 1 }),
     [selected, setSelected] = useState<string | null>(null),
     [layers, setLayers] = useState({
@@ -41,6 +42,19 @@ export function LiveMap({ data, offline }: { data: LiveSnapshot; offline: boolea
     const prevent = (e: WheelEvent) => e.preventDefault();
     node.addEventListener('wheel', prevent, { passive: false });
     return () => node.removeEventListener('wheel', prevent);
+  }, [map?.revision]);
+  useEffect(() => {
+    const node = svg.current;
+    if (!node || !map) return;
+    const resize = () => {
+      const rect = node.getBoundingClientRect();
+      if (rect.width && rect.height)
+        setUnit(Math.max(map.width / rect.width, map.height / rect.height));
+    };
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(node);
+    return () => observer.disconnect();
   }, [map?.revision]);
   function zoom(factor: number, cx = map ? map.width / 2 : 0, cy = map ? map.height / 2 : 0) {
     setView((v) => {
@@ -194,14 +208,24 @@ export function LiveMap({ data, offline }: { data: LiveSnapshot; offline: boolea
                       strokeWidth=".6"
                       vectorEffect="non-scaling-stroke"
                     />
-                    <text x={a.x + 3} y={map.oceanMargin + 12} fontSize={10 / view.z} fill="white">
+                    <text
+                      x={a.x + (3 * unit) / view.z}
+                      y={map.oceanMargin + (12 * unit) / view.z}
+                      fontSize={(10 * unit) / view.z}
+                      fill="white"
+                    >
                       {gridLocation(
                         i * GRID_SIZE + 1,
                         gridCount(map.mapSize) * GRID_SIZE - 1,
                         map.mapSize,
                       ).replace(/\d+$/, '')}
                     </text>
-                    <text x={map.oceanMargin + 3} y={b.y - 3} fontSize={10 / view.z} fill="white">
+                    <text
+                      x={map.oceanMargin + (3 * unit) / view.z}
+                      y={b.y - (3 * unit) / view.z}
+                      fontSize={(10 * unit) / view.z}
+                      fill="white"
+                    >
                       {gridLocation(1, i * GRID_SIZE + 1, map.mapSize).replace(/^[A-Z]+/, '')}
                     </text>
                   </g>
@@ -226,12 +250,17 @@ export function LiveMap({ data, offline }: { data: LiveSnapshot; offline: boolea
                   <title>
                     {m.name} · {gridLocation(m.x, m.y, map.mapSize)}
                   </title>
-                  <circle r={8 / view.z} fill="#0b1320" stroke={m.color} strokeWidth={1 / view.z} />
+                  <circle
+                    r={(7 * unit) / view.z}
+                    fill="#0b1320"
+                    stroke={m.color}
+                    strokeWidth={unit / view.z}
+                  />
                   <text
                     textAnchor="middle"
                     dominantBaseline="central"
                     fill={m.color}
-                    fontSize={11 / view.z}
+                    fontSize={(11 * unit) / view.z}
                   >
                     {m.icon}
                   </text>
