@@ -13,6 +13,8 @@ test('crafter visar ingredienser och ändrar satstid med workbench', async ({ pa
   await expect(inspector.getByText('3 × 5.56 Rifle Ammo · 1 s · kräver Workbench 2')).toBeVisible();
   await page.waitForTimeout(900);
   await page.reload();
+  await expect(page.locator('[data-ready="true"]')).toBeVisible();
+  await page.locator('.react-flow__node').click();
   await expect(inspector.getByLabel('Workbench tier')).toHaveValue('3');
   await expect(inspector.getByLabel('Blueprint / recept')).toHaveValue('ammo.rifle');
 });
