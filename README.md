@@ -23,6 +23,8 @@ pnpm exec playwright install chromium
 pnpm test:e2e   # webbläsartester
 ```
 
+På Windows kan du efter installation dubbelklicka på **Start-ElRusty.cmd**. Den öppnar webbläsaren och kör den lokala servern; stäng terminalfönstret för att stoppa den. Startfilen hittar även Node i Codex lokala runtime om Node inte ligger i PATH.
+
 GitHub Actions kör typkontroll, tester, produktionsbygge och Chromium-scenarier.
 
 ## Kretsbyggare
