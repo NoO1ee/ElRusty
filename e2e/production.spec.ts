@@ -1,0 +1,18 @@
+import { test, expect } from '@playwright/test';
+test('crafter visar ingredienser och ändrar satstid med workbench', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('[data-ready="true"]')).toBeVisible();
+  await page.getByRole('button', { name: 'Ny krets', exact: true }).click();
+  await page.getByTestId('palette-crafter').click();
+  const inspector = page.locator('.inspector');
+  await inspector.getByLabel('Blueprint / recept').selectOption('ammo.rifle');
+  await inspector.getByLabel('Workbench tier').selectOption('2');
+  await expect(inspector.getByText('3 × 5.56 Rifle Ammo · 3 s · kräver Workbench 2')).toBeVisible();
+  await expect(inspector.getByText('10 × Metal Fragments', { exact: true })).toBeVisible();
+  await inspector.getByLabel('Workbench tier').selectOption('3');
+  await expect(inspector.getByText('3 × 5.56 Rifle Ammo · 1 s · kräver Workbench 2')).toBeVisible();
+  await page.waitForTimeout(900);
+  await page.reload();
+  await expect(inspector.getByLabel('Workbench tier')).toHaveValue('3');
+  await expect(inspector.getByLabel('Blueprint / recept')).toHaveValue('ammo.rifle');
+});

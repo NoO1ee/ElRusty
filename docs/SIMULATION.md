@@ -1,4 +1,4 @@
-# Simuleringsmodell 0.1
+# Simuleringsmodell 0.2
 
 ## Källor och verifieringsnivå
 
@@ -32,9 +32,31 @@ Transportmodellen använder en femsekunderscykel och högst 128 items per itemsl
 
 Min lämnas kvar i källan, Max stoppar vid målets gräns, Buffer kräver en minsta sats. Require All kräver tillgängliga items för varje regel; Exclude stoppar matchande items. Filter Pass/Fail uppdateras utifrån den senaste transportcykeln. Blueprint-regler kan exporteras men är inte modellerade i virtuella lager.
 
-Elektrisk ugn har en förenklad modell som omvandlar en malm varannan sekund med förbrukning på 3 rW. Endast metal.ore, sulfur.ore och hq.metal.ore stöds. Tempo, antal samtidiga slots och slotfördelning är inte spelverifierade.
+Elektrisk ugn förbrukar 3 rW. Dokumenterade tider per malm: metal.ore → metal.fragments 2 s, sulfur.ore → sulfur 1 s, hq.metal.ore → metal.refined 4 s. Varje omvandling ger ett item. Ingen bränsleförbrukning eller charcoal. Källan är [Facepunchs Electric Furnace-tabell](https://wiki.facepunch.com/rust/item/electric.furnace), kontrollerad 2026-10-31.
 
-Crafter stöder ett begränsat receptbibliotek: Gun Powder, 5.56 Rifle Ammo och Medical Syringe. Workbench-nivån valideras; recept och blueprint väljs manuellt. Blueprint-portar och flera samtidiga blueprints är ännu inte implementerade i simuleringen. Tids- och mängduppgifterna behöver in-game-jämförelse.
+**Modellgräns:** ugnen har en seriell produktionskö, väljer första tillgängliga malmen i lagret och delar lagrets platsbudget mellan in- och utmatning. Spelets samtidiga input-slots, blandade malmers fördelning och separata output-slots är ännu inte återskapade. Burkar och honeycomb ingår inte.
+
+Crafter stöder tre recept, med mängder, ingredienser och tier-specifika tider kontrollerade mot Facepunchs item-wiki 2026-10-31:
+
+| Recept                                                                  | Sats | Tier 1 | Tier 2 | Tier 3 |
+| ----------------------------------------------------------------------- | ---- | ------ | ------ | ------ |
+| [Gun Powder](https://wiki.facepunch.com/rust/item/gunpowder)            | 10   | 2 s    | 1 s    | 1 s    |
+| [5.56 Rifle Ammo](https://wiki.facepunch.com/rust/item/ammo.rifle)      | 3    | —      | 3 s    | 1 s    |
+| [Medical Syringe](https://wiki.facepunch.com/rust/item/syringe.medical) | 1    | —      | 10 s   | 5 s    |
+
+Workbench-nivån valideras. Ett manuellt recept motsvarar ett insatt blueprint; blueprint-portar transporterar inte vanliga material. Fysiska blueprints, flera blueprint-slots och separata input/output-slots är fortfarande inte modellerade. Kopplingen mellan spelarens dokumenterade crafttider och craftern följer [Facepunchs Industrial Update](https://rust.facepunch.com/news/industrial-update); eventuell nutida serverspecifik avvikelse behöver mätas i spelet.
+
+### Produktionstid och lager
+
+Tomgång, saknade ingredienser, för låg workbench och fullt utmatningslager bygger inte upp tid. Ett strömavbrott pausar redan påbörjad produktion. Varje sats är en atomär transaktion: alla ingredienser och slutlig kapacitet kontrolleras före förbrukning. En ingrediensplats som frigörs får i den delade lagermodellen användas för resultatet. Startlager kan fortfarande innehålla valfria items, men inkommande conveyors accepterar enbart malm respektive ingredienser till valt recept.
+
+Produktion behandlas före transporter i varje tidssteg; en leverans vid stegets slut får därför inte tillgodoräkna sig tid före ankomsten. Produktionskön hanterar flera färdiga satser och bevarar resttid. Isolerad produktion ger samma resultat vid ett långt tidssteg som flera korta; hela transportnätet ska köras med motorns fasta 250 ms-steg eftersom transportdelen inte kompenserar för flera överhoppade cykler.
+
+Automatiska regressionstester täcker malmtider, tier-tider, stora/små produktionssteg, strömavbrott, tomgång, fulla lager, frigjorda lagerplatser, saknade ingredienser, blueprint-portgränser och ogiltiga backup-inställningar. Dessa verifierar modellen, inte ett körande Rust-spel.
+
+### Reproducerbar kontroll i Rust
+
+På en vanilla-server: kör enbart en malmtyp åt gången i Electric Furnace med 3 rW; mät 30 metal, 30 sulfur respektive 15 HQM under 60 s. Testa därefter blandade malmer, fulla output-slots och strömavbrott separat. För Crafter: sätt in respektive blueprint och material till minst tio satser, mät på tillåtna workbench-nivåer mot tabellen ovan. Anteckna serverversion, eventuella multipliers, antal producerade satser och faktisk tid. Slot- och pausregler kan först markeras spelverifierade när dessa observationer jämförts med modellen.
 
 ## Fortsatt verifiering
 

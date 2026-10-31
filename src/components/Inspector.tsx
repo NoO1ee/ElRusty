@@ -3,6 +3,7 @@ import { ChevronRight, Trash2, PackagePlus, Settings2 } from 'lucide-react';
 import { useStudio } from '../store';
 import { byDefinition } from '../data/catalog';
 import { items, byItem, recipes } from '../data/items';
+import { craftSeconds, smelting } from '../simulation/production';
 import { ItemImage } from './ItemImage';
 import { FilterEditor } from './FilterEditor';
 export function Inspector() {
@@ -123,6 +124,11 @@ export function Inspector() {
             Sensor utlöst
           </label>
         )}
+        {runtime?.message && (
+          <p role="status" className="help-text">
+            {runtime.message}
+          </p>
+        )}
         <h3>Portar</h3>
         {def.ports.map((p) => (
           <div key={p.id} className="port-summary">
@@ -218,6 +224,9 @@ export function Inspector() {
       )}
       {def.behavior === 'crafter' && (
         <section>
+          <p className="help-text">
+            Ett manuellt valt blueprint. Blueprint-transport simuleras ännu inte.
+          </p>
           <label>
             Blueprint / recept
             <select
@@ -242,6 +251,51 @@ export function Inspector() {
               ))}
             </select>
           </label>
+        </section>
+      )}
+      {def.behavior === 'crafter' && recipes[settings.recipe] && (
+        <section>
+          <h3>Produktion per sats</h3>
+          <p className="help-text">
+            {recipes[settings.recipe].output} × {byItem[settings.recipe]?.name} ·{' '}
+            {craftSeconds(settings.recipe, settings.workbench) ?? '—'} s · kräver Workbench{' '}
+            {recipes[settings.recipe].workbench}
+          </p>
+          {recipes[settings.recipe].ingredients.map((i) => (
+            <p className="help-text" key={i.item}>
+              {i.amount} × {byItem[i.item]?.name}
+            </p>
+          ))}
+          <a
+            className="text-link"
+            href={recipes[settings.recipe].source}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Receptkälla ↗
+          </a>
+        </section>
+      )}
+      {def.behavior === 'furnace' && (
+        <section>
+          <h3>Smältning</h3>
+          {Object.entries(smelting).map(([id, r]) => (
+            <p className="help-text" key={id}>
+              {byItem[id]?.name} → {r.output} × {byItem[r.item]?.name} · {r.seconds} s
+            </p>
+          ))}
+          <p className="help-text">
+            En produktionskö med delat lager. Blandade malmer och spelets separata slots är ännu
+            inte spelverifierade.
+          </p>
+          <a
+            className="text-link"
+            href="https://wiki.facepunch.com/rust/item/electric.furnace"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Smältningskälla ↗
+          </a>
         </section>
       )}
       <section>

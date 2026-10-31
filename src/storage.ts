@@ -1,7 +1,7 @@
 import Dexie, { type EntityTable } from 'dexie';
 import type { SavedRecord, Circuit, ConveyorFilter } from './model';
 import { byDefinition } from './data/catalog';
-import { byItem } from './data/items';
+import { byItem, recipes } from './data/items';
 import { validateRules } from './filters';
 import { validateConnection } from './graph';
 export class RustyDatabase extends Dexie {
@@ -90,6 +90,11 @@ export function validateCircuit(value: unknown): asserts value is Circuit {
       0,
     );
     if (used > s.slots) fail('Lagret överskrider antalet platser.');
+    if (
+      byDefinition[n.data.definition].behavior === 'crafter' &&
+      (!Object.hasOwn(recipes, s.recipe) || ![1, 2, 3].includes(s.workbench))
+    )
+      fail('Ogiltigt recept eller workbench.');
     validateFilter(s.filter);
   }
   const edgeIds = new Set();

@@ -31,15 +31,17 @@ export const recipes: Record<
   string,
   {
     output: number;
-    seconds: number;
     workbench: number;
+    times: Partial<Record<number, number>>;
+    source: string;
     ingredients: { item: string; amount: number }[];
   }
 > = {
   gunpowder: {
     output: 10,
-    seconds: 2,
     workbench: 1,
+    times: { 1: 2, 2: 1, 3: 1 },
+    source: 'https://wiki.facepunch.com/rust/item/gunpowder',
     ingredients: [
       { item: 'sulfur', amount: 20 },
       { item: 'charcoal', amount: 30 },
@@ -47,8 +49,9 @@ export const recipes: Record<
   },
   'ammo.rifle': {
     output: 3,
-    seconds: 10,
     workbench: 2,
+    times: { 2: 3, 3: 1 },
+    source: 'https://wiki.facepunch.com/rust/item/ammo.rifle',
     ingredients: [
       { item: 'metal.fragments', amount: 10 },
       { item: 'gunpowder', amount: 5 },
@@ -56,8 +59,9 @@ export const recipes: Record<
   },
   'syringe.medical': {
     output: 1,
-    seconds: 10,
     workbench: 2,
+    times: { 2: 10, 3: 5 },
+    source: 'https://wiki.facepunch.com/rust/item/syringe.medical',
     ingredients: [
       { item: 'cloth', amount: 15 },
       { item: 'metal.fragments', amount: 10 },

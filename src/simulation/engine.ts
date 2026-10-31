@@ -2,6 +2,7 @@ import type { Circuit, SimulationResult, Stack, ComponentNode, FilterRule } from
 import { byDefinition } from '../data/catalog';
 import { byItem, recipes } from '../data/items';
 import { matchRule } from '../filters';
+import { runProduction, smelting } from './production';
 export const TRANSFER_SECONDS = 5,
   TRANSFER_BATCH = 128;
 const key = (node: string, port: string) => node + '|' + port;
@@ -31,7 +32,7 @@ function inventoryAllowed(n: ComponentNode, item: string, direction: 'in' | 'out
   const d = byDefinition[n.data.definition];
   if (d.behavior === 'furnace')
     return direction === 'in'
-      ? ['metal.ore', 'sulfur.ore', 'hq.metal.ore'].includes(item)
+      ? !!smelting[item]
       : ['metal.fragments', 'sulfur', 'metal.refined'].includes(item);
   if (d.behavior === 'crafter') {
     const r = recipes[n.data.settings.recipe];
@@ -242,6 +243,13 @@ export function step(circuit: Circuit, previous: SimulationResult, dt = 0.25): S
           n = byNode[next];
         if (!n) continue;
         const behavior = byDefinition[n.data.definition].behavior;
+        if (
+          behavior === 'crafter' &&
+          (dir === 'up'
+            ? e.sourceHandle === 'out:Blueprint Out'
+            : e.targetHandle === 'in:Blueprints In')
+        )
+          continue;
         if (['storage', 'furnace', 'crafter'].includes(behavior)) {
           found.add(next);
           continue;
@@ -252,6 +260,11 @@ export function step(circuit: Circuit, previous: SimulationResult, dt = 0.25): S
     }
     walk(id, 0);
     return [...found];
+  }
+  // Produce from stock present at the start of the interval. Deliveries arrive at its end.
+  for (const n of nodes) {
+    if (['furnace', 'crafter'].includes(byDefinition[n.data.definition].behavior))
+      runProduction(n, result.nodeStates[n.id], result.memory[n.id], dt);
   }
   const transferTick =
     Math.floor(result.time / TRANSFER_SECONDS) > Math.floor(previous.time / TRANSFER_SECONDS);
@@ -325,42 +338,5 @@ export function step(circuit: Circuit, previous: SimulationResult, dt = 0.25): S
       }
       result.memory[n.id].pass = moved;
     }
-  for (const n of nodes) {
-    const d = byDefinition[n.data.definition],
-      runtime = result.nodeStates[n.id];
-    if (!runtime.active || !['furnace', 'crafter'].includes(d.behavior)) continue;
-    const mem = result.memory[n.id];
-    mem.progress += dt;
-    if (d.behavior === 'furnace' && mem.progress >= 2) {
-      mem.progress -= 2;
-      const conversion: Record<string, string> = {
-        'metal.ore': 'metal.fragments',
-        'sulfur.ore': 'sulfur',
-        'hq.metal.ore': 'metal.refined',
-      };
-      const ore = runtime.inventory.find((s) => conversion[s.item]);
-      if (ore && room(runtime.inventory, conversion[ore.item], n.data.settings.slots) >= 1) {
-        adjust(runtime.inventory, ore.item, -1);
-        adjust(runtime.inventory, conversion[ore.item], 1);
-      }
-    }
-    if (d.behavior === 'crafter') {
-      const recipe = recipes[n.data.settings.recipe];
-      if (
-        recipe &&
-        n.data.settings.workbench >= recipe.workbench &&
-        mem.progress >= recipe.seconds
-      ) {
-        mem.progress = 0;
-        if (
-          recipe.ingredients.every((i) => count(runtime.inventory, i.item) >= i.amount) &&
-          room(runtime.inventory, n.data.settings.recipe, n.data.settings.slots) >= recipe.output
-        ) {
-          recipe.ingredients.forEach((i) => adjust(runtime.inventory, i.item, -i.amount));
-          adjust(runtime.inventory, n.data.settings.recipe, recipe.output);
-        }
-      }
-    }
-  }
   return result;
 }

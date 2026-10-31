@@ -110,6 +110,7 @@ export interface SimulationResult {
       lastToggle: boolean;
       lastTrigger: boolean;
       progress: number;
+      productionItem?: string;
       pass: boolean;
       buffers?: Record<string, number>;
     }

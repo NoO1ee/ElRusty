@@ -53,9 +53,11 @@ Kretsar och filter autosparas i IndexedDB och visas under **Sparat**. Öppna, du
 
 ## Simuleringsmodell och aktuell täckning
 
-Version 0.1 innehåller 28 komponenter: energikällor, batteristorlekar, fördelning, grundlogik, timer, memory cell, två manuella sensorer, grundförbrukare, conveyors, industrial-fördelare, boxar med adaptrar, elektrisk ugn och crafter.
+Version 0.2 innehåller 28 komponenter: energikällor, batteristorlekar, fördelning, grundlogik, timer, memory cell, två manuella sensorer, grundförbrukare, conveyors, industrial-fördelare, boxar med adaptrar, elektrisk ugn och crafter.
 
 Solpanel och vind ger konstant 20 respektive 150 rW. Batterier har alltid laddning, med respektive maxutgång. Det är avsiktliga förenklingar. Industriella lager använder spelkatalogens stackstorlekar och begränsade lagerplatser.
+
+Version 0.2 rättar malmernas smälttider och workbench-beroende crafttider. Produktion visar status för saknade ingredienser/fullt lager och sparar ingen tomgångstid. Se [ändringsloggen](CHANGELOG.md).
 
 **Detta är inte fullständig täckning av alla komponenter eller alla spelregler.** Se [simuleringsdokumentationen](docs/SIMULATION.md) för verifieringsnivå, modellerade beteenden och begränsningar. Portar dokumenteras per komponent; automatiska tester av modellen är inte detsamma som jämförelse i spelet.
 
