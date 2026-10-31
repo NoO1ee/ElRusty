@@ -44,7 +44,7 @@ import {
   encodeBackup,
   decodeBackup,
   downloadJson,
-  validateCircuit,
+  loadCircuit,
   validateFilter,
 } from './storage';
 import { CircuitCanvas } from './components/CircuitCanvas';
@@ -234,8 +234,9 @@ export default function App() {
           (r) => r.id === get('lastCircuit') && r.kind === 'circuit',
         );
         if (circuitRecord) {
-          validateCircuit(circuitRecord.payload);
-          useStudio.getState().replace(circuitRecord.payload);
+          const loaded = loadCircuit(circuitRecord.payload);
+          useStudio.getState().replace(loaded.circuit);
+          if (loaded.notice) notify(loaded.notice);
         }
         const filterRecord = saved.find((r) => r.id === get('lastFilter') && r.kind === 'filter');
         if (filterRecord) {
@@ -347,8 +348,9 @@ export default function App() {
   async function openRecord(r: SavedRecord) {
     try {
       if (r.kind === 'circuit') {
-        validateCircuit(r.payload);
-        useStudio.getState().replace(r.payload);
+        const loaded = loadCircuit(r.payload);
+        useStudio.getState().replace(loaded.circuit);
+        if (loaded.notice) r = { ...r, migrationNotice: loaded.notice };
         setView('circuit');
       } else {
         validateFilter(r.payload);
@@ -356,7 +358,7 @@ export default function App() {
         setFilterId(r.id);
         setView('filters');
       }
-      notify('Öppnade ' + r.name);
+      notify(r.migrationNotice || 'Öppnade ' + r.name);
     } catch (e) {
       notify((e as Error).message);
     }
@@ -718,7 +720,7 @@ export default function App() {
         <span role="status" aria-live="polite">
           {message}
         </span>
-        <span className="version-label">ElRusty 0.1 · lokalt</span>
+        <span className="version-label">ElRusty 0.3 · lokalt</span>
       </footer>
       <input
         ref={fileInput}
@@ -733,7 +735,7 @@ export default function App() {
             const r = decodeBackup(await file.text());
             await saveRecord(r);
             await refresh();
-            notify('Backup importerad som en ny kopia.');
+            notify(r.migrationNotice || 'Backup importerad som en ny kopia.');
           } catch (err) {
             notify('Importen avbröts: ' + (err as Error).message);
           } finally {

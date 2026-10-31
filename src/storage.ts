@@ -3,6 +3,7 @@ import type { SavedRecord, Circuit, ConveyorFilter } from './model';
 import { byDefinition } from './data/catalog';
 import { byItem, recipes } from './data/items';
 import { validateRules } from './filters';
+import { inventoryProblem, stackSize } from './simulation/inventory';
 import { validateConnection } from './graph';
 export class RustyDatabase extends Dexie {
   records!: EntityTable<SavedRecord, 'id'>;
@@ -82,11 +83,14 @@ export function validateCircuit(value: unknown): asserts value is Circuit {
         !byItem[stack.item] ||
         !Number.isSafeInteger(stack.amount) ||
         stack.amount < 1 ||
-        stack.amount > 1000000
+        stack.amount > 1000000 ||
+        (stack.blueprint !== undefined && typeof stack.blueprint !== 'boolean') ||
+        (stack.slot !== undefined &&
+          (!Number.isInteger(stack.slot) || stack.slot < 0 || stack.slot > 95))
       )
         fail('Ogiltigt lager.');
     const used = s.inventory.reduce(
-      (sum, stack) => sum + Math.ceil(stack.amount / byItem[stack.item].stack),
+      (sum, stack) => sum + Math.ceil(stack.amount / stackSize(stack)),
       0,
     );
     if (used > s.slots) fail('Lagret överskrider antalet platser.');
@@ -95,6 +99,17 @@ export function validateCircuit(value: unknown): asserts value is Circuit {
       (!Object.hasOwn(recipes, s.recipe) || ![1, 2, 3].includes(s.workbench))
     )
       fail('Ogiltigt recept eller workbench.');
+    if (
+      s.blueprints !== undefined &&
+      (!Array.isArray(s.blueprints) ||
+        s.blueprints.length > 4 ||
+        s.blueprints.some(
+          (id) => typeof id !== 'string' || (id !== '' && !Object.hasOwn(byItem, id)),
+        ))
+    )
+      fail('Ogiltigt blueprint-lager.');
+    if (s.inventory.some((i) => i.slot !== undefined) && inventoryProblem(n, s.inventory))
+      fail(inventoryProblem(n, s.inventory));
     validateFilter(s.filter);
   }
   const edgeIds = new Set();
@@ -140,6 +155,34 @@ export function validateCircuit(value: unknown): asserts value is Circuit {
   )
     fail('Ogiltig arbetsyta.');
 }
+/** Only migrate the known erroneous furnace output. Other invalid data is still rejected. */
+export function loadCircuit(value: unknown): { circuit: Circuit; notice?: string } {
+  const c = structuredClone(value) as Circuit;
+  let removed = 0;
+  if (Array.isArray(c?.nodes) && Array.isArray(c?.edges)) {
+    const furnaces = new Set(
+      c.nodes.filter((n) => n?.data?.definition === 'furnace').map((n) => n.id),
+    );
+    c.edges = c.edges.filter((e) => {
+      if (furnaces.has(e?.source) && e.sourceHandle === 'out:Passthrough') {
+        removed++;
+        return false;
+      }
+      return true;
+    });
+  }
+  validateCircuit(c);
+  return {
+    circuit: c,
+    ...(removed
+      ? {
+          notice:
+            removed +
+            ' ogiltiga anslutningar från ugnens gamla Passthrough-port togs bort. Koppla om via en Splitter eller Branch.',
+        }
+      : {}),
+  };
+}
 export function encodeBackup(kind: 'circuit' | 'filter', payload: Circuit | ConveyorFilter) {
   return JSON.stringify({ application: 'ElRusty', schemaVersion: 1, kind, payload }, null, 2);
 }
@@ -148,13 +191,24 @@ export function decodeBackup(text: string): SavedRecord {
   const parsed = JSON.parse(text);
   if (parsed.application !== 'ElRusty' || parsed.schemaVersion !== 1)
     fail('Filen är inte en stödd ElRusty-backup.');
-  if (parsed.kind === 'circuit') validateCircuit(parsed.payload);
-  else if (parsed.kind === 'filter') validateFilter(parsed.payload);
+  let migrationNotice: string | undefined;
+  if (parsed.kind === 'circuit') {
+    const loaded = loadCircuit(parsed.payload);
+    parsed.payload = loaded.circuit;
+    migrationNotice = loaded.notice;
+  } else if (parsed.kind === 'filter') validateFilter(parsed.payload);
   else fail('Okänd backuptyp.');
   const id = crypto.randomUUID();
   const payload = parsed.payload;
   if (parsed.kind === 'circuit') payload.id = id;
-  return { id, kind: parsed.kind, name: payload.name, updatedAt: Date.now(), payload };
+  return {
+    id,
+    kind: parsed.kind,
+    name: payload.name,
+    updatedAt: Date.now(),
+    payload,
+    ...(migrationNotice ? { migrationNotice } : {}),
+  };
 }
 export function downloadJson(name: string, text: string) {
   const url = URL.createObjectURL(new Blob([text], { type: 'application/json' })),

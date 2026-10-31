@@ -24,7 +24,15 @@ function setup(definition: 'furnace' | 'crafter', inventory: Stack[], slots = 48
       },
     ],
   };
-  const stock = (r: SimulationResult) => r.nodeStates[machine.id].inventory;
+  const stock = (r: SimulationResult) => {
+    const result: Stack[] = [];
+    for (const s of r.nodeStates[machine.id].inventory.filter((s) => !s.blueprint)) {
+      const old = result.find((i) => i.item === s.item);
+      if (old) old.amount += s.amount;
+      else result.push({ item: s.item, amount: s.amount });
+    }
+    return result;
+  };
   return { circuit, machine, power, stock };
 }
 describe('produktionsregler', () => {
@@ -55,7 +63,7 @@ describe('produktionsregler', () => {
   it('tomgång lagrar inte tid som kan användas på senare material', () => {
     const { circuit, machine, stock } = setup('furnace', []);
     const idle = step(circuit, initialResult(), 1000);
-    idle.nodeStates[machine.id].inventory = [{ item: 'metal.ore', amount: 20 }];
+    idle.nodeStates[machine.id].inventory = [{ item: 'metal.ore', amount: 20, slot: 0 }];
     expect(stock(step(circuit, idle, 0.25))).toEqual([{ item: 'metal.ore', amount: 20 }]);
     expect(idle.memory[machine.id].progress).toBe(0);
   });
@@ -100,7 +108,7 @@ describe('produktionsregler', () => {
     machine.data.settings.workbench = 2;
     expect(stock(step(circuit, r, 0.25))).toEqual(machine.data.settings.inventory);
   });
-  it('frigjord ingrediensplats kan ta emot en färdig sats', () => {
+  it('ingrediens- och output-platser är separata', () => {
     const { circuit, stock } = setup(
       'crafter',
       [
@@ -116,16 +124,19 @@ describe('produktionsregler', () => {
       'furnace',
       [
         { item: 'metal.ore', amount: 2 },
-        { item: 'wood', amount: 1000 },
+        { item: 'metal.fragments', amount: 3000 },
       ],
       2,
     );
     let r = step(circuit, initialResult(), 1000);
     expect(stock(r)).toEqual(machine.data.settings.inventory);
     expect(r.nodeStates[machine.id].message).toContain('fullt');
-    r.nodeStates[machine.id].inventory.pop();
+    r.nodeStates[machine.id].inventory = r.nodeStates[machine.id].inventory.filter(
+      (s) => s.slot !== 4,
+    );
     r = step(circuit, r, 0.25);
-    expect(stock(r)).toEqual([{ item: 'metal.ore', amount: 2 }]);
+    expect(stock(r)).toContainEqual({ item: 'metal.ore', amount: 2 });
+    expect(stock(r)).toContainEqual({ item: 'metal.fragments', amount: 2000 });
   });
   it('saknade ingredienser skapar inga halvfärdiga eller gratis items', () => {
     const { circuit, machine, stock } = setup('crafter', [{ item: 'sulfur', amount: 100 }]);

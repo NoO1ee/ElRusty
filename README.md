@@ -53,13 +53,13 @@ Kretsar och filter autosparas i IndexedDB och visas under **Sparat**. Öppna, du
 
 ## Simuleringsmodell och aktuell täckning
 
-Version 0.2 innehåller 28 komponenter: energikällor, batteristorlekar, fördelning, grundlogik, timer, memory cell, två manuella sensorer, grundförbrukare, conveyors, industrial-fördelare, boxar med adaptrar, elektrisk ugn och crafter.
+Version 0.3 innehåller 28 komponenter: energikällor, batteristorlekar, fördelning, grundlogik, timer, memory cell, två manuella sensorer, grundförbrukare, conveyors, industrial-fördelare, boxar med adaptrar, elektrisk ugn och crafter.
 
-Solpanel och vind ger konstant 20 respektive 150 rW. Batterier har alltid laddning, med respektive maxutgång. Det är avsiktliga förenklingar. Industriella lager använder spelkatalogens stackstorlekar och begränsade lagerplatser.
+Solpanel och vind ger konstant 20 respektive 150 rW. Batterier har alltid laddning, med respektive maxutgång. Det är avsiktliga förenklingar. Industriella lager använder spelkatalogens stackstorlekar och begränsade lagerplatser. Ugn och crafter har separata input/output-områden; blueprints skiljs från vanliga items.
 
-Version 0.2 rättar malmernas smälttider och workbench-beroende crafttider. Produktion visar status för saknade ingredienser/fullt lager och sparar ingen tomgångstid. Se [ändringsloggen](CHANGELOG.md).
+Version 0.3 rättar Electric Furnace till enbart Power In, visar dov röd bakgrund vid saknad eller för låg effekt och inför separata maskinlager. Craftern har fyra blueprint-platser med prioritet och transport via egna portar. Ugnen stöder även tomma burkar och honeycomb. Produktionsmodellerna är automatiskt testade men behöver fortsatt speljämförelse. Se [ändringsloggen](CHANGELOG.md).
 
-**Detta är inte fullständig täckning av alla komponenter eller alla spelregler.** Se [simuleringsdokumentationen](docs/SIMULATION.md) för verifieringsnivå, modellerade beteenden och begränsningar. Portar dokumenteras per komponent; automatiska tester av modellen är inte detsamma som jämförelse i spelet.
+**Detta är inte fullständig täckning av alla komponenter eller alla spelregler.** Se [simuleringsdokumentationen](docs/SIMULATION.md) för verifieringsnivå, modellerade beteenden och begränsningar. Portar dokumenteras per komponent; automatiska tester av modellen är inte detsamma som jämförelse i spelet. Se [enkla testscenarier i Rust](docs/GAME_CHECKS.md).
 
 ## Struktur
 

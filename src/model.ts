@@ -62,6 +62,8 @@ export interface ConveyorFilter {
   rules: FilterRule[];
 }
 export interface Stack {
+  blueprint?: boolean;
+  slot?: number;
   item: string;
   amount: number;
 }
@@ -73,6 +75,7 @@ export interface ComponentSettings {
   slots: number;
   inventory: Stack[];
   filter: ConveyorFilter;
+  blueprints?: string[];
   recipe: string;
   workbench: number;
 }
@@ -87,6 +90,7 @@ export interface Circuit {
   viewport: Viewport;
 }
 export interface SavedRecord {
+  migrationNotice?: string;
   id: string;
   kind: 'circuit' | 'filter';
   name: string;
@@ -111,6 +115,7 @@ export interface SimulationResult {
       lastTrigger: boolean;
       progress: number;
       productionItem?: string;
+      smeltingProgress?: Record<number, { item: string; seconds: number }>;
       pass: boolean;
       buffers?: Record<string, number>;
     }

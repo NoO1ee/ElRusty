@@ -4,6 +4,16 @@ import { useStudio } from '../store';
 import { byDefinition } from '../data/catalog';
 import { items, byItem, recipes } from '../data/items';
 import { craftSeconds, smelting } from '../simulation/production';
+import {
+  initialInventory,
+  startBlueprints,
+  insertStock,
+  inventoryProblem,
+  layout,
+  stackSize,
+  type Compartment,
+} from '../simulation/inventory';
+import { powerStatus } from '../simulation/power-status';
 import { ItemImage } from './ItemImage';
 import { FilterEditor } from './FilterEditor';
 export function Inspector() {
@@ -14,7 +24,9 @@ export function Inspector() {
   const [inventoryItem, setInventoryItem] = useState('wood'),
     [inventoryAmount, setInventoryAmount] = useState(1000),
     [inventoryQuery, setInventoryQuery] = useState(''),
-    [filterOpen, setFilterOpen] = useState(false);
+    [filterOpen, setFilterOpen] = useState(false),
+    [inventoryBlueprint, setInventoryBlueprint] = useState(false),
+    [inventoryPart, setInventoryPart] = useState<Compartment>('input');
   if (!node)
     return (
       <aside className="inspector">
@@ -39,22 +51,46 @@ export function Inspector() {
     );
   const def = byDefinition[node.data.definition],
     settings = node.data.settings,
-    inventory = runtime?.inventory || settings.inventory;
+    inventory = runtime?.inventory || initialInventory(node);
   const hasInventory = ['storage', 'furnace', 'crafter'].includes(def.behavior);
   function addStock() {
     if (!node) return;
-    const existing = settings.inventory.find((s) => s.item === inventoryItem);
-    const next = existing
-      ? settings.inventory.map((s) =>
-          s.item === inventoryItem ? { ...s, amount: s.amount + inventoryAmount } : s,
-        )
-      : [...settings.inventory, { item: inventoryItem, amount: inventoryAmount }];
-    const slots = next.reduce((a, s) => a + Math.ceil(s.amount / (byItem[s.item]?.stack || 1)), 0);
-    if (slots > settings.slots) {
-      notify('För få lagerplatser. Minska mängden eller töm lagret.');
+    const next = initialInventory(node).filter((s) => def.behavior !== 'crafter' || !s.blueprint);
+    const isBlueprint = def.behavior === 'storage' && inventoryBlueprint;
+    const part = isBlueprint ? 'blueprint' : inventoryPart;
+    if (
+      def.behavior === 'furnace' &&
+      (isBlueprint ||
+        (part === 'input'
+          ? !smelting[inventoryItem]
+          : !Object.values(smelting).some((r) => r.item === inventoryItem)))
+    ) {
+      notify('Välj ett item som ugnen kan behandla i den valda lagerdelen.');
       return;
     }
-    change(node.id, { inventory: next });
+    if (def.behavior === 'crafter' && isBlueprint) {
+      notify('Blueprints för craftern väljs i de fyra platserna nedan.');
+      return;
+    }
+    const added = insertStock(
+      node,
+      next,
+      {
+        item: inventoryItem,
+        amount: inventoryAmount,
+        ...(isBlueprint ? { blueprint: true } : {}),
+      },
+      inventoryAmount,
+      part,
+    );
+    if (added !== inventoryAmount || inventoryProblem(node, next)) {
+      notify('För få platser i vald lagerdel. Minska mängden eller töm startlagret.');
+      return;
+    }
+    change(node.id, {
+      inventory: next,
+      ...(def.behavior === 'crafter' ? { blueprints: startBlueprints(node) } : {}),
+    });
   }
   return (
     <aside className="inspector">
@@ -72,7 +108,13 @@ export function Inspector() {
         <ItemImage item={def.shortname} />
         <h2>{def.name}</h2>
         <span className={'status-chip ' + (runtime?.active ? 'good' : '')}>
-          {runtime?.active ? 'Aktiv' : 'Av / saknar ström'}
+          {runtime && powerStatus(def, runtime.input) === 'missing'
+            ? 'Saknar ström'
+            : runtime && powerStatus(def, runtime.input) === 'insufficient'
+              ? 'För lite ström'
+              : runtime?.active
+                ? 'Aktiv'
+                : 'Avstängd'}
         </span>
       </div>
       <section>
@@ -152,17 +194,67 @@ export function Inspector() {
             Lager <span className="muted">{inventory.reduce((a, s) => a + s.amount, 0)} items</span>
           </h3>
           <div className="inventory-list">
-            {inventory.map((s) => (
-              <div key={s.item}>
+            {inventory.map((s, i) => (
+              <div key={s.slot ?? i}>
                 <ItemImage item={s.item} />
                 <span>
                   {byItem[s.item]?.name}
-                  <small>{s.amount.toLocaleString('sv-SE')}</small>
+                  {s.blueprint ? ' Blueprint' : ''}
+                  <small>
+                    {s.amount.toLocaleString('sv-SE')}
+                    {s.slot !== undefined ? ` · plats ${s.slot + 1}` : ''}
+                  </small>
                 </span>
               </div>
             ))}
             {!inventory.length && <p className="help-text">Lagret är tomt.</p>}
           </div>
+          {layout(node) && (
+            <div aria-label="Maskinens lagerplatser">
+              {(Object.entries(layout(node)) as [Compartment, number[]][])
+                .filter(([, slots]) => slots.length)
+                .map(([part, slots]) => (
+                  <div key={part}>
+                    <p className="help-text">
+                      {part === 'input'
+                        ? 'Inmatning'
+                        : part === 'output'
+                          ? 'Utmatning'
+                          : 'Blueprints'}{' '}
+                      · {slots.length} platser
+                    </p>
+                    <div className="machine-slots">
+                      {slots.map((slot) => {
+                        const item = inventory.find((s) => s.slot === slot);
+                        return (
+                          <div
+                            className="machine-slot"
+                            key={slot}
+                            title={
+                              item
+                                ? byItem[item.item]?.name + (item.blueprint ? ' Blueprint' : '')
+                                : 'Tom plats'
+                            }
+                          >
+                            {item ? (
+                              <>
+                                <ItemImage item={item.item} />
+                                <span>
+                                  {item.amount} / {stackSize(item)}
+                                </span>
+                              </>
+                            ) : (
+                              <span>Tom</span>
+                            )}
+                            <small>#{slot + 1}</small>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
           <details>
             <summary>
               <PackagePlus size={14} />
@@ -192,6 +284,31 @@ export function Inspector() {
                   </option>
                 ))}
             </select>
+            {def.behavior === 'storage' && (
+              <label className="check-label">
+                <input
+                  type="checkbox"
+                  checked={inventoryBlueprint}
+                  onChange={(e) => {
+                    setInventoryBlueprint(e.target.checked);
+                    if (e.target.checked) setInventoryAmount(1);
+                  }}
+                />
+                Blueprint
+              </label>
+            )}
+            {layout(node) && (
+              <label>
+                Lagerdel
+                <select
+                  value={inventoryPart}
+                  onChange={(e) => setInventoryPart(e.target.value as Compartment)}
+                >
+                  <option value="input">Inmatning</option>
+                  <option value="output">Utmatning</option>
+                </select>
+              </label>
+            )}
             <input
               aria-label="Antal till startlager"
               type="number"
@@ -225,13 +342,19 @@ export function Inspector() {
       {def.behavior === 'crafter' && (
         <section>
           <p className="help-text">
-            Ett manuellt valt blueprint. Blueprint-transport simuleras ännu inte.
+            Blueprints prioriteras från vänster till höger. Conveyors kan mata in och ta ut dem via
+            blueprint-portarna.
           </p>
           <label>
             Blueprint / recept
             <select
               value={settings.recipe}
-              onChange={(e) => change(node.id, { recipe: e.target.value })}
+              onChange={(e) =>
+                change(node.id, {
+                  recipe: e.target.value,
+                  blueprints: [e.target.value, ...startBlueprints(node).slice(1)],
+                })
+              }
             >
               {Object.keys(recipes).map((id) => (
                 <option key={id} value={id}>
@@ -240,6 +363,29 @@ export function Inspector() {
               ))}
             </select>
           </label>
+          {[0, 1, 2, 3].map((index) => (
+            <label key={index}>
+              Blueprint-plats {index + 1}
+              <select
+                value={startBlueprints(node)[index] ?? ''}
+                onChange={(e) => {
+                  const blueprints = Array.from(
+                    { length: 4 },
+                    (_, i) => startBlueprints(node)[i] ?? '',
+                  );
+                  blueprints[index] = e.target.value;
+                  change(node.id, { blueprints });
+                }}
+              >
+                <option value="">Tom</option>
+                {Object.keys(recipes).map((id) => (
+                  <option key={id} value={id}>
+                    {byItem[id]?.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
           <label>
             Workbench tier
             <select
@@ -285,8 +431,8 @@ export function Inspector() {
             </p>
           ))}
           <p className="help-text">
-            En produktionskö med delat lager. Blandade malmer och spelets separata slots är ännu
-            inte spelverifierade.
+            Två inmatningsplatser delar smälthastigheten. Färdiga items hamnar enbart i de tre
+            utmatningsplatserna. Blandade material behöver fortfarande jämföras i spelet.
           </p>
           <a
             className="text-link"

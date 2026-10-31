@@ -1639,3 +1639,49 @@ h3 {
 .canvas-shell.hand-mode .wire-bend {
   pointer-events: none !important;
 }
+
+/* Power faults keep readable contrast and a separate selected outline. */
+.component-card.is-power-warning {
+  background: linear-gradient(155deg, #42212c, #26151e);
+  border-color: #a44855;
+}
+.component-card.is-power-warning .component-header {
+  background: #3a2029;
+  border-bottom-color: #69323f;
+}
+.component-card.is-power-warning .component-footer {
+  color: #ffadb5;
+}
+.component-card.is-power-warning .activity-dot {
+  background: #ec7785;
+  box-shadow: 0 0 6px #ed526044;
+}
+.component-card.is-power-warning.is-selected {
+  border-color: #ff6374;
+  outline: 2px solid #ff63743b;
+}
+.machine-slots {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin: 9px 0 14px;
+}
+.machine-slot {
+  min-height: 64px;
+  padding: 5px;
+  border: 1px solid #33445a;
+  border-radius: 7px;
+  background: #0c1420;
+  text-align: center;
+  font-size: 10px;
+}
+.machine-slot .item-image {
+  display: block;
+  width: 30px;
+  height: 30px;
+  margin: auto;
+}
+.machine-slot small {
+  display: block;
+  color: #91a4bf;
+}

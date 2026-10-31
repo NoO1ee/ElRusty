@@ -9,9 +9,9 @@ export interface RustFilterEntry {
   IsBlueprint: boolean;
   TargetItemName: string;
 }
-export function matchRule(rule: FilterRule, item: Item) {
+export function matchRule(rule: FilterRule, item: Item, blueprint = false) {
   return (
-    !rule.blueprint &&
+    rule.blueprint === blueprint &&
     ((rule.item !== null && rule.item === item.id) ||
       (rule.category !== null && rule.category === item.categoryId))
   );

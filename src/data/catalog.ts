@@ -279,13 +279,8 @@ const raw: [
     'Industrial',
     'furnace',
     3,
-    [
-      pIn,
-      input('Industrial In', 'industrial'),
-      output('Industrial Out', 'industrial'),
-      output('Passthrough'),
-    ],
-    'Modell för metal.ore, sulfur.ore och hq.metal.ore; speltempo behöver jämföras i Rust.',
+    [pIn, input('Industrial In', 'industrial'), output('Industrial Out', 'industrial')],
+    'Två input-platser, tre output-platser. Endast Power In; ingen elektrisk utgång.',
   ],
   [
     'crafter',
@@ -304,7 +299,7 @@ const raw: [
       output('Industrial Out', 'industrial'),
       output('Blueprint Out', 'industrial'),
     ],
-    'Recept och workbench väljs i appen. Blueprint-logistik ingår ännu inte.',
+    'Fem input-platser, fyra output-platser och fyra blueprint-platser. Blueprint-prioritet från vänster till höger.',
   ],
 ];
 export const catalog: ComponentDefinition[] = raw.map(

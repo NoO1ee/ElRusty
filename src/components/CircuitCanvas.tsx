@@ -23,6 +23,7 @@ import { byDefinition, NODE_WIDTH, nodeHeight, portY } from '../data/catalog';
 import { validateConnection } from '../graph';
 import type { ComponentNode, WireEdge } from '../model';
 import { routeWire, pathFromPoints } from '../routing';
+import { powerStatus } from '../simulation/power-status';
 import { ItemImage } from './ItemImage';
 
 const ComponentCard = memo(function ComponentCard({
@@ -33,14 +34,17 @@ const ComponentCard = memo(function ComponentCard({
   const def = byDefinition[data.definition];
   const runtime = useStudio((s) => s.simulation.nodeStates[id]),
     outputs = useStudio((s) => s.simulation.outputs);
+  const powerIssue = runtime ? powerStatus(def, runtime.input) : null;
   return (
     <article
       className={
         'component-card ' +
         (selected ? 'is-selected' : '') +
         ' ' +
-        (runtime?.active ? 'is-powered' : '')
+        (runtime?.active ? 'is-powered' : '') +
+        (powerIssue ? ' is-power-warning' : '')
       }
+      data-power-status={powerIssue ?? 'ok'}
       style={{ width: NODE_WIDTH, height: nodeHeight(def) }}
       aria-label={def.name}
     >
@@ -54,7 +58,7 @@ const ComponentCard = memo(function ComponentCard({
         </div>
         <i
           className={'activity-dot ' + (runtime?.active ? 'on' : '')}
-          title={runtime?.active ? 'Aktiv' : 'Ingen ström / av'}
+          title={powerIssue ? runtime?.message : runtime?.active ? 'Aktiv' : 'Avstängd / väntar'}
         />
       </header>
       {def.ports.map((p, i) => {
