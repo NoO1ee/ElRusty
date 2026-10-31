@@ -1,4 +1,4 @@
-# ElRusty Live 0.7.0
+# ElRusty Live 0.8.0
 
 Live är en separat tjänst för riktiga Rust+-enheter. Kretsbyggaren och dess simulering styr inga enheter i spelet. Tjänsten använder det inofficiella MIT-licensierade [rustplus.js](https://github.com/liamcottle/rustplus.js) och [discord.js](https://discord.js.org/); inga källkodsfiler har kopierats från EgorLis/Rustplusbot eller Smartrust.
 
@@ -109,3 +109,10 @@ Serverkontrollen visade också utelämnat AppTeamInfo.leaderSteamId (uint64, fä
 ## Livekarta 0.7
 
 Karta visar serverns JPEG med separata SVG-lager för koordinatrutor, monument, team, vending machines och event. Kartbilden hämtas vid öppning och cachelagras i minnet för aktuell server/wipe. Team och markörer läses var femte sekund. Vid avbrott markeras data som inaktuell; serverbyte rensar kartan. Markörer som försvinner beskrivs enbart som inte längre synliga, aldrig som bekräftat förstörda. Statuspricken på Live-fliken följer anslutningen även i kretsbyggaren. Grön = Rust+ anslutet, gul = ansluter/återansluter, röd = frånkopplat eller lokal tjänst saknas.
+
+
+## Automatisk Discord-setup 0.8
+
+Spara bottoken och tillåtna användare/roller. Hämta Discord-servrar, välj server och förhandsvisa kanalsetupen. Knappen Skapa ElRusty-kanaler skapar en privat kategori med status, larm, events, aktivitet, styrning och teamchat. Bot-ID hämtas automatiskt; botregistrering och inbjudan görs i Discord. Boten behöver Manage Channels, Manage Roles för åtkomstinställningar, View Channel, Send Messages, Read Message History och Embed Links. Administrator behövs inte. Serveradministratörer kan alltid se kategorin enligt Discords regler.
+
+ElRusty sparar ID:n efter varje lyckat skapande. Upprepad setup återanvänder registrerade resurser; främmande kanaler med samma namn tas inte över eller raderas. Ändrar du listan över tillåten åtkomst måste setupen köras igen innan nya utskick till hanterade kanaler tillåts. Vid delvis API-fel kan setupen fortsätta utan att tidigare lyckade steg upprepas. Teamchat-kanalen finns som förberedelse; själva chattkopplingen aktiveras separat.

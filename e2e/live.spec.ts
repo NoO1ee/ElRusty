@@ -271,3 +271,42 @@ test('kartan har lager, markeringsdetaljer och statusprick även i kretsbyggaren
   await page.getByRole('button', { name: 'Kretsbyggare', exact: true }).click();
   await expect(page.getByRole('img', { name: 'Rust+-status: Frånkopplad' })).toBeVisible();
 });
+
+test('Discord-guiden förhandsvisar innan kanaler skapas', async ({ page }) => {
+  const state = initial();
+  state.discord.hasToken = true;
+  state.discord.guildId = '12345678901234567';
+  state.discord.userIds = ['23456789012345678'];
+  const calls: string[] = [];
+  await page.route('**/api/live/**', async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (route.request().method() === 'POST') {
+      calls.push(path);
+      if (path.endsWith('/guilds'))
+        await route.fulfill({ json: [{ id: state.discord.guildId, name: 'Testteam' }] });
+      else if (path.endsWith('/preview'))
+        await route.fulfill({
+          json: {
+            guildName: 'Testteam',
+            userIds: state.discord.userIds,
+            roleIds: [],
+            channels: ['status', 'larm', 'events', 'aktivitet', 'styrning', 'teamchat'],
+          },
+        });
+      else await route.fulfill({ json: { ok: true } });
+    } else await route.fulfill({ json: state });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Live', exact: true }).click();
+  await page.getByRole('button', { name: 'Inställningar', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Skapa ElRusty-kanaler' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Hämta Discord-servrar' }).click();
+  await page.getByRole('button', { name: 'Förhandsvisa kanalsetup' }).click();
+  await expect(page.getByText('Testteam → ElRusty')).toBeVisible();
+  expect(calls).not.toContain('/api/live/discord/setup');
+  await page.getByRole('button', { name: 'Skapa ElRusty-kanaler' }).click();
+  await expect(
+    page.getByRole('status').filter({ hasText: 'ElRusty-kanalerna är klara' }),
+  ).toBeVisible();
+  expect(calls).toContain('/api/live/discord/setup');
+});

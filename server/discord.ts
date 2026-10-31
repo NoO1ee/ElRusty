@@ -1,3 +1,9 @@
+import {
+  discordSetupPreview,
+  provisionDiscord,
+  managedAccessValid,
+  type ManagedChannel,
+} from './discord-setup.ts';
 import { Client, GatewayIntentBits, SlashCommandBuilder, MessageFlags } from 'discord.js';
 import type { Activity, CommandResult, DiscordConfig } from '../shared/live.ts';
 import type { LiveService } from './service.ts';
@@ -102,15 +108,21 @@ export class DiscordBot {
   private generation = 0;
   constructor(private service: LiveService) {
     service.on('alarm', this.alarm);
+    service.on('worldEvent', this.worldEvent);
+    service.on('activity', this.activity);
+    service.on('change', this.scheduleStatus);
   }
   private status(value: string) {
     this.service.discordStatus = value;
     this.service.changed();
   }
-  async start() {
+  async start(discoverOnly = false) {
     await this.stop();
     const config = this.service.config.discord;
-    insist(config.token && config.guildId, 'Spara Discord-token och server-ID först.');
+    insist(
+      config.token && (discoverOnly || config.guildId),
+      'Spara Discord-token och server-ID först.',
+    );
     const gen = ++this.generation,
       client = new Client({ intents: [GatewayIntentBits.Guilds] });
     this.client = client;
@@ -179,10 +191,12 @@ export class DiscordBot {
         await client.destroy();
         return;
       }
-      const guild = await client.guilds.fetch(config.guildId);
-      await guild.commands.set(commands);
+      if (!discoverOnly) {
+        const guild = await client.guilds.fetch(config.guildId);
+        await guild.commands.set(commands);
+      }
       if (gen === this.generation) {
-        this.service.config.discord.enabled = true;
+        if (!discoverOnly) this.service.config.discord.enabled = true;
         this.service.db.save(this.service.config);
         this.status('Ansluten');
       }
@@ -194,42 +208,185 @@ export class DiscordBot {
       throw new Error('Discord kunde inte anslutas.');
     }
   }
-  private alarm = (event: Activity) => {
-    const gen = this.generation,
-      client = this.client,
-      config = this.service.config.discord;
-    if (!client?.isReady() || !config.channelId) return;
-    void (async () => {
-      try {
-        const channel = await client.channels.fetch(config.channelId);
-        if (gen !== this.generation || event.profileId !== this.service.config.activeProfileId)
-          return;
-        insist(
-          channel &&
-            'guildId' in channel &&
-            channel.guildId === config.guildId &&
-            channel.isSendable(),
-          'Ogiltig larmkanal.',
-        );
-        await channel.send({
-          content:
-            `🚨 ${this.service.config.profiles.find((p) => p.id === event.profileId)?.name || 'Rust'} · ${event.text}`.slice(
-              0,
-              1900,
-            ),
-          allowedMentions: { parse: [] },
-        });
-      } catch {
+  private setupBusy = false;
+  get isSettingUp() {
+    return this.setupBusy;
+  }
+  async guildList() {
+    if (!this.client?.isReady()) await this.start(true);
+    return [...this.client!.guilds.cache.values()]
+      .filter((g) => g.available)
+      .map((g) => ({ id: g.id, name: g.name }));
+  }
+  async preview() {
+    if (!this.client?.isReady()) await this.start(true);
+    const guild = await this.client!.guilds.fetch(this.service.config.discord.guildId);
+    return discordSetupPreview(guild, this.client!.user!.id, this.service.config.discord);
+  }
+  async setup() {
+    insist(!this.setupBusy, 'En kanalsetup pågår redan.');
+    this.setupBusy = true;
+    try {
+      await this.preview();
+      const guild = await this.client!.guilds.fetch(this.service.config.discord.guildId);
+      const result = await provisionDiscord(
+        guild,
+        this.client!.user!.id,
+        this.service.config.discord,
+        () => {
+          this.service.db.save(this.service.config);
+          this.service.changed();
+        },
+      );
+      await guild.commands.set(commands);
+      this.service.config.discord.enabled = true;
+      this.service.db.save(this.service.config);
+      await this.instructions();
+      this.scheduleStatus();
+      return result;
+    } finally {
+      this.setupBusy = false;
+    }
+  }
+  private deliveries = 0;
+  private sending: Promise<unknown> = Promise.resolve();
+  private deliver(kind: ManagedChannel, event: Activity) {
+    const client = this.client,
+      gen = this.generation,
+      config = this.service.config.discord,
+      id = config.channels?.[kind] || (kind === 'larm' ? config.channelId : '');
+    if (!client?.isReady() || !id || this.deliveries >= 30 || !managedAccessValid(config)) return;
+    this.deliveries++;
+    const job = this.sending.then(async () => {
+      if (gen !== this.generation || event.profileId !== this.service.config.activeProfileId)
+        return;
+      const channel = await client.channels.fetch(id);
+      if (gen !== this.generation) return;
+      insist(
+        channel &&
+          'guildId' in channel &&
+          channel.guildId === config.guildId &&
+          channel.isSendable(),
+        'Ogiltig kanal.',
+      );
+      await channel.send({ content: event.text.slice(0, 1900), allowedMentions: { parse: [] } });
+    });
+    this.sending = job
+      .catch(() => {
         if (gen === this.generation)
           this.service.log(
             'error',
-            'Discord-larm kunde inte levereras. Kontrollera kanal och behörigheter.',
+            'Discord-leverans misslyckades. Kontrollera kanal och behörigheter.',
           );
-      }
-    })();
+      })
+      .finally(() => {
+        this.deliveries--;
+      });
+  }
+  private alarm = (event: Activity) => this.deliver('larm', event);
+  private worldEvent = (event: Activity) => this.deliver('events', event);
+  private activity = (event: Activity) => {
+    if (!event.text.startsWith('Discord-')) this.deliver('aktivitet', event);
   };
+  private statusTimer: ReturnType<typeof setTimeout> | undefined;
+  private statusBusy = false;
+  private statusContent = '';
+  private scheduleStatus = () => {
+    if (
+      this.statusTimer ||
+      !this.client?.isReady() ||
+      !this.service.config.discord.channels?.status
+    )
+      return;
+    this.statusTimer = setTimeout(() => {
+      this.statusTimer = undefined;
+      void this.updateStatus();
+    }, 5000);
+  };
+  private async managedText(kind: ManagedChannel) {
+    if (!managedAccessValid(this.service.config.discord)) return null;
+    const client = this.client,
+      id = this.service.config.discord.channels?.[kind];
+    if (!client?.isReady() || !id) return null;
+    const channel = await client.channels.fetch(id);
+    insist(
+      channel &&
+        'guildId' in channel &&
+        channel.guildId === this.service.config.discord.guildId &&
+        channel.isSendable(),
+      'Ogiltig kanal.',
+    );
+    return channel;
+  }
+  private async updateStatus() {
+    if (this.statusBusy) return;
+    this.statusBusy = true;
+    const gen = this.generation;
+    try {
+      const channel = await this.managedText('status');
+      if (!channel || gen !== this.generation) return;
+      const state = this.service.snapshot(),
+        name = state.profiles.find((p) => p.id === state.activeProfileId)?.name || 'Ingen vald';
+      const content =
+        '**ElRusty** · ' +
+        name +
+        '\nRust+: ' +
+        state.connection +
+        '\nTeam online: ' +
+        state.team.filter((m) => m.isOnline).length +
+        '/' +
+        state.team.length;
+      if (content === this.statusContent) return;
+      const config = this.service.config.discord;
+      let message = config.statusMessageId
+        ? await channel.messages.fetch(config.statusMessageId).catch((e: any) => {
+            if (e.code === 10008) return null;
+            throw e;
+          })
+        : null;
+      if (gen !== this.generation) return;
+      if (message) {
+        insist(
+          message.author.id === this.client!.user!.id,
+          'Statusmeddelandet tillhör en annan användare.',
+        );
+        await message.edit({ content, allowedMentions: { parse: [] } });
+      } else {
+        message = await channel.send({ content, allowedMentions: { parse: [] } });
+        config.statusMessageId = message.id;
+        this.service.db.save(this.service.config);
+      }
+      this.statusContent = content;
+    } catch {
+      /* Status is retried on a later state update without creating log loops. */
+    } finally {
+      this.statusBusy = false;
+    }
+  }
+  private async instructions() {
+    const channel = await this.managedText('styrning');
+    if (!channel) return;
+    const config = this.service.config.discord;
+    if (config.instructionsMessageId) {
+      const old = await channel.messages.fetch(config.instructionsMessageId).catch((e: any) => {
+        if (e.code === 10008) return null;
+        throw e;
+      });
+      if (old) return;
+    }
+    const message = await channel.send({
+      content:
+        '**ElRusty – styrning**\n/status · /team · /switch · /group · /mode\nEndast tillåtna användare och roller kan styra boten. Chattkopplingen aktiveras separat i ElRusty.',
+      allowedMentions: { parse: [] },
+    });
+    config.instructionsMessageId = message.id;
+    this.service.db.save(this.service.config);
+  }
   async stop() {
     this.generation++;
+    clearTimeout(this.statusTimer);
+    this.statusTimer = undefined;
+    this.statusContent = '';
     const old = this.client;
     this.client = null;
     if (old) await old.destroy();
@@ -239,6 +396,10 @@ export class DiscordBot {
   }
   async close() {
     this.service.off('alarm', this.alarm);
+    this.service.off('worldEvent', this.worldEvent);
+    this.service.off('activity', this.activity);
+    this.service.off('change', this.scheduleStatus);
+    clearTimeout(this.statusTimer);
     this.generation++;
     await this.client?.destroy();
     this.client = null;

@@ -8,7 +8,8 @@ import type { DiscordBot } from './discord.ts';
 import { UserError, insist, object, text, discord } from './validation.ts';
 export function createLiveHttp(
   service: LiveService,
-  bot: Pick<DiscordBot, 'start' | 'stop'>,
+  bot: Pick<DiscordBot, 'start' | 'stop'> &
+    Partial<Pick<DiscordBot, 'guildList' | 'preview' | 'setup' | 'isSettingUp'>>,
   options: { port: number; dist?: string; dev?: boolean; pairing?: PairingManager },
 ) {
   const csrf = randomBytes(32).toString('hex'),
@@ -113,6 +114,26 @@ export function createLiveHttp(
           return;
         }
         switch (path) {
+          case '/api/live/discord/guilds':
+            insist(bot.guildList, 'Setup stöds inte.');
+            result = await bot.guildList();
+            break;
+          case '/api/live/discord/preview':
+            insist(bot.preview, 'Setup stöds inte.');
+            result = await bot.preview();
+            break;
+          case '/api/live/discord/setup':
+            insist(bot.setup, 'Setup stöds inte.');
+            result = await bot.setup();
+            break;
+          case '/api/live/discord/select': {
+            insist(!bot.isSettingUp, 'Vänta tills kanalsetupen är klar.');
+            const candidate = { ...service.config.discord, guildId: text(b.guildId) };
+            discord(candidate, service.config.discord);
+            await bot.stop();
+            service.saveDiscord(candidate);
+            break;
+          }
           case '/api/live/map/load':
             insist(service.world, 'Karta är inte tillgänglig.');
             await service.world.load();
@@ -172,14 +193,17 @@ export function createLiveHttp(
             result = await service.runMode(text(b.id));
             break;
           case '/api/live/discord':
+            insist(!bot.isSettingUp, 'Vänta tills kanalsetupen är klar.');
             discord(b, service.config.discord);
             await bot.stop();
             service.saveDiscord(b);
             break;
           case '/api/live/discord/start':
+            insist(!bot.isSettingUp, 'Vänta tills kanalsetupen är klar.');
             await bot.start();
             break;
           case '/api/live/discord/stop':
+            insist(!bot.isSettingUp, 'Vänta tills kanalsetupen är klar.');
             await bot.stop();
             break;
           default:

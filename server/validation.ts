@@ -99,7 +99,18 @@ export function discord(value: unknown, old: Config['discord']): Config['discord
     return [...new Set(v.map(snow))];
   };
   return {
-    guildId: snow(b.guildId),
+    ...(b.guildId === old.guildId
+      ? {
+          setupAccessKey: old.setupAccessKey,
+          categoryId: old.categoryId,
+          channels: old.channels,
+          botId: old.botId,
+          statusMessageId: old.statusMessageId,
+          instructionsMessageId: old.instructionsMessageId,
+          relayEnabled: old.relayEnabled,
+        }
+      : {}),
+    guildId: b.guildId ? snow(b.guildId) : '',
     channelId: b.channelId ? snow(b.channelId) : '',
     userIds: ids(b.userIds),
     roleIds: ids(b.roleIds),

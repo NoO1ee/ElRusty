@@ -1,3 +1,4 @@
+import { DiscordSetup } from './DiscordSetup';
 import { LiveMap } from './LiveMap';
 import { useLive, refreshLive, liveAction } from '../live-store';
 import { RustPairing } from './RustPairing';
@@ -97,6 +98,9 @@ export function LivePage() {
       setDiscordLoaded(true);
     }
   }, [data, discordLoaded]);
+  useEffect(() => {
+    if (data) setDiscord((v) => ({ ...v, guildId: data.discord.guildId }));
+  }, [data?.discord.guildId]);
   const selected = data?.profiles.find((p) => p.id === data.activeProfileId),
     connected = !offline && data?.connection === 'connected';
   const disabled = busy || offline;
@@ -765,6 +769,7 @@ export function LivePage() {
                     </p>
                   </form>
                 </div>
+                <DiscordSetup data={data} />
                 <details
                   className="pairing-manual"
                   open={manualOpen}

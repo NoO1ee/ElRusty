@@ -1,5 +1,12 @@
 # Ändringslogg
 
+## 0.8.0 — 2026-10-31
+
+- Guidad Discord-setup med serverval, åtkomstförhandsvisning och sex privata kanaler.
+- Sparar kategori- och kanal-ID:n för återupptagning och reparation utan namnövertagande.
+- Uppdaterat statusmeddelande, larm, kartevent och aktivitet i separata kanaler.
+- Ändrad åtkomst spärrar nya kanalutskick tills behörigheterna applicerats med setupen.
+
 ## 0.7.0 — 2026-10-31
 
 - Livekarta med Rust+-kartbild, SVG-lager, teampositioner, monument, vending machines och eventmarkörer.

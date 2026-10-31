@@ -47,6 +47,15 @@ export interface Activity {
   text: string;
 }
 export interface DiscordConfig {
+  setupAccessKey?: string;
+  categoryId?: string;
+  channels?: Partial<
+    Record<'status' | 'larm' | 'events' | 'aktivitet' | 'styrning' | 'teamchat', string>
+  >;
+  botId?: string;
+  statusMessageId?: string;
+  instructionsMessageId?: string;
+  relayEnabled?: boolean;
   guildId: string;
   channelId: string;
   userIds: string[];

@@ -66,6 +66,10 @@ export class LiveService extends EventEmitter {
       pending: [...this.pending],
       activity: this.db.history().filter((e) => e.profileId === activeProfileId),
       discord: {
+        categoryId: discord.categoryId,
+        channels: discord.channels,
+        botId: discord.botId,
+        relayEnabled: discord.relayEnabled,
         guildId: discord.guildId,
         channelId: discord.channelId,
         userIds: discord.userIds,
@@ -92,6 +96,7 @@ export class LiveService extends EventEmitter {
       text,
     };
     this.db.log(entry);
+    this.emit('activity', entry);
     this.changed();
     return entry;
   }
