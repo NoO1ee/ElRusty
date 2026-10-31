@@ -52,9 +52,6 @@ test('klickanslutning fungerar och Delete påverkar inte textfält', async ({ pa
   await expect(page.locator('[data-ready="true"]')).toBeVisible();
   await page.getByRole('button', { name: 'Ny krets', exact: true }).click();
   await page.getByTestId('palette-solar').click();
-  await page
-    .locator('.react-flow__node')
-    .dragTo(page.locator('.react-flow__pane'), { targetPosition: { x: 180, y: 150 } });
   await page.getByTestId('palette-light').click();
   await page.getByLabel('Large Solar Panel Power Out', { exact: true }).click();
   await page.getByLabel('Ceiling Light Power In', { exact: true }).click();

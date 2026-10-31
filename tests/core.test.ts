@@ -14,6 +14,7 @@ import { routeWire, segmentBlocked } from '../src/routing';
 import { validateConnection, removeSelection } from '../src/graph';
 import { exportRustFilter, importRustFilter } from '../src/filters';
 import { encodeBackup, decodeBackup, validateCircuit } from '../src/storage';
+import { freePlacement } from '../src/placement';
 
 function wire(
   a: ComponentNode,
@@ -41,6 +42,17 @@ const total = (r: ReturnType<typeof step>) =>
     0,
   );
 describe('speldata och anslutningar', () => {
+  it('nya kort placeras utan att täcka befintliga portar', () => {
+    const a = newNode('solar', 360, 220);
+    const p = freePlacement([a], 'light', 360, 220);
+    expect(p).not.toEqual(a.position);
+    expect(
+      p.x >= a.position.x + 228 ||
+        p.y >= a.position.y + 160 ||
+        p.x + 228 <= a.position.x ||
+        p.y + 160 <= a.position.y,
+    ).toBe(true);
+  });
   it('varje komponent har en riktig lokal spelbild och unika portar', () => {
     for (const c of catalog) {
       expect(byItem[c.shortname], c.name).toBeDefined();

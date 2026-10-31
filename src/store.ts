@@ -9,6 +9,7 @@ import type {
 import { starterCircuit, newNode } from './data/catalog';
 import { removeSelection, validateConnection } from './graph';
 import { initialResult } from './simulation/engine';
+import { freePlacement } from './placement';
 type GraphSnapshot = Pick<Circuit, 'nodes' | 'edges'>;
 const snapshot = (c: Circuit): GraphSnapshot => structuredClone({ nodes: c.nodes, edges: c.edges });
 interface Store {
@@ -78,12 +79,13 @@ export const useStudio = create<Store>((set, get) => ({
   rename: (name) => set((s) => ({ circuit: { ...s.circuit, name: name.slice(0, 200) } })),
   add: (definition, x, y) => {
     get().checkpoint();
+    const position = freePlacement(get().circuit.nodes, definition, x, y);
     set((s) => ({
       circuit: {
         ...s.circuit,
         nodes: [
           ...s.circuit.nodes.map((n) => ({ ...n, selected: false })),
-          { ...newNode(definition, x, y), selected: true },
+          { ...newNode(definition, position.x, position.y), selected: true },
         ],
       },
     }));
