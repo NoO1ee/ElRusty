@@ -18,6 +18,7 @@ test('ugnen saknar Passthrough och varnar tydligt vid 0 och 2 rW', async ({ page
   await page.getByLabel('Electric Furnace + Adaptor Power In', { exact: true }).click();
   await expect(furnace).toHaveAttribute('data-power-status', 'insufficient');
   await expect(furnace).toContainText('För lite ström · 2 / 3 rW');
+  await page.locator('.component-card').filter({ hasText: 'Electrical Branch' }).click();
   await page.locator('.inspector').getByLabel('Branch Out (rW)').fill('3');
   await expect(furnace).toHaveAttribute('data-power-status', 'ok');
   await expect(furnace).not.toHaveClass(/is-power-warning/);

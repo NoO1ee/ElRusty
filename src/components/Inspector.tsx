@@ -367,6 +367,7 @@ export function Inspector() {
             <label key={index}>
               Blueprint-plats {index + 1}
               <select
+                aria-label={'Blueprint-plats ' + (index + 1)}
                 value={startBlueprints(node)[index] ?? ''}
                 onChange={(e) => {
                   const blueprints = Array.from(
