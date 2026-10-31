@@ -1,4 +1,4 @@
-# ElRusty Live 0.6.1
+# ElRusty Live 0.6.2
 
 Live är en separat tjänst för riktiga Rust+-enheter. Kretsbyggaren och dess simulering styr inga enheter i spelet. Tjänsten använder det inofficiella MIT-licensierade [rustplus.js](https://github.com/liamcottle/rustplus.js) och [discord.js](https://discord.js.org/); inga källkodsfiler har kopierats från EgorLis/Rustplusbot eller Smartrust.
 
@@ -14,7 +14,7 @@ Webbläsaren kan stängas efter konfiguration. Node-processen och datorn måste 
 
 Öppna Live → Inställningar → Anslut med Rust+.
 
-1. Klicka **Registrera Rust+**. Ett separat Chrome-/Edge-fönster öppnas för inloggning hos Steam/Facepunch. Återgå till ElRusty när steget är klart. Registreringen görs normalt en gång.
+1. Klicka **Registrera Rust+**. Ett separat fönster i Brave, Chrome eller Edge öppnas för inloggning hos Steam/Facepunch. Återgå till ElRusty när steget är klart. Registreringen görs normalt en gång.
 2. Klicka **Vänta på server**. Öppna spelet på rätt server och välj Esc → Rust+ → Pair with Server. Rust+-mobilappen behöver inte vara öppen.
 3. En mottagen server visas som ett förslag med namn, adress och app.port. Klicka **Lägg till och anslut**. Ingen token kopieras till webbläsaren. En tidigare profil för samma adress, port och Steam-konto får sin parning uppdaterad.
 
@@ -22,7 +22,9 @@ Registrering och lyssning är två steg i samma flöde, inte två olika anslutni
 
 Status visas i vyn. Endast ett parningsjobb får köras åt gången. **Avbryt parning** stänger det egna jobbet och dess inloggningsfönster. Registrering avbryts efter fem minuter och lyssning efter tio; förslag giltiga i högst femton minuter sparas först efter ditt val. Fel eller avbrott bevarar tidigare registrering. Vid omstart behöver mottagningen startas igen.
 
-Den guidade registreringen kräver Chrome eller Edge på den dator där tjänsten körs. På en Pi utan skrivbord: registrera på datorn, stoppa båda tjänsterna och flytta den privata rustplus.config.json-filen säkert till Pi:ns datakatalog. Därefter kan Vänta på server användas via SSH-tunneln. Kör inte två mottagare med samma registrering samtidigt.
+På Windows väljs webbläsaren i ordningen explicit `CHROME_PATH`, Brave, Edge och sedan bibliotekets Chrome-upptäckt. Brave söks under LOCALAPPDATA, Program Files och Program Files (x86). Inloggningen använder alltid en tillfällig profil; din vanliga Brave-profil och dess inloggningar berörs inte.
+
+Den guidade registreringen kräver Brave, Chrome eller Edge på den dator där tjänsten körs. På en Pi utan skrivbord: registrera på datorn, stoppa båda tjänsterna och flytta den privata rustplus.config.json-filen säkert till Pi:ns datakatalog. Därefter kan Vänta på server användas via SSH-tunneln. Kör inte två mottagare med samma registrering samtidigt.
 
 FCM, Expo och Facepunch kan ändra sina tjänster; verklig inloggning och mottagning är fortfarande användarverifiering. Vid fel visas ett maskerat fel i vyn. Förutsätter Rust PC med Rust+ aktiverat och nåbar app.port.
 

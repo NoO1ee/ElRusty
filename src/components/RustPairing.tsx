@@ -37,8 +37,8 @@ export function RustPairing({
           <div>
             <h3>Registrera Rust+</h3>
             <p>
-              Ett separat Chrome-/Edge-fönster öppnas för Steam-inloggning. När du är klar återgår
-              du hit.
+              Ett separat fönster i Brave, Chrome eller Edge öppnas för Steam-inloggning. När du är
+              klar återgår du hit.
             </p>
             <button
               className={pair.hasRegistration ? '' : 'primary'}

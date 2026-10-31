@@ -1,5 +1,12 @@
 # Ändringslogg
 
+## 0.6.2 — 2026-10-31
+
+- Automatisk Brave-upptäckt på Windows, inklusive användar- och systeminstallationer.
+- Prioriterar explicit CHROME_PATH, sedan Brave, Edge och befintlig Chrome-upptäckt.
+- Behåller tillfällig inloggningsprofil, webbsäkerhet och sidisolering.
+- Uppdaterade instruktioner och tester för webbläsarval och reservvägar.
+
 ## 0.6.1 — 2026-10-31
 
 - Guidad Rust+-parning med knappar för registrering, servermottagning och godkännande direkt i Live-vyn.

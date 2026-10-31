@@ -1,6 +1,6 @@
+import { pairingLaunchOptions } from './pairing-launch.ts';
 import { createRequire } from 'node:module';
 import { mkdtemp, rm } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { AUTH_ORIGIN, authBridgeScript, authFromBinding } from './pairing-protocol.ts';
 const deps = createRequire(createRequire(import.meta.url).resolve('@liamcottle/rustplus.js'));
@@ -12,24 +12,7 @@ export async function browserAuth(configFile: string, signal: AbortSignal): Prom
   let chrome: any, socket: any;
   try {
     signal.throwIfAborted();
-    const edge =
-      process.platform === 'win32'
-        ? [process.env['PROGRAMFILES(X86)'], process.env.PROGRAMFILES]
-            .filter(Boolean)
-            .map((root) => join(root!, 'Microsoft', 'Edge', 'Application', 'msedge.exe'))
-            .find((p) => existsSync(p))
-        : undefined;
-    chrome = await launcher.launch({
-      startingUrl: 'about:blank',
-      userDataDir: profile,
-      chromePath: process.env.CHROME_PATH || edge,
-      handleSIGINT: false,
-      chromeFlags: [
-        '--no-first-run',
-        '--no-default-browser-check',
-        '--remote-debugging-address=127.0.0.1',
-      ],
-    });
+    chrome = await launcher.launch(pairingLaunchOptions(profile));
     signal.throwIfAborted();
     const pages = (await (
       await fetch(`http://127.0.0.1:${chrome.port}/json/list`, { signal })

@@ -55,7 +55,7 @@ export class PairingManager {
     insist(action !== 'listen' || this.registered(), 'Registrera Rust+ innan du börjar lyssna.');
     insist(
       action !== 'register' || this.canRegister,
-      'Inloggningen behöver ett skrivbord med Chrome/Edge. Registrera på datorn och flytta den privata konfigurationen till Pi:n.',
+      'Inloggningen behöver ett skrivbord med Brave, Chrome eller Edge. Registrera på datorn och flytta den privata konfigurationen till Pi:n.',
     );
     const gen = ++this.generation;
     this.candidates.clear();
@@ -99,7 +99,7 @@ export class PairingManager {
           status: 'error',
           message:
             action === 'register'
-              ? 'Registreringen misslyckades. Kontrollera internet och att Chrome eller Edge finns. Försök igen; tidigare registrering behålls.'
+              ? 'Registreringen misslyckades. Kontrollera internet och att Brave, Chrome eller Edge finns. Försök igen; tidigare registrering behålls.'
               : 'Kunde inte lyssna på Rust+. Kontrollera anslutningen eller registrera på nytt.',
         });
       }
