@@ -1626,3 +1626,16 @@ h3 {
   color: #a9c6e9;
   font-size: 14px;
 }
+.canvas-shell.hand-mode .react-flow__pane {
+  cursor: grab;
+}
+.canvas-shell.hand-mode .react-flow__pane.dragging {
+  cursor: grabbing;
+}
+.canvas-shell.hand-mode .react-flow__node,
+.canvas-shell.hand-mode .react-flow__node *,
+.canvas-shell.hand-mode .react-flow__edge,
+.canvas-shell.hand-mode .react-flow__edge *,
+.canvas-shell.hand-mode .wire-bend {
+  pointer-events: none !important;
+}

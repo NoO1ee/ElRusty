@@ -9,6 +9,7 @@ import {
   Controls,
   useReactFlow,
   useStoreApi,
+  useKeyPress,
   applyNodeChanges,
   applyEdgeChanges,
   ConnectionMode,
@@ -192,6 +193,7 @@ const nodeTypes = { component: ComponentCard },
 
 function CanvasInner() {
   const flowStore = useStoreApi();
+  const handActive = useKeyPress(['Control', 'Space'], { actInsideInputWithModifier: false });
   const circuit = useStudio((s) => s.circuit),
     setGraph = useStudio((s) => s.setGraph),
     notify = useStudio((s) => s.notify);
@@ -235,7 +237,7 @@ function CanvasInner() {
   }, []);
   return (
     <div
-      className="canvas-shell"
+      className={'canvas-shell' + (handActive ? ' hand-mode' : '')}
       ref={container}
       onDragOver={(e) => {
         e.preventDefault();
@@ -349,12 +351,15 @@ function CanvasInner() {
         zoomOnScroll={false}
         zoomOnPinch
         zoomActivationKeyCode="Control"
-        panActivationKeyCode="Space"
+        panActivationKeyCode={['Space', 'Control']}
         panOnDrag={[1]}
-        selectionOnDrag
+        selectionOnDrag={!handActive}
+        nodesDraggable={!handActive}
+        nodesConnectable={!handActive}
+        elementsSelectable={!handActive}
         selectionKeyCode={null}
         deleteKeyCode={null}
-        multiSelectionKeyCode="Control"
+        multiSelectionKeyCode="Shift"
         proOptions={{ hideAttribution: false }}
       >
         <Controls showInteractive={false} />
@@ -378,7 +383,7 @@ function CanvasInner() {
           <p>
             Ctrl + scroll · zoom vid muspekaren
             <br />
-            Mellanslag + dra / mittenknapp · panorera
+            Ctrl + vänsterdrag / mellanslag + dra / mittenknapp · panorera
             <br />
             Shift + dra · linjera kort
             <br />
