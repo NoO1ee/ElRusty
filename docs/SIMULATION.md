@@ -1,4 +1,4 @@
-# Simuleringsmodell 0.4
+# Simuleringsmodell 0.5
 
 ## Källor och verifieringsnivå
 
@@ -88,3 +88,7 @@ Följ [testscenarierna för Rust](GAME_CHECKS.md) för tider, blandade material,
 ## Exempel och referensläge
 
 Kretsar från exempelbiblioteket kan bära en sparad guide och ett referensläge. Nih, BCN, NEXUS och Inline är kopplingsreferenser; motorn returnerar ingen simulerad effekt och gränssnittet spärrar start/stegning. Detta förhindrar att förenklad batteri- eller minneslogik presenteras som ett korrekt resultat. De egna förlagorna är testade mot appens nuvarande modell. Se [Exempelbibliotek](EXAMPLES.md).
+
+## Lektionssignaler
+
+Lektionsguider kan skicka tillfälliga testsignaler till särskilt utpekade energikällor. De ändrar inte den sparade kretsen och hanteras som köade steg med dt=0 i samma motor. Signaler kan därmed provas medan klockan är pausad utan att minnesceller återställs. Nivåbyte ändrar endast guide/fokus; det återställer inte motorn. Topologi och vanliga startinställningar återställer fortfarande simuleringen. Testsignaler och transient minne sparas inte. Se [lektionsdokumentationen](LESSONS.md).

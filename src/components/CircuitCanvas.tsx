@@ -10,6 +10,8 @@ import {
   useReactFlow,
   useStoreApi,
   useKeyPress,
+  ViewportPortal,
+  useNodesInitialized,
   applyNodeChanges,
   applyEdgeChanges,
   ConnectionMode,
@@ -202,7 +204,9 @@ function CanvasInner() {
   const circuit = useStudio((s) => s.circuit),
     setGraph = useStudio((s) => s.setGraph),
     notify = useStudio((s) => s.notify);
-  const { screenToFlowPosition, setViewport } = useReactFlow<ComponentNode, WireEdge>();
+  const initialized = useNodesInitialized();
+  const lessonFocus = useStudio((s) => s.lessonFocus);
+  const { screenToFlowPosition, setViewport, fitBounds } = useReactFlow<ComponentNode, WireEdge>();
   const [menu, setMenu] = useState<{ id: string; x: number; y: number; point: XYPosition } | null>(
       null,
     ),
@@ -216,6 +220,16 @@ function CanvasInner() {
       setTimeout(() => setViewport(circuit.viewport), 30);
     }
   }, [circuit.id, setViewport]);
+  useEffect(() => {
+    const area = circuit.lesson?.areas.find((a) => a.id === lessonFocus?.areaId);
+    if (!initialized) return;
+    if (!area && !circuit.lesson) return;
+    const timer = setTimeout(() => {
+      if (area) void fitBounds(area, { padding: 0.08, duration: 200 });
+      else void setViewport(circuit.viewport);
+    }, 40);
+    return () => clearTimeout(timer);
+  }, [initialized, lessonFocus, circuit.id, fitBounds]);
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -367,6 +381,20 @@ function CanvasInner() {
         multiSelectionKeyCode="Shift"
         proOptions={{ hideAttribution: false }}
       >
+        {circuit.lesson && (
+          <ViewportPortal>
+            {circuit.lesson.areas.map((area) => (
+              <div
+                className="lesson-area"
+                key={area.id}
+                style={{ left: area.x, top: area.y, width: area.width, height: area.height }}
+              >
+                <strong>{area.title}</strong>
+                <p>{area.description}</p>
+              </div>
+            ))}
+          </ViewportPortal>
+        )}
         <Controls showInteractive={false} />
         {Object.entries(guides).map(
           ([axis, value]) => value !== undefined && <Guide key={axis} axis={axis} value={value} />,

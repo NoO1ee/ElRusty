@@ -18,6 +18,7 @@ import { ItemImage } from './ItemImage';
 import { FilterEditor } from './FilterEditor';
 export function Inspector() {
   const node = useStudio((s) => s.circuit.nodes.find((n) => n.selected)),
+    testInputs = useStudio((s) => s.testInputs),
     reference = useStudio((s) => s.circuit.example?.mode === 'reference'),
     runtime = useStudio((s) => (node ? s.simulation.nodeStates[node.id] : undefined)),
     change = useStudio((s) => s.settings),
@@ -121,6 +122,12 @@ export function Inspector() {
         </span>
       </div>
       <section>
+        {node.id in testInputs && (
+          <p className="help-text">
+            Testsignal från lektionsguiden: {testInputs[node.id] ? 'På' : 'Av'}. Aktiverad nedan är
+            startinställningen.
+          </p>
+        )}
         <label>
           Komponentnamn
           <input

@@ -16,6 +16,8 @@ interface Store {
   circuit: Circuit;
   past: GraphSnapshot[];
   future: GraphSnapshot[];
+  testInputs: Record<string, boolean>;
+  lessonFocus: { areaId: string; requestId: string } | null;
   running: boolean;
   simulation: SimulationResult;
   message: string;
@@ -37,6 +39,8 @@ interface Store {
 }
 export const useStudio = create<Store>((set, get) => ({
   circuit: starterCircuit(),
+  testInputs: {},
+  lessonFocus: null,
   past: [],
   future: [],
   running: false,
@@ -71,6 +75,8 @@ export const useStudio = create<Store>((set, get) => ({
   replace: (circuit) =>
     set({
       circuit: structuredClone(circuit),
+      testInputs: {},
+      lessonFocus: null,
       past: [],
       future: [],
       running: false,

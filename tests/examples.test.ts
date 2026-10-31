@@ -9,8 +9,8 @@ const output = (c: Circuit, r: SimulationResult, id: string, port: string) =>
   r.outputs[c.nodes.find((n) => n.data.label === id)!.id + '|out:' + port];
 describe('exempelbibliotek', () => {
   it('har unika poster och källhänvisningar inklusive den delade NEXUS-kretsen', () => {
-    expect(exampleBuilds).toHaveLength(9);
-    expect(new Set(exampleBuilds.map((e) => e.id)).size).toBe(9);
+    expect(exampleBuilds).toHaveLength(14);
+    expect(new Set(exampleBuilds.map((e) => e.id)).size).toBe(14);
     const nexus = openExample('nexus');
     expect(nexus.nodes).toHaveLength(24);
     expect(nexus.edges).toHaveLength(32);

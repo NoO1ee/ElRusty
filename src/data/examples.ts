@@ -2,12 +2,13 @@ import type { Circuit, ComponentNode, ComponentSettings, WireEdge } from '../mod
 import { blankCircuit } from '../model';
 import { newNode } from './catalog';
 import nexusData from './nexus.json';
+import { logicLessons } from './lessons';
 
 export interface ExampleBuild {
   id: string;
   name: string;
   category: 'Reservkraft' | 'Fördelning' | 'Logik' | 'Industrial';
-  difficulty: 'Grund' | 'Medel' | 'Avancerad';
+  difficulty: 'Grund' | 'Medel' | 'Avancerad' | 'Alla nivåer';
   origin: 'Handboken' | 'Rustrician' | 'ElRusty';
   author: string;
   summary: string;
@@ -230,6 +231,7 @@ function sectors() {
   return c;
 }
 export const exampleBuilds: ExampleBuild[] = [
+  ...logicLessons.map(l => ({id:'learn-'+l.component,name:l.title+' · lär dig',category:'Logik' as const,difficulty:'Alla nivåer' as const,origin:'ElRusty' as const,author:'ElRusty · pedagogiska modellbyggen',summary:'Grund, mellan och avancerad i tre separata områden. '+l.why,mode:'model' as const,notice:'Testknapparna påverkar signalerna utan att återställa minnet. Bibliotekets modeller är inte spelverifierade.',steps:['Välj nivå och prova signalerna i guiden.','Jämför signalbilden med kablarna på arbetsytan.'],source:{title:'Facepunch · '+l.title,url:l.source},create:l.create})),
   {
     id: 'nih-core',
     name: 'Nih Core',
@@ -427,6 +429,7 @@ export function openExample(id: string): Circuit {
     source: ids.get(e.source)!,
     target: ids.get(e.target)!,
   }));
+  if (c.lesson) c.lesson = { ...c.lesson, areas: c.lesson.areas.map(a => ({ ...a, controls: a.controls.map(control => ({ ...control,nodeId:ids.get(control.nodeId)! })), focusNodeId:ids.get(a.focusNodeId)!, outputNodeId:ids.get(a.outputNodeId)! })) };
   c.id = crypto.randomUUID();
   c.name = example.name + ' · egen kopia';
   c.example = {

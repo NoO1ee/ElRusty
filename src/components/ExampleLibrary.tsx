@@ -3,6 +3,7 @@ import { ArrowUpRight, BookOpen, CopyPlus, Search, ShieldCheck, Wrench } from 'l
 import type { Circuit } from '../model';
 import { byDefinition, nodeHeight, NODE_WIDTH } from '../data/catalog';
 import { byItem } from '../data/items';
+import { LogicLessonGuide } from './LogicLessonGuide';
 import { exampleBuilds, type ExampleBuild } from '../data/examples';
 
 function Preview({ circuit, title }: { circuit?: Circuit; title: string }) {
@@ -13,6 +14,18 @@ function Preview({ circuit, title }: { circuit?: Circuit; title: string }) {
         <span>Schema saknas i källan</span>
       </div>
     );
+  const firstArea = circuit.lesson?.areas[0];
+  if (firstArea) {
+    const nodes = circuit.nodes.filter(
+      (n) => n.position.y >= firstArea.y && n.position.y < firstArea.y + firstArea.height,
+    );
+    const ids = new Set(nodes.map((n) => n.id));
+    circuit = {
+      ...circuit,
+      nodes,
+      edges: circuit.edges.filter((e) => ids.has(e.source) && ids.has(e.target)),
+    };
+  }
   const width = Math.max(...circuit.nodes.map((n) => n.position.x + NODE_WIDTH)) + 40;
   const height =
     Math.max(
@@ -240,6 +253,7 @@ function ExampleCard({
 export function ExampleGuide({ circuit }: { circuit: Circuit }) {
   const [open, setOpen] = useState(true);
   const example = circuit.example;
+  if (circuit.lesson) return <LogicLessonGuide circuit={circuit} />;
   if (!example) return null;
   return (
     <section

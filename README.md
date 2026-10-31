@@ -41,9 +41,11 @@ Tryck **Simulera** eller stega manuellt. Boxarnas startlager redigeras i instäl
 
 ## Exempelbyggen
 
-Sök bland nio förlagor: Nih Core, BCN Core, NEXUS Core, Inline Backup och fem egna byggen inom reservkraft, fördelning, logik och industrial. Varje öppning skapar en redigerbar kopia med guide, rollnamn och individuella kabelfärger. Nuvarande bygge sparas först.
+Sök bland 14 förlagor: Nih Core, BCN Core, NEXUS Core, Inline Backup och fem egna byggen inom reservkraft, fördelning, logik och industrial. Varje öppning skapar en redigerbar kopia med guide, rollnamn och individuella kabelfärger. Nuvarande bygge sparas först.
 
-Kopplingsreferenser har simuleringen avstängd när nödvändiga spelregler saknas. De fem egna förlagorna har beteendetester för appens modell. NEXUS bygger på den delade kretsens 24 komponenter och 32 anslutningar. Se [biblioteksdokumentationen](docs/EXAMPLES.md) för källor, attribution och begränsningar.
+Kopplingsreferenser har simuleringen avstängd när nödvändiga spelregler saknas. De fem egna förlagorna har beteendetester för appens modell. NEXUS bygger på den delade kretsens 24 komponenter och 32 anslutningar. Fem logiklektioner har Grund, Mellan och Avancerad i separata områden på samma arbetsyta. Prova signaler direkt i guiden och följ en signalbild, sanningstabell och resultatlampa. Memory Cell kan provas utan att minnet återställs mellan händelser. Se [lektionsguiden](docs/LESSONS.md).
+
+Se [biblioteksdokumentationen](docs/EXAMPLES.md) för källor, attribution och begränsningar.
 
 ## Conveyor-filter
 
@@ -59,7 +61,7 @@ Kretsar och filter autosparas i IndexedDB och visas under **Sparat**. Öppna, du
 
 ## Simuleringsmodell och aktuell täckning
 
-Version 0.4 innehåller 28 komponenter: energikällor, batteristorlekar, fördelning, grundlogik, timer, memory cell, två manuella sensorer, grundförbrukare, conveyors, industrial-fördelare, boxar med adaptrar, elektrisk ugn och crafter.
+Version 0.5 innehåller 28 komponenter: energikällor, batteristorlekar, fördelning, grundlogik, timer, memory cell, två manuella sensorer, grundförbrukare, conveyors, industrial-fördelare, boxar med adaptrar, elektrisk ugn och crafter.
 
 Solpanel och vind ger konstant 20 respektive 150 rW. Batterier har alltid laddning, med respektive maxutgång. Det är avsiktliga förenklingar. Industriella lager använder spelkatalogens stackstorlekar och begränsade lagerplatser. Ugn och crafter har separata input/output-områden; blueprints skiljs från vanliga items.
 

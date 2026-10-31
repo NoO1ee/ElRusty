@@ -57,18 +57,28 @@ import { ItemImage } from './components/ItemImage';
 function useSimulator() {
   const circuit = useStudio((s) => s.circuit),
     running = useStudio((s) => s.running),
+    testInputs = useStudio((s) => s.testInputs),
+    inputsRef = useRef(testInputs),
+    pendingInputs = useRef<Record<string, boolean>[]>([]),
     worker = useRef<Worker | null>(null),
     busy = useRef(false),
     seq = useRef(0),
     latest = useRef(0),
     circuitRef = useRef(circuit);
   circuitRef.current = circuit;
+  inputsRef.current = testInputs;
   const signature = JSON.stringify({
     nodes: circuit.nodes.map((n) => ({
       id: n.id,
       definition: n.data.definition,
       settings: n.data.settings,
     })),
+    lesson: circuit.lesson
+      ? {
+          component: circuit.lesson.component,
+          controls: circuit.lesson.areas.flatMap((a) => a.controls),
+        }
+      : undefined,
     exampleMode: circuit.example?.mode,
     edges: circuit.edges.map((e) => ({
       id: e.id,
@@ -79,8 +89,9 @@ function useSimulator() {
       kind: e.data?.kind,
     })),
   });
-  const send = (type: 'step' | 'reset', dt = 0.25) => {
+  const send = (type: 'step' | 'reset', dt = 0.25, inputSnapshot = inputsRef.current) => {
     if (!worker.current || (busy.current && type !== 'reset')) return;
+    if (type === 'reset') pendingInputs.current = [];
     const requestId = ++seq.current;
     latest.current = requestId;
     busy.current = true;
@@ -89,6 +100,7 @@ function useSimulator() {
       dt,
       requestId,
       circuit: structuredClone(circuitRef.current),
+      testInputs: { ...inputSnapshot },
     } satisfies SimulationRequest);
   };
   useEffect(() => {
@@ -98,9 +110,12 @@ function useSimulator() {
       if (e.data.requestId !== latest.current) return;
       busy.current = false;
       useStudio.setState({ simulation: e.data.result });
+      const nextInputs = pendingInputs.current.shift();
+      if (nextInputs) send('step', 0, nextInputs);
     };
     w.onerror = (e) => {
       busy.current = false;
+      pendingInputs.current = [];
       useStudio.setState({ running: false, message: 'Simuleringsfel: ' + e.message });
     };
     return () => {
@@ -111,6 +126,10 @@ function useSimulator() {
   useEffect(() => {
     send('reset', 0);
   }, [signature]);
+  useEffect(() => {
+    if (busy.current) pendingInputs.current.push({ ...testInputs });
+    else send('step', 0, testInputs);
+  }, [testInputs]);
   useEffect(() => {
     if (!running || circuit.example?.mode === 'reference') return;
     const interval = setInterval(() => send('step'), 250);
@@ -633,6 +652,10 @@ export default function App() {
               });
               const copy = openExample(id);
               useStudio.getState().replace(copy);
+              if (copy.lesson)
+                useStudio.setState({
+                  lessonFocus: { areaId: copy.lesson.areas[0].id, requestId: crypto.randomUUID() },
+                });
               setView('circuit');
               notify(
                 'Öppnade en egen kopia av ' +
@@ -769,7 +792,7 @@ export default function App() {
         <span role="status" aria-live="polite">
           {message}
         </span>
-        <span className="version-label">ElRusty 0.4 · lokalt</span>
+        <span className="version-label">ElRusty 0.5 · lokalt</span>
       </footer>
       <input
         ref={fileInput}

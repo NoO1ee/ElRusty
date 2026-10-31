@@ -76,6 +76,48 @@ export function validateCircuit(value: unknown): asserts value is Circuit {
         fail('Ogiltig exempellänk.');
     }
   }
+  if (c.lesson !== undefined) {
+    const l = c.lesson;
+    if (
+      !l ||
+      !['or', 'and', 'xor', 'blocker', 'memory'].includes(l.component) ||
+      !Array.isArray(l.areas) ||
+      l.areas.length !== 3
+    )
+      fail('Ogiltig logiklektion.');
+    if (
+      l.activeAreaId !== undefined &&
+      (typeof l.activeAreaId !== 'string' || !l.areas.some((a) => a.id === l.activeAreaId))
+    )
+      fail('Ogiltig vald lektionsnivå.');
+    const ids = new Set();
+    for (const a of l.areas) {
+      if (
+        !a ||
+        ![a.id, a.title, a.description, a.why, a.exercise, a.focusNodeId, a.outputNodeId].every(
+          (v) => typeof v === 'string' && v.length <= 1000,
+        ) ||
+        ids.has(a.id) ||
+        ![a.x, a.y, a.width, a.height].every(Number.isFinite) ||
+        a.width < 1 ||
+        a.width > 10000 ||
+        a.height < 1 ||
+        a.height > 5000 ||
+        !Array.isArray(a.controls) ||
+        a.controls.length > 4 ||
+        a.controls.some(
+          (control) =>
+            !control ||
+            typeof control.nodeId !== 'string' ||
+            control.nodeId.length > 200 ||
+            typeof control.label !== 'string' ||
+            control.label.length > 200,
+        )
+      )
+        fail('Ogiltigt lektionsområde.');
+      ids.add(a.id);
+    }
+  }
   const nodeIds = new Set();
   for (const n of c.nodes) {
     if (

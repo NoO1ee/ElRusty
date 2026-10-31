@@ -93,7 +93,28 @@ export interface ExampleContext {
   author: string;
   source?: { title: string; url: string };
 }
+export type LogicComponent = 'or' | 'and' | 'xor' | 'blocker' | 'memory';
+export interface LessonArea {
+  id: string;
+  title: string;
+  description: string;
+  why: string;
+  exercise: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  controls: { nodeId: string; label: string }[];
+  focusNodeId: string;
+  outputNodeId: string;
+}
+export interface LogicLesson {
+  activeAreaId?: string;
+  component: LogicComponent;
+  areas: LessonArea[];
+}
 export interface Circuit {
+  lesson?: LogicLesson;
   example?: ExampleContext;
   schemaVersion: 1;
   id: string;
@@ -135,6 +156,7 @@ export interface SimulationResult {
   >;
 }
 export interface SimulationRequest {
+  testInputs?: Record<string, boolean>;
   type: 'step' | 'reset';
   circuit: Circuit;
   dt: number;

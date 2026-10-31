@@ -1,6 +1,6 @@
-# Exempelbibliotek 0.4
+# Exempelbibliotek 0.5
 
-Fliken **Exempelbyggen** innehåller nio förlagor. Sök på namn eller filtrera efter kategori och ursprung. **Öppna egen kopia** sparar först det pågående bygget och skapar sedan en krets med nya ID:n. Redigering ändrar varken biblioteket eller tidigare sparningar. Guiden, källan, rollnamnen och kabeldata följer med i lokal sparning och JSON-backup.
+Fliken **Exempelbyggen** innehåller 14 förlagor. Sök på namn eller filtrera efter kategori och ursprung. **Öppna egen kopia** sparar först det pågående bygget och skapar sedan en krets med nya ID:n. Redigering ändrar varken biblioteket eller tidigare sparningar. Guiden, källan, rollnamnen och kabeldata följer med i lokal sparning och JSON-backup.
 
 ## Kopplingsreferenser
 
@@ -32,3 +32,7 @@ Branch tillåter nu 1 rW i editor, validering och motor. [Facepunch commit #9556
 ## Kontroll
 
 Tester validerar alla förlagors komponenter, portar, unika anslutningar och kortplacering utan överlapp. De kontrollerar också oberoende kopior, referensskydd, guide-/källvalidering och backup. Webbläsartester täcker sökning, kategori/ursprung, NEXUS, avstängd referenssimulering samt sparning av ett nyligen ändrat bygge innan en ny förlaga öppnas.
+
+## Pedagogiska logikbyggen
+
+Version 0.5 lägger till fem förlagor för OR, Memory Cell, Blocker, XOR och AND, vardera med tre avskilda nivåer i samma krets. Guiden har live-signaler, komponentförklaring, användningsfall och visualisering. Se [Logiklektioner](LESSONS.md).

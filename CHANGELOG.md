@@ -1,5 +1,14 @@
 # Ändringslogg
 
+## 0.5.0 — 2026-10-31
+
+- Fem logiklektioner för OR Switch, Memory Cell, Blocker, XOR Switch och AND Switch.
+- Grund, Mellan och Avancerad i tre separata områden per bygge, med nivåfokus och fritt redigerbara komponenter.
+- Förklaringar av funktion och användning, övningar, sanningstabeller/minnesregler och signalbild från verkliga simuleringsvärden.
+- Tillfälliga testsignaler kan provas utan att startinställningar eller minne återställs. Signaler köas i ordning, även när simuleringen är pausad.
+- Områden, valt nivåval och arbetsyta sparas med bygget. Biblioteket har nu 14 förlagor.
+- Testtäckning för sammansatta villkor, minnesretention, Toggle, tillfälliga signaler, backup och nivåfokus.
+
 ## 0.4.0 — 2026-10-31
 
 - Ny flik Exempelbyggen med sökning, kategorier, ursprung och schematiska förhandsvisningar med Rust-bilder.
