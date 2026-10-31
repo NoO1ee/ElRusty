@@ -5,6 +5,7 @@ export function DiscordSetup({ data }: { data: LiveSnapshot }) {
   const [guilds, setGuilds] = useState<{ id: string; name: string }[]>([]),
     [selected, setSelected] = useState(data.discord.guildId),
     [preview, setPreview] = useState<any>(null),
+    [pendingRelay, setPendingRelay] = useState<boolean | null>(null),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState(''),
     [error, setError] = useState('');
@@ -128,10 +129,12 @@ export function DiscordSetup({ data }: { data: LiveSnapshot }) {
           <span>Aktivera tvåvägschatt</span>
           <input
             type="checkbox"
-            checked={!!data.discord.relayEnabled}
+            checked={pendingRelay ?? !!data.discord.relayEnabled}
+            aria-busy={pendingRelay !== null}
             disabled={busy || !data.discord.channels?.teamchat}
             onChange={(e) => {
               const enabled = e.target.checked;
+              setPendingRelay(enabled);
               void run(async () => {
                 await liveAction('discord/relay', { enabled });
                 setMessage(
@@ -139,10 +142,11 @@ export function DiscordSetup({ data }: { data: LiveSnapshot }) {
                     ? 'Chattkopplingen har begärts. Kontrollera botstatus nedan.'
                     : 'Chattkopplingen är avstängd.',
                 );
-              });
+              }).finally(() => setPendingRelay(null));
             }}
           />
         </label>
+        {pendingRelay !== null && <p role="status">Ändrar chattkoppling…</p>}
         {data.discord.relayError && (
           <p className="live-error" role="alert">
             {data.discord.relayError}
