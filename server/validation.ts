@@ -40,6 +40,7 @@ export function profile(value: unknown, previous?: PrivateProfile): PrivateProfi
   );
   insist(b.useProxy === undefined || typeof b.useProxy === 'boolean', 'Ogiltigt proxyval.');
   return {
+    controlSteamIds: previous?.controlSteamIds || [],
     id: previous?.id || crypto.randomUUID(),
     name: text(b.name),
     host,

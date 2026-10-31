@@ -9,7 +9,7 @@ import { UserError, insist, object, text, discord } from './validation.ts';
 export function createLiveHttp(
   service: LiveService,
   bot: Pick<DiscordBot, 'start' | 'stop'> &
-    Partial<Pick<DiscordBot, 'guildList' | 'preview' | 'setup' | 'isSettingUp'>>,
+    Partial<Pick<DiscordBot, 'guildList' | 'preview' | 'setup' | 'isSettingUp' | 'setRelay'>>,
   options: { port: number; dist?: string; dev?: boolean; pairing?: PairingManager },
 ) {
   const csrf = randomBytes(32).toString('hex'),
@@ -114,6 +114,14 @@ export function createLiveHttp(
           return;
         }
         switch (path) {
+          case '/api/live/controls':
+            service.setControlUsers(text(b.id), b.steamIds);
+            break;
+          case '/api/live/discord/relay':
+            insist(!bot.isSettingUp && bot.setRelay, 'Vänta tills kanalsetupen är klar.');
+            insist(typeof b.enabled === 'boolean', 'Ogiltigt chattval.');
+            await bot.setRelay(b.enabled);
+            break;
           case '/api/live/discord/guilds':
             insist(bot.guildList, 'Setup stöds inte.');
             result = await bot.guildList();

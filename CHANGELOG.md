@@ -1,5 +1,13 @@
 # Ändringslogg
 
+## 0.9.0 — 2026-11-01
+
+- Rust-teamkommandon för hjälp, population, positioner, synliga event, switches, grupper, lägen och serverbekräftat ledarskapsbyte. Serverbunden SteamID-behörighet; ingen ny !team.
+- Valbar Discord↔Rust-textchatt med deduplicering, neutraliserade mentions, begränsade köer och avbrottsskydd. Saknat Message Content Intent pausar chatten men behåller övriga botfunktioner.
+- Nya domän-, protokoll- och browserprov samt korrigerade kartetiketter.
+- Riktig Discord, ledarskapsbyte och chatt i spelet återstår att användarverifiera.
+
+
 ## 0.8.0 — 2026-10-31
 
 - Guidad Discord-setup med serverval, åtkomstförhandsvisning och sex privata kanaler.

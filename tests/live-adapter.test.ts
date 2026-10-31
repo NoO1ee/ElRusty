@@ -67,7 +67,8 @@ async function setup(omitQueuedPlayers = false, omitNoteType = false) {
       if (request.getTime)
         response.time = { dayLengthMinutes: 60, timeScale: 1, sunrise: 8, sunset: 18, time: 18.7 };
       if (request.getEntityInfo) response.entityInfo = { type: 1, payload: { value: true } };
-      if (request.setEntityValue || request.sendTeamMessage) response.success = {};
+      if (request.setEntityValue || request.sendTeamMessage || request.promoteToLeader)
+        response.success = {};
       if (request.entityId === 99) response.error = { error: 'secret-token-must-not-leak' };
       socket.send(Message.encode(Message.fromObject({ response })).finish());
     }),
@@ -93,6 +94,8 @@ it('använder bibliotekets riktiga WebSocket/protobuf för autentiserade anrop',
   expect(await client.entity(1)).toMatchObject({ type: 'switch', value: true });
   await client.set(1, false);
   await client.chat('[ElRusty] Speltid: 18:42');
+  await client.promote('76561198000000001');
+  expect(requests.find((r) => r.promoteToLeader).promoteToLeader.steamId).toBe('76561198000000001');
   expect(requests.every((r) => r.playerId === '76561198000000000' && r.playerToken === 123)).toBe(
     true,
   );

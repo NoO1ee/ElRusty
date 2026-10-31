@@ -1,3 +1,4 @@
+import { plainText, TextQueue } from './chat.ts';
 import {
   discordSetupPreview,
   provisionDiscord,
@@ -106,7 +107,13 @@ export async function dispatchDiscord(
 export class DiscordBot {
   private client: Client | null = null;
   private generation = 0;
-  constructor(private service: LiveService) {
+  constructor(
+    private service: LiveService,
+    private makeClient = (intents: number[]) =>
+      new Client({ intents, rest: { timeout: 8000, retries: 0 } }),
+  ) {
+    service.on('teamChat', this.teamChat);
+    service.on('sessionLost', this.clearChat);
     service.on('alarm', this.alarm);
     service.on('worldEvent', this.worldEvent);
     service.on('activity', this.activity);
@@ -116,24 +123,48 @@ export class DiscordBot {
     this.service.discordStatus = value;
     this.service.changed();
   }
-  async start(discoverOnly = false) {
+  async start(discoverOnly = false, withoutRelay = false) {
     await this.stop();
     const config = this.service.config.discord;
     insist(
       config.token && (discoverOnly || config.guildId),
       'Spara Discord-token och server-ID först.',
     );
+    this.service.relayError = withoutRelay
+      ? 'Chattkopplingen är pausad: aktivera Message Content Intent i Discord Developer Portal och starta boten igen. Övriga Discord-funktioner är igång.'
+      : '';
+    const wantsRelay = !!config.relayEnabled && !withoutRelay;
     const gen = ++this.generation,
-      client = new Client({ intents: [GatewayIntentBits.Guilds] });
+      client = this.makeClient(
+        wantsRelay
+          ? [
+              GatewayIntentBits.Guilds,
+              GatewayIntentBits.GuildMessages,
+              GatewayIntentBits.MessageContent,
+            ]
+          : [GatewayIntentBits.Guilds],
+      );
+    let loggedIn = false,
+      deniedIntent = false;
+    this.relayReady = false;
     this.client = client;
     this.status('Ansluter…');
     client.on('error', () => {
       if (gen === this.generation) this.status('Discord-anslutningsfel');
     });
-    client.on('shardDisconnect', () => {
-      if (gen === this.generation) this.status('Återansluter…');
+    client.on('shardDisconnect', (event) => {
+      this.clearChat();
+      if (gen !== this.generation) return;
+      if (event.code === 4014 && wantsRelay) {
+        deniedIntent = true;
+        if (loggedIn) void this.start(discoverOnly, true).catch(() => {});
+      } else this.status('Återansluter…');
+    });
+    client.on('messageCreate', (message) => {
+      if (gen === this.generation) void this.handleTeamChat(message, gen).catch(() => {});
     });
     client.on('shardResume', () => {
+      this.relaySince = Date.now();
       if (gen === this.generation) this.status('Ansluten');
     });
     client.on('interactionCreate', async (interaction) => {
@@ -187,6 +218,7 @@ export class DiscordBot {
     });
     try {
       await client.login(config.token);
+      loggedIn = true;
       if (gen !== this.generation) {
         await client.destroy();
         return;
@@ -198,15 +230,122 @@ export class DiscordBot {
       if (gen === this.generation) {
         if (!discoverOnly) this.service.config.discord.enabled = true;
         this.service.db.save(this.service.config);
+        this.relayReady = wantsRelay;
         this.status('Ansluten');
       }
-    } catch {
+    } catch (error) {
+      if (
+        gen === this.generation &&
+        wantsRelay &&
+        (deniedIntent || (error as { code?: unknown })?.code === 'DisallowedIntents')
+      ) {
+        await this.start(discoverOnly, true);
+        return;
+      }
       if (gen === this.generation) {
         await this.stop();
         this.status('Kunde inte ansluta. Kontrollera token, server-ID och botens behörigheter.');
       }
       throw new Error('Discord kunde inte anslutas.');
     }
+  }
+  private relayReady = false;
+  private chatOut = new TextQueue();
+  private seenDiscord = new Set<string>();
+  private relaySince = Date.now();
+  private clearChat = () => {
+    this.chatOut.clear();
+    this.relaySince = Date.now();
+  };
+  private teamChat = (event: {
+    profileId: string;
+    gen: number;
+    name: string;
+    text: string;
+    at: number;
+  }) => {
+    const client = this.client,
+      botGen = this.generation;
+    if (
+      !this.relayReady ||
+      !client?.isReady() ||
+      !this.service.config.discord.relayEnabled ||
+      !managedAccessValid(this.service.config.discord)
+    )
+      return;
+    this.chatOut.push(
+      plainText(event.name, 40) + ': ' + plainText(event.text, 500),
+      async (text) => {
+        const channel = await this.managedText('teamchat');
+        if (
+          channel &&
+          this.service.isLiveSession(event.gen) &&
+          botGen === this.generation &&
+          this.relayReady
+        )
+          await channel.send({ content: text, allowedMentions: { parse: [] } });
+      },
+      () =>
+        this.service.isLiveSession(event.gen) &&
+        botGen === this.generation &&
+        !!client.isReady() &&
+        this.relayReady &&
+        !!this.service.config.discord.relayEnabled,
+    );
+  };
+  async handleTeamChat(message: any, gen = this.generation) {
+    const config = this.service.config.discord;
+    if (
+      gen !== this.generation ||
+      !this.relayReady ||
+      !config.relayEnabled ||
+      !managedAccessValid(config) ||
+      message.guildId !== config.guildId ||
+      !Number.isFinite(message.createdTimestamp) ||
+      message.createdTimestamp < this.relaySince ||
+      message.channelId !== config.channels?.teamchat ||
+      message.author?.bot ||
+      message.webhookId ||
+      message.system ||
+      !message.content ||
+      this.service.connection !== 'connected'
+    )
+      return;
+    if (this.seenDiscord.has(message.id)) return;
+    this.seenDiscord.add(message.id);
+    if (this.seenDiscord.size > 1000)
+      this.seenDiscord.delete(this.seenDiscord.values().next().value!);
+    const roles = message.member?.roles?.cache ? [...message.member.roles.cache.keys()] : [];
+    if (!authorized(config, message.guildId, message.author.id, roles)) return;
+    const content = plainText(message.content, 500);
+    if (!content) return;
+    this.service.relayFromDiscord(
+      message.member?.displayName ||
+        message.author.globalName ||
+        message.author.username ||
+        'Discord-användare',
+      content,
+      () =>
+        gen === this.generation &&
+        !!this.client?.isReady() &&
+        this.relayReady &&
+        authorized(this.service.config.discord, message.guildId, message.author.id, roles),
+    );
+  }
+  async setRelay(enabled: boolean) {
+    const config = this.service.config.discord;
+    insist(!this.setupBusy, 'Vänta tills kanalsetupen är klar.');
+    if (enabled)
+      insist(
+        config.channels?.teamchat &&
+          managedAccessValid(config) &&
+          (config.userIds.length || config.roleIds.length),
+        'Skapa privata ElRusty-kanaler och välj behörigheter först.',
+      );
+    config.relayEnabled = enabled;
+    this.service.db.save(this.service.config);
+    this.service.changed();
+    await this.start();
   }
   private setupBusy = false;
   get isSettingUp() {
@@ -383,6 +522,8 @@ export class DiscordBot {
     this.service.db.save(this.service.config);
   }
   async stop() {
+    this.relayReady = false;
+    this.clearChat();
     this.generation++;
     clearTimeout(this.statusTimer);
     this.statusTimer = undefined;
@@ -395,6 +536,10 @@ export class DiscordBot {
     this.status('Avstängd');
   }
   async close() {
+    this.relayReady = false;
+    this.clearChat();
+    this.service.off('teamChat', this.teamChat);
+    this.service.off('sessionLost', this.clearChat);
     this.service.off('alarm', this.alarm);
     this.service.off('worldEvent', this.worldEvent);
     this.service.off('activity', this.activity);

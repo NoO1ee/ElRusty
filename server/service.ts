@@ -1,3 +1,4 @@
+import { commandReply, isKnownCommand, plainText, publicChatError, TextQueue } from './chat.ts';
 import type { LiveWorld } from './world.ts';
 import type { PairingStatus } from '../shared/live.ts';
 import { EventEmitter } from 'node:events';
@@ -29,6 +30,8 @@ export class LiveService extends EventEmitter {
   team: LiveSnapshot['team'] = [];
   teamUpdatedAt: number | null = null;
   discordStatus = 'Avstängd';
+  relayError = '';
+  private relayQueue = new TextQueue();
   private adapter: RustAdapter | null = null;
   private generation = 0;
   private retry: ReturnType<typeof setTimeout> | undefined;
@@ -70,6 +73,7 @@ export class LiveService extends EventEmitter {
         channels: discord.channels,
         botId: discord.botId,
         relayEnabled: discord.relayEnabled,
+        relayError: this.relayError,
         guildId: discord.guildId,
         channelId: discord.channelId,
         userIds: discord.userIds,
@@ -119,6 +123,8 @@ export class LiveService extends EventEmitter {
   }
   private stop() {
     this.generation++;
+    this.relayQueue.clear();
+    this.emit('sessionLost');
     this.world?.stop();
     clearTimeout(this.retry);
     clearTimeout(this.stable);
@@ -176,6 +182,8 @@ export class LiveService extends EventEmitter {
       if (gen !== this.generation || lost) return;
       lost = true;
       this.generation++;
+      this.relayQueue.clear();
+      this.emit('sessionLost');
       clearTimeout(this.stable);
       this.world?.stop();
       adapter.close();
@@ -272,6 +280,9 @@ export class LiveService extends EventEmitter {
   }
   liveSession() {
     return this.session();
+  }
+  isLiveSession(gen: number) {
+    return gen === this.generation && this.connection === 'connected';
   }
   assertSession(gen: number) {
     this.current(gen);
@@ -380,8 +391,11 @@ export class LiveService extends EventEmitter {
             'Servern bekräftade inte önskat switchläge.',
           );
           this.states[v.deviceId] = { ...state, updatedAt: this.now() };
+          this.log('info', `${v.device.name}: ${v.value ? 'på' : 'av'} bekräftat.`);
           return { deviceId: v.deviceId, name: v.device.name, ok: true };
         } catch (e) {
+          if (gen === this.generation)
+            this.log('error', v.device.name + ': styrning kunde inte bekräftas.');
           return {
             deviceId: v.deviceId,
             name: v.device.name,
@@ -414,18 +428,100 @@ export class LiveService extends EventEmitter {
     this.config.discord = validate.discord(body, this.config.discord);
     this.save();
   }
+
+  setControlUsers(id: string, users: unknown) {
+    const p = this.config.profiles.find((p) => p.id === id);
+    insist(p, 'Serverprofilen finns inte.');
+    insist(
+      Array.isArray(users) &&
+        users.length <= 100 &&
+        users.every((id) => typeof id === 'string' && /^\d{17}$/.test(id)),
+      'Ange SteamID64 som 17 siffror.',
+    );
+    p.controlSteamIds = [...new Set(users as string[])];
+    this.save();
+  }
+  async promoteCaller(steamId: string, expectedGen: number) {
+    const { adapter, gen, profileId } = this.session();
+    this.current(expectedGen);
+    const p = this.config.profiles.find((p) => p.id === profileId)!;
+    const task = this.queue.then(async () => {
+      this.current(gen);
+      insist(
+        steamId === p.playerId || p.controlSteamIds?.includes(steamId),
+        'Du saknar behörighet för styrkommandon.',
+      );
+      const team = await adapter.team();
+      this.current(gen);
+      insist(
+        team.some((m) => m.steamId === steamId),
+        'Spelaren finns inte i teamet.',
+      );
+      if (team.some((m) => m.steamId === steamId && m.isLeader)) return 'Du är redan teamledare.';
+      insist(
+        team.some((m) => m.steamId === p.playerId && m.isLeader),
+        'Det parade kontot måste vara teamledare.',
+      );
+      insist(adapter.promote, 'Ledarskapsbyte stöds inte.');
+      await adapter.promote(steamId);
+      this.current(gen);
+      const confirmed = await adapter.team();
+      this.current(gen);
+      this.team = confirmed;
+      this.teamUpdatedAt = this.now();
+      this.changed();
+      insist(
+        confirmed.some((m) => m.steamId === steamId && m.isLeader),
+        'Servern bekräftade inte ledarskapsbytet.',
+      );
+      this.log('info', 'Teamledarskapet har bytts och bekräftats.');
+      return 'Du är nu teamledare.';
+    });
+    this.queue = task.catch(() => {});
+    return task;
+  }
+  relayFromDiscord(name: string, text: string, valid: () => boolean = () => true) {
+    const { adapter, gen } = this.session();
+    insist(this.config.discord.relayEnabled, 'Chattkopplingen är avstängd.');
+    const message = plainText('[Discord] ' + plainText(name, 24) + ': ' + text, 120);
+    return this.relayQueue.push(
+      message,
+      async (text) => {
+        this.current(gen);
+        await adapter.chat(text);
+      },
+      () =>
+        gen === this.generation &&
+        this.connection === 'connected' &&
+        !!this.config.discord.relayEnabled &&
+        valid(),
+    );
+  }
   async onChat(message: ChatMessage, gen = this.generation) {
     if (
       this.connection !== 'connected' ||
       gen !== this.generation ||
       typeof message.message !== 'string' ||
-      message.message.trim().toLowerCase() !== '!time'
+      !Number.isFinite(message.time)
     )
       return;
+    if (/^\s*\[(ElRusty|Discord)\]/i.test(message.message)) return;
     const key = JSON.stringify([message.steamId, message.time, message.message]);
     if (this.seenChat.has(key)) return;
     this.seenChat.add(key);
     if (this.seenChat.size > 1000) this.seenChat.delete(this.seenChat.values().next().value!);
+    const member = this.team.find((m) => m.steamId === message.steamId);
+    if (!member || this.teamUpdatedAt === null) return;
+    if (!isKnownCommand(message.message)) {
+      this.emit('teamChat', {
+        profileId: this.config.activeProfileId,
+        gen,
+        name: member.name,
+        text: plainText(message.message, 500),
+        at: this.now(),
+      });
+      return;
+    }
     if (this.timeBusy || this.now() - this.timeLast < 5000) return;
     const adapter = this.adapter!;
     this.timeBusy = true;
@@ -433,16 +529,29 @@ export class LiveService extends EventEmitter {
     try {
       let response: string;
       try {
-        response = '[ElRusty] Speltid: ' + formatTime(await adapter.time());
-      } catch {
-        response = '[ElRusty] Kunde inte hämta speltiden.';
+        response = await commandReply(this, message, gen);
+      } catch (e) {
+        response = publicChatError(e);
       }
-      if (gen === this.generation && this.connection === 'connected') {
-        this.timeLast = this.now();
-        await adapter.chat(response);
+      if (gen !== this.generation || this.connection !== 'connected') return;
+      this.timeLast = this.now();
+      // Rust team chat has a small message limit. Preserve all help/results across bounded chunks.
+      const words = plainText(response, 600).split(' ');
+      let chunk = '';
+      for (const word of words) {
+        if ([...(chunk + ' ' + word)].length > 108 && chunk) {
+          this.current(gen);
+          await adapter.chat('[ElRusty] ' + chunk);
+          chunk = '';
+        }
+        chunk += (chunk ? ' ' : '') + word;
+      }
+      if (chunk) {
+        this.current(gen);
+        await adapter.chat('[ElRusty] ' + chunk);
       }
     } catch {
-      /* No delayed retries for chat replies. */
+      /* No delayed replies or retries. */
     } finally {
       if (gen === this.generation) this.timeBusy = false;
     }

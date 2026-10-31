@@ -45,8 +45,11 @@ export const eventNames: Record<number, string> = {
   8: 'Patrol Helicopter',
 };
 export const GRID_SIZE = 146.25;
+export function gridCount(size: number) {
+  return Math.floor(size / GRID_SIZE) + (size % GRID_SIZE >= 120 ? 1 : 0);
+}
 export function gridLocation(x: number, y: number, size: number) {
-  const rows = Math.floor(size / GRID_SIZE) + (size % GRID_SIZE >= 120 ? 1 : 0),
+  const rows = gridCount(size),
     limit = rows * GRID_SIZE;
   if (
     !Number.isFinite(x) ||

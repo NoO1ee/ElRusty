@@ -38,7 +38,7 @@ Para därefter Smart Switch / Smart Alarm / Storage Monitor i spelet och lägg t
 
 Upp till 20 profiler sparas, med en aktiv anslutning och högst 100 registrerade enheter per profil. Byt namn och grupp på enheter i panelen. Grupper kör samma på/av-värde på samtliga switches; ett läge har individuella värden. Kommandon köas, läses tillbaka från Rust+ och får resultat per enhet. Lägen är inte atomiska: redan utförda ändringar återställs inte om en senare switch misslyckas. Vid frånkoppling avbryts köade kommandon och de återspelas inte.
 
-Status via `entityChanged` uppdateras löpande efter verifiering. Teamstatus läses var 15:e sekund och vid teamändring; det är inte en exakt dödsnotifieringstjänst. Vid anslutningsfel visas tidigare information som inaktuell. Saknad verifiering spärrar styrning. Serverfel återansluts med ökande väntetid upp till 30 sekunder.
+Status via `entityChanged` uppdateras löpande efter verifiering. Teamstatus läses var femte sekund och vid teamändring; det är inte en exakt dödsnotifieringstjänst. Vid anslutningsfel visas tidigare information som inaktuell. Saknad verifiering spärrar styrning. Serverfel återansluts med ökande väntetid upp till 30 sekunder.
 
 Smart Alarm-notiser utlöses vid false → true för en registrerad enhet. Initialt aktivt larm efter anslutning skickas inte som ett nytt larm. Notiser under avbrott kan missas; detta ersätter inte Rust+ mobilappens notiser. Senaste 500 händelser sparas; webbpanelen visar upp till 100 för aktiv server. Chatthistorik sparas inte.
 
@@ -81,7 +81,7 @@ Före godkänd Pi-flytt: prova reboot/autostart, stängd webbläsare, nätavbrot
 
 ## Leveransstatus och spelkontroll
 
-Automatiska tester täcker adapteroberoende beteende, API-skydd och webbflöden. Ingen riktig Rust-server eller Discord-bot är parad i utvecklingstesterna. Följande måste därför verifieras av användaren innan funktionerna räknas som spelverifierade:
+Automatiska tester täcker adapteroberoende beteende, API-skydd och webbflöden. En separat läsande kontroll har hämtat riktig serverkarta och markörer. Automatiska tester använder lokala fixtures; verklig Discord och skrivande spelkommandon återstår att kontrollera. Följande måste därför verifieras av användaren innan funktionerna räknas som spelverifierade:
 
 1. Anslut till din server, verifiera teamstatus och prova ogiltig token samt förnyad parning.
 2. Registrera en Smart Switch och ett Smart Alarm. Styr från webben och jämför i spelet. Prova ett läge där en av switches inte är tillgänglig.
@@ -89,7 +89,7 @@ Automatiska tester täcker adapteroberoende beteende, API-skydd och webbflöden.
 4. Skriv `!time` från ditt parade konto och en lagkamrat. Jämför tiden med spelet och prova flera snabba kommandon.
 5. Stäng webbläsaren och upprepa Discord, larm och `!time`. Bryt nätet och kontrollera att gamla kommandon inte återspelas.
 
-Karta, BattleMetrics, scheman, automation, publika teamkonton och direkta kopplingar från simulerade kretsar till riktiga enheter ingår inte i 0.6.
+BattleMetrics, scheman, automation, publika teamkonton och direkta kopplingar från simulerade kretsar till riktiga enheter ingår inte.
 
 
 ### Protokollkompatibilitet i 0.6.4
@@ -115,4 +115,17 @@ Karta visar serverns JPEG med separata SVG-lager för koordinatrutor, monument, 
 
 Spara bottoken och tillåtna användare/roller. Hämta Discord-servrar, välj server och förhandsvisa kanalsetupen. Knappen Skapa ElRusty-kanaler skapar en privat kategori med status, larm, events, aktivitet, styrning och teamchat. Bot-ID hämtas automatiskt; botregistrering och inbjudan görs i Discord. Boten behöver Manage Channels, Manage Roles för åtkomstinställningar, View Channel, Send Messages, Read Message History och Embed Links. Administrator behövs inte. Serveradministratörer kan alltid se kategorin enligt Discords regler.
 
-ElRusty sparar ID:n efter varje lyckat skapande. Upprepad setup återanvänder registrerade resurser; främmande kanaler med samma namn tas inte över eller raderas. Ändrar du listan över tillåten åtkomst måste setupen köras igen innan nya utskick till hanterade kanaler tillåts. Vid delvis API-fel kan setupen fortsätta utan att tidigare lyckade steg upprepas. Teamchat-kanalen finns som förberedelse; själva chattkopplingen aktiveras separat.
+ElRusty sparar ID:n efter varje lyckat skapande. Upprepad setup återanvänder registrerade resurser; främmande kanaler med samma namn tas inte över eller raderas. Ändrar du listan över tillåten åtkomst måste setupen köras igen innan nya utskick till hanterade kanaler tillåts. Vid delvis API-fel kan setupen fortsätta utan att tidigare lyckade steg upprepas. Teamchat-kanalen används av den valbara chattkopplingen i 0.9.
+
+
+## Teamkommandon och tvåvägschatt 0.9
+
+I Rusts teamchatt: !time, !help, !pop, !where <namn/SteamID>, !events, !switch <namn/ID> on/off, !group <namn> on/off, !mode <namn/ID>, !makeleader. !team läggs inte till. Kommandon matchas utan hänsyn till skiftläge. Namn med mellanslag fungerar, tvetydiga namn kräver ID. !switch accepterar både ElRusty-ID och entity-ID. Högst ett pågående kommando och fem sekunder mellan svar; alla hjälp-/resultatdelar skickas som begränsade textstycken.
+
+Läskommandon är tillgängliga för aktuell teamlista. Styrning kräver parade kontots SteamID eller ett uttryckligen tillåtet SteamID under Live → Inställningar → Kommandon och behörigheter, per serverprofil. Skrivkommandon kontrollerar färsk teaminformation och använder webbens kö och serverbekräftelser. !makeleader kontrollerar att parade kontot är ledare och läser tillbaka nytt ledarskap; ingen annan spelares parning används. Ett nekat eller obekräftat byte bekräftas aldrig som lyckat. Kö i !pop visas bara om fältet skickas av Rust+. !events beskriver synliga markörer, inte bekräftade nedskjutningar.
+
+Efter kanalsetup kan **Aktivera tvåvägschatt** slås på i guiden. Aktivera först Message Content Intent under Bot i [Discord Developer Portal](https://discord.com/developers/applications). Saknad behörighet pausar chatten och startar om övriga botfunktioner utan detta intent. Felet visas i guiden; aktivera intent och starta boten igen. [Discords intent-dokumentation](https://docs.discord.com/developers/events/gateway#message-content-intent).
+
+Rust-meddelanden från teamet skickas som Namn: text till #teamchat. Kända kommandon och botsvar vidarebefordras inte. Tillåtna Discord-användares text skickas som [Discord] Namn: text. Bot-/webhookmeddelanden, dubbletter, gamla Discord-händelser efter återanslutning, bilagor och egna ekon ignoreras. Mentions neutraliseras; råtext och chatt lagras inte i historiken. Vardera riktningen har en begränsad kö (20 meddelanden, en sekund mellan sändningar), som släpper väntande innehåll vid avbrott. Discord→Rust begränsas till 120 Unicode-tecken inklusive avsändare; Rust→Discord till 500 tecken plus namn. Full kö släpper överskott, ingen senare återspelning.
+
+Spel-/kontokontroll återstår: jämför kartrutor med Rust, skapa kanaler i vald Discord-server, prova larm och chatt från tillåten/nekad användare samt !makeleader på ditt riktiga team. Implementationen använder Rust+-protokollet självständigt, utan kopierad Rust++-kod. [Rust+-bibliotekets protokoll](https://github.com/liamcottle/rustplus.js/blob/master/rustplus.proto).

@@ -111,6 +111,44 @@ export function DiscordSetup({ data }: { data: LiveSnapshot }) {
           {error}
         </p>
       )}
+      <div className="discord-setup-preview">
+        <h3>Tvåvägschatt · #teamchat</h3>
+        <p>
+          Rust-teamets nya meddelanden visas här. Tillåtna Discord-användares text skickas till Rust
+          som [Discord] Namn: meddelande. Bilagor och historik vidarebefordras inte.
+        </p>
+        <p>
+          Aktivera <strong>Message Content Intent</strong> under Bot i{' '}
+          <a href="https://discord.com/developers/applications" target="_blank" rel="noreferrer">
+            Discord Developer Portal
+          </a>{' '}
+          innan du slår på kopplingen.
+        </p>
+        <label className="live-field">
+          <span>Aktivera tvåvägschatt</span>
+          <input
+            type="checkbox"
+            checked={!!data.discord.relayEnabled}
+            disabled={busy || !data.discord.channels?.teamchat}
+            onChange={(e) => {
+              const enabled = e.target.checked;
+              void run(async () => {
+                await liveAction('discord/relay', { enabled });
+                setMessage(
+                  enabled
+                    ? 'Chattkopplingen har begärts. Kontrollera botstatus nedan.'
+                    : 'Chattkopplingen är avstängd.',
+                );
+              });
+            }}
+          />
+        </label>
+        {data.discord.relayError && (
+          <p className="live-error" role="alert">
+            {data.discord.relayError}
+          </p>
+        )}
+      </div>
       {data.discord.categoryId && (
         <p className="muted">
           Kategori sparad · {Object.keys(data.discord.channels || {}).length} kanaler registrerade

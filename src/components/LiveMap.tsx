@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { liveAction } from '../live-store';
 import type { LiveSnapshot } from '../../shared/live';
-import { eventNames, GRID_SIZE, gridLocation, imagePosition } from '../../shared/world';
+import { eventNames, gridCount, GRID_SIZE, gridLocation, imagePosition } from '../../shared/world';
 export function LiveMap({ data, offline }: { data: LiveSnapshot; offline: boolean }) {
   const world = data.world,
     map = world?.map,
@@ -167,7 +167,6 @@ export function LiveMap({ data, offline }: { data: LiveSnapshot; offline: boolea
             onPointerMove={(e) => {
               const d = drag.current;
               if (d) {
-                const r = e.currentTarget.getBoundingClientRect();
                 setView((v) => ({
                   ...v,
                   x: d.vx - ((e.clientX - d.x) * 1) / d.scale,
@@ -184,7 +183,7 @@ export function LiveMap({ data, offline }: { data: LiveSnapshot; offline: boolea
               height={map.height}
             />
             {layers.grid &&
-              Array.from({ length: Math.ceil(map.mapSize / GRID_SIZE) }, (_, i) => {
+              Array.from({ length: gridCount(map.mapSize) }, (_, i) => {
                 const a = imagePosition(i * GRID_SIZE, 0, map),
                   b = imagePosition(0, i * GRID_SIZE, map);
                 return (
@@ -198,7 +197,7 @@ export function LiveMap({ data, offline }: { data: LiveSnapshot; offline: boolea
                     <text x={a.x + 3} y={map.oceanMargin + 12} fontSize={10 / view.z} fill="white">
                       {gridLocation(
                         i * GRID_SIZE + 1,
-                        Math.floor(map.mapSize / GRID_SIZE) * GRID_SIZE - 1,
+                        gridCount(map.mapSize) * GRID_SIZE - 1,
                         map.mapSize,
                       ).replace(/\d+$/, '')}
                     </text>

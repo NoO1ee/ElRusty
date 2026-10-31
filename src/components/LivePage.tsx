@@ -1,3 +1,4 @@
+import { ChatControls } from './ChatControls';
 import { DiscordSetup } from './DiscordSetup';
 import { LiveMap } from './LiveMap';
 import { useLive, refreshLive, liveAction } from '../live-store';
@@ -701,9 +702,8 @@ export function LivePage() {
                       <code>applications.commands</code> samt View Channel och Send Messages i
                       larmkanalen.
                     </p>
-                    <Field label="Discord-server-ID">
+                    <Field label="Discord-server-ID (eller välj i guiden)">
                       <input
-                        required
                         value={discord.guildId}
                         onChange={(e) => setDiscord({ ...discord, guildId: e.target.value })}
                       />
@@ -769,6 +769,7 @@ export function LivePage() {
                     </p>
                   </form>
                 </div>
+                <ChatControls data={data} />
                 <DiscordSetup data={data} />
                 <details
                   className="pairing-manual"

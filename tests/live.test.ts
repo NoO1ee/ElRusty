@@ -216,6 +216,7 @@ describe('!time', () => {
     tick();
     await s.onChat(msg());
     expect(a.time).toHaveBeenCalledOnce();
+    s.team.push({ steamId: '76561198000000001', name: 'Teammate', isOnline: true, isAlive: true });
     await s.onChat(msg(3, '76561198000000001'));
     expect(a.time).toHaveBeenCalledTimes(2);
   });

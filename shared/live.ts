@@ -1,6 +1,7 @@
 import type { WorldSnapshot } from './world';
 export type DeviceType = 'switch' | 'alarm' | 'storage';
 export interface Profile {
+  controlSteamIds?: string[];
   id: string;
   name: string;
   host: string;
@@ -56,6 +57,7 @@ export interface DiscordConfig {
   statusMessageId?: string;
   instructionsMessageId?: string;
   relayEnabled?: boolean;
+  relayError?: string;
   guildId: string;
   channelId: string;
   userIds: string[];

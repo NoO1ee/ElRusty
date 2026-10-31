@@ -661,3 +661,7 @@
 .live-map-panel {
   padding: 20px;
 }
+
+.live-section-heading {
+  align-items: start;
+}

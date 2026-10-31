@@ -310,3 +310,39 @@ test('Discord-guiden förhandsvisar innan kanaler skapas', async ({ page }) => {
   ).toBeVisible();
   expect(calls).toContain('/api/live/discord/setup');
 });
+
+test('chattbehörigheter sparas per server och tvåvägschatt är ett uttryckligt val', async ({
+  page,
+}) => {
+  const state = initial();
+  state.discord.hasToken = true;
+  state.discord.channels = { teamchat: 'channel' };
+  const calls: { path: string; body: any }[] = [];
+  await page.route('**/api/live/**', async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (route.request().method() === 'POST') {
+      const body = route.request().postDataJSON();
+      calls.push({ path, body });
+      if (path.endsWith('/controls')) state.profiles[0].controlSteamIds = body.steamIds;
+      if (path.endsWith('/relay')) {
+        state.discord.relayEnabled = body.enabled;
+        state.discord.relayError = 'Chattkopplingen är pausad: aktivera Message Content Intent';
+      }
+      await route.fulfill({ json: { ok: true } });
+    } else await route.fulfill({ json: state });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Live', exact: true }).click();
+  await page.getByRole('button', { name: 'Inställningar', exact: true }).click();
+  await page.getByLabel('Tillåtna SteamID:n för styrkommandon').fill('76561198000000001');
+  await page.getByRole('button', { name: 'Spara chattbehörigheter' }).click();
+  await expect(page.getByText('Chattbehörigheterna är sparade.')).toBeVisible();
+  expect(calls.find((c) => c.path.endsWith('/controls'))?.body.steamIds).toEqual([
+    '76561198000000001',
+  ]);
+  const relay = page.getByLabel('Aktivera tvåvägschatt');
+  await expect(relay).not.toBeChecked();
+  await relay.check();
+  await expect(page.getByRole('alert').filter({ hasText: 'Message Content Intent' })).toBeVisible();
+  expect(calls.find((c) => c.path.endsWith('/relay'))?.body.enabled).toBe(true);
+});
