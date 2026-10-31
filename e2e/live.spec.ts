@@ -254,12 +254,20 @@ test('kartan har lager, markeringsdetaljer och statusprick även i kretsbyggaren
   await page.getByRole('button', { name: 'Live', exact: true }).click();
   await page.getByRole('button', { name: 'Karta', exact: true }).click();
   await expect(page.getByLabel('Rust-serverns livekarta')).toBeVisible();
+  await expect(page.locator('.map-monument-name')).toHaveText('HARBOR');
+  await page.getByRole('button', { name: 'Utöka kartan' }).click();
+  await expect(page.locator('.rustplus-map')).toHaveClass(/expanded/);
+  await page.getByRole('button', { name: 'Minimera kartan' }).press('Escape');
+  await expect(page.locator('.rustplus-map')).not.toHaveClass(/expanded/);
+  await expect(page.getByLabel('Event', { exact: true })).toHaveCount(0);
+  await page.screenshot({ path: 'test-results/rustplus-map.png' });
   const marker = page.getByRole('button', { name: 'Cargo Ship', exact: true });
   await expect
     .poll(() => marker.locator('circle').evaluate((el) => el.getBoundingClientRect().width))
     .toBeGreaterThan(12);
   await marker.click();
   await expect(page.locator('.live-map-detail')).toContainText('Cargo Ship');
+  await page.getByRole('button', { name: 'Kartlager', exact: true }).click();
   await page.getByLabel('Event', { exact: true }).uncheck();
   await expect(page.getByRole('button', { name: 'Cargo Ship', exact: true })).toHaveCount(0);
   const before = await page.getByLabel('Rust-serverns livekarta').getAttribute('viewBox');

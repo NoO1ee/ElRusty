@@ -1,5 +1,12 @@
 # Ändringslogg
 
+## 0.9.1 — 2026-11-01
+
+- Kartvyn efterliknar Rust+-appens presentation: större kartyta, flytande lager och navigeringsknappar, utökat läge och nordindikator.
+- Tydliga monumentnamn med överlappningsskydd ersätter likadana prickar. Teamnamn, butiker och event har särskilda markörer med bibehållen serverdata.
+- Öppningsvyn fokuserar ön; Visa hela kartan visar åter hela bilden.
+
+
 ## 0.9.0 — 2026-11-01
 
 - Rust-teamkommandon för hjälp, population, positioner, synliga event, switches, grupper, lägen och serverbekräftat ledarskapsbyte. Serverbunden SteamID-behörighet; ingen ny !team.

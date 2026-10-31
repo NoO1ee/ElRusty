@@ -129,3 +129,8 @@ Efter kanalsetup kan **Aktivera tvåvägschatt** slås på i guiden. Aktivera f�
 Rust-meddelanden från teamet skickas som Namn: text till #teamchat. Kända kommandon och botsvar vidarebefordras inte. Tillåtna Discord-användares text skickas som [Discord] Namn: text. Bot-/webhookmeddelanden, dubbletter, gamla Discord-händelser efter återanslutning, bilagor och egna ekon ignoreras. Mentions neutraliseras; råtext och chatt lagras inte i historiken. Vardera riktningen har en begränsad kö (20 meddelanden, en sekund mellan sändningar), som släpper väntande innehåll vid avbrott. Discord→Rust begränsas till 120 Unicode-tecken inklusive avsändare; Rust→Discord till 500 tecken plus namn. Full kö släpper överskott, ingen senare återspelning.
 
 Spel-/kontokontroll återstår: jämför kartrutor med Rust, skapa kanaler i vald Discord-server, prova larm och chatt från tillåten/nekad användare samt !makeleader på ditt riktiga team. Implementationen använder Rust+-protokollet självständigt, utan kopierad Rust++-kod. [Rust+-bibliotekets protokoll](https://github.com/liamcottle/rustplus.js/blob/master/rustplus.proto).
+
+
+### Rust+-liknande kartvy 0.9.1
+
+Kartan har flytande lager- och zoomreglage, nordindikator och utökat läge (Esc stänger). Monument visas med engelska namn; överlappande namn glesas ut och fler får plats när du zoomar. Teamnamn visas ovanför gröna/grå markörer, butiker har butikssymbol och event har separata symboler. Symbolerna är ritade i ElRusty; ingen kod eller grafik från Rust+-appen har kopierats. Kartbilden och positionerna kommer fortfarande från den parade servern. Referens: [Facepunchs officiella Rust+-kartvy](https://rust.facepunch.com/companion).

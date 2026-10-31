@@ -140,7 +140,7 @@ export function LivePage() {
     fn();
   };
   return (
-    <main className="scroll-page live-page">
+    <main className={'scroll-page live-page' + (tab === 'Karta' ? ' live-page-map' : '')}>
       <div className="page">
         <header className="page-heading">
           <div>

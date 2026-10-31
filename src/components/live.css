@@ -637,7 +637,7 @@
   border-radius: 12px;
   overflow: hidden;
 }
-.live-map-canvas svg {
+.live-map-canvas > svg {
   display: block;
   width: 100%;
   height: min(68vh, 850px);
@@ -664,4 +664,277 @@
 
 .live-section-heading {
   align-items: start;
+}
+
+/* Rust+-inspired presentation, rendered over the server's own JPEG. */
+.live-page-map .page {
+  max-width: none;
+  padding: 16px 24px 22px;
+}
+.live-page-map .page-heading {
+  display: none;
+}
+.live-page-map .live-tabs {
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+}
+.live-page-map .live-serverbar {
+  padding: 10px 16px;
+  margin-bottom: 12px;
+}
+.rustplus-map {
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #101a23;
+}
+.live-map-caption {
+  min-height: 51px;
+  padding: 12px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+}
+.live-map-caption > div {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  min-width: 0;
+}
+.live-map-caption h2 {
+  margin: 0;
+  font-size: 16px;
+  white-space: nowrap;
+}
+.live-map-caption span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.live-map-caption > div > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.live-map-caption .map-live {
+  color: #b8d98e;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+.live-map-caption .map-stale {
+  color: #efbd81;
+}
+.rustplus-map .live-map-canvas {
+  border: 0;
+  border-radius: 0;
+  background: #103c4a;
+  height: max(420px, calc(100dvh - 302px));
+}
+.rustplus-map .live-map-canvas > svg {
+  width: 100%;
+  height: 100%;
+}
+.rustplus-map .empty {
+  display: grid;
+  place-content: center;
+  height: 100%;
+  background: #0d1820;
+}
+.map-floating {
+  position: absolute;
+  z-index: 3;
+}
+.map-floating button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  height: 39px;
+  min-width: 39px;
+  background: #18221ff2;
+  color: #e2e8db;
+  border-color: #67765d66;
+  box-shadow: 0 3px 10px #0003;
+  border-radius: 4px;
+}
+.map-floating button:hover {
+  background: #344431;
+  border-color: #a7bf83;
+}
+.map-layer-control {
+  top: 16px;
+  left: 16px;
+}
+.map-layer-control .live-map-tools {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 16px;
+  margin: 7px 0 0;
+  min-width: 190px;
+  border: 1px solid #71816466;
+  background: #18221ff5;
+  border-radius: 4px;
+  box-shadow: 0 8px 25px #0005;
+}
+.map-layer-control strong {
+  color: #e4eadf;
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+.map-layer-control label {
+  color: #d7dfd1;
+  gap: 10px;
+}
+.map-layer-control input {
+  accent-color: #a4c575;
+}
+.map-navigation {
+  top: 16px;
+  right: 16px;
+  display: grid;
+  gap: 7px;
+}
+.map-navigation button {
+  padding: 0;
+}
+.map-compass {
+  position: absolute;
+  bottom: 32px;
+  right: 27px;
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  font:
+    700 12px 'Space Grotesk',
+    sans-serif;
+  color: #e9edde;
+  text-shadow: 0 1px 3px #000;
+  pointer-events: none;
+}
+.map-compass span {
+  font-size: 27px;
+  line-height: 1;
+}
+.map-hint {
+  position: absolute;
+  bottom: 9px;
+  left: 16px;
+  font-size: 10px;
+  color: #e3e8dcbb;
+  pointer-events: none;
+  text-shadow: 0 1px 3px #000;
+}
+.map-grid text {
+  fill: #edf0e2;
+  paint-order: stroke;
+  stroke: #18302966;
+  stroke-width: 2px;
+}
+.map-marker {
+  cursor: pointer;
+  outline: none;
+}
+.map-marker:focus-visible {
+  filter: drop-shadow(0 0 3px white);
+}
+.map-monument-name {
+  font:
+    700 10px 'DM Sans',
+    sans-serif;
+  letter-spacing: 0.5px;
+  fill: #f4f1e1;
+  paint-order: stroke;
+  stroke: #273829e8;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+.map-team-name {
+  font:
+    700 11px 'DM Sans',
+    sans-serif;
+  fill: #dcf1b8;
+  paint-order: stroke;
+  stroke: #15271ae8;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+.rustplus-map .live-map-detail {
+  left: 16px;
+  right: auto;
+  bottom: 34px;
+  padding: 17px 40px 17px 18px;
+  background: #18221ff2;
+  border-color: #71816466;
+  max-width: min(360px, calc(100% - 80px));
+  box-shadow: 0 7px 25px #0005;
+}
+.live-map-detail > strong {
+  display: block;
+  margin: 7px 0;
+  color: #eef1e5;
+}
+.live-map-detail > p {
+  margin: 7px 0;
+  color: #d0dbca;
+}
+.map-detail-close {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  display: grid;
+  place-items: center;
+  padding: 5px;
+  border: 0;
+  background: transparent;
+  color: #c8d0bd;
+}
+.map-stale-label {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 7px 12px;
+  background: #352719ed;
+  border: 1px solid #dab27e77;
+  border-radius: 4px;
+  color: #f1d1a3;
+  font-size: 11px;
+  pointer-events: none;
+}
+.rustplus-map.expanded {
+  position: fixed;
+  inset: 85px 16px 37px;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 0 100vmax #050a12d9;
+}
+.rustplus-map.expanded .live-map-canvas {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+@media (max-width: 700px) {
+  .live-page-map .page {
+    padding: 12px;
+  }
+  .live-map-caption > div > span {
+    display: none;
+  }
+  .live-map-caption .map-stale {
+    max-width: 210px;
+  }
+  .rustplus-map .live-map-canvas {
+    height: 65dvh;
+    min-height: 380px;
+  }
+  .rustplus-map.expanded {
+    inset: 75px 6px 35px;
+  }
+  .map-hint {
+    display: none;
+  }
 }
