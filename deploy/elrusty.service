@@ -1,0 +1,25 @@
+[Unit]
+Description=ElRusty Live
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=elrusty
+WorkingDirectory=/opt/elrusty
+Environment=NODE_ENV=production
+Environment=ELRUSTY_DATA_DIR=/var/lib/elrusty
+ExecStart=/usr/bin/node --experimental-transform-types /opt/elrusty/server/index.ts
+Restart=on-failure
+RestartSec=10
+StateDirectory=elrusty
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/elrusty
+
+[Install]
+WantedBy=multi-user.target

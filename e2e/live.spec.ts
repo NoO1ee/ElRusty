@@ -1,0 +1,158 @@
+import { test, expect } from '@playwright/test';
+import type { LiveSnapshot } from '../shared/live';
+// HTTP responses drive these UI tests; the real event stream is covered by API tests.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    class QuietEventSource {
+      onmessage = null;
+      onerror = null;
+      close() {}
+    }
+    window.EventSource = QuietEventSource as unknown as typeof EventSource;
+  });
+});
+function initial(): LiveSnapshot & { csrf: string } {
+  return {
+    csrf: 'test-csrf',
+    profiles: [
+      {
+        id: 'p1',
+        name: 'Vanilla · EU',
+        host: '127.0.0.1',
+        port: 28082,
+        playerId: '76561198000000000',
+        useProxy: false,
+      },
+    ],
+    activeProfileId: 'p1',
+    devices: [
+      {
+        id: 'd1',
+        profileId: 'p1',
+        name: 'Basbelysning',
+        entityId: 1,
+        group: 'Bas',
+        type: 'switch',
+      },
+      { id: 'd2', profileId: 'p1', name: 'Raidlarm', entityId: 2, group: 'Bas', type: 'alarm' },
+    ],
+    modes: [{ id: 'm1', profileId: 'p1', name: 'Natt', values: [{ deviceId: 'd1', value: true }] }],
+    connection: 'connected',
+    connectionError: '',
+    team: [{ steamId: '76561198000000000', name: 'Spelare', isOnline: true, isAlive: true }],
+    teamUpdatedAt: Date.now(),
+    states: {
+      d1: { type: 'switch', value: false, updatedAt: Date.now() },
+      d2: { type: 'alarm', value: false, updatedAt: Date.now() },
+    },
+    verified: ['d1', 'd2'],
+    pending: [],
+    activity: [],
+    discord: {
+      guildId: '',
+      channelId: '',
+      userIds: [],
+      roleIds: [],
+      hasToken: false,
+      status: 'Avstängd',
+    },
+  };
+}
+test('Live styr en bekräftad switch, visar team och kör ett sparat läge', async ({ page }) => {
+  const state = initial(),
+    calls: { path: string; body: any }[] = [];
+  await page.route('**/api/live/**', async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('/events')) {
+      await route.fulfill({ status: 200, contentType: 'text/event-stream', body: ': idle\n\n' });
+      return;
+    }
+    if (route.request().method() === 'GET') {
+      await route.fulfill({ json: state });
+      return;
+    }
+    expect(route.request().headers()['x-elrusty-csrf']).toBe('test-csrf');
+    const body = route.request().postDataJSON();
+    calls.push({ path, body });
+    if (path.endsWith('/switch')) state.states.d1.value = body.value;
+    if (path.endsWith('/mode/run')) state.states.d1.value = true;
+    await route.fulfill({ json: [{ deviceId: 'd1', name: 'Basbelysning', ok: true }] });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Live', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'ElRusty Live' })).toBeVisible();
+  await page.getByRole('button', { name: 'Enheter', exact: true }).click();
+  const card = page.locator('.live-device').filter({ hasText: 'Basbelysning' });
+  await expect(card.getByText('○ Av / inaktiv')).toBeVisible();
+  await card.getByRole('button', { name: 'På', exact: true }).click();
+  await expect(card.getByText('● På / aktiv')).toBeVisible();
+  await page.getByRole('button', { name: 'Team', exact: true }).click();
+  await expect(page.getByText('Spelare', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Lägen', exact: true }).click();
+  await page.getByRole('button', { name: 'Aktivera', exact: true }).click();
+  await expect(page.getByLabel('Kommandoresultat')).toContainText('Bekräftat');
+  expect(calls.map((c) => c.path)).toEqual(['/api/live/switch', '/api/live/mode/run']);
+});
+test('Live importerar parning och maskerar hemligheter utan att röra kretsen', async ({ page }) => {
+  const state = initial();
+  state.profiles = [];
+  state.activeProfileId = null;
+  state.connection = 'disconnected';
+  let saved: any;
+  await page.route('**/api/live/**', async (route) => {
+    if (route.request().url().endsWith('/events')) {
+      await route.fulfill({ contentType: 'text/event-stream', body: ': idle\n\n' });
+      return;
+    }
+    if (route.request().method() === 'POST') {
+      saved = route.request().postDataJSON();
+      await route.fulfill({ json: { ok: true } });
+    } else await route.fulfill({ json: state });
+  });
+  await page.goto('/');
+  const circuit = await page.getByRole('textbox', { name: 'Kretsnamn' }).inputValue();
+  await page.getByRole('button', { name: 'Live', exact: true }).click();
+  await page.getByRole('button', { name: 'Inställningar', exact: true }).click();
+  await page
+    .getByLabel('Parnings-JSON')
+    .fill(
+      JSON.stringify({
+        ip: '1.2.3.4',
+        port: 28082,
+        playerId: '76561198000000000',
+        playerToken: 123456,
+      }),
+    );
+  await page.getByRole('button', { name: 'Läs parning' }).click();
+  await expect(page.getByLabel('PlayerToken', { exact: true })).toHaveAttribute('type', 'password');
+  await page.getByRole('button', { name: 'Spara server', exact: true }).click();
+  await expect(page.getByLabel('PlayerToken', { exact: true })).toHaveValue('');
+  expect(saved.playerId).toBe('76561198000000000');
+  expect(saved.playerToken).toBe(123456);
+  await page.getByRole('button', { name: 'Kretsbyggare', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Kretsnamn' })).toHaveValue(circuit);
+});
+test('Live visar inaktuell enhetsstatus utan möjlighet att styra', async ({ page }) => {
+  const state = initial();
+  state.connection = 'reconnecting';
+  state.verified = [];
+  await page.route('**/api/live/**', async (route) => {
+    if (route.request().url().endsWith('/events'))
+      await route.fulfill({ contentType: 'text/event-stream', body: ': idle\n\n' });
+    else await route.fulfill({ json: state });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Live', exact: true }).click();
+  await page.getByRole('button', { name: 'Enheter', exact: true }).click();
+  const card = page.locator('.live-device').filter({ hasText: 'Basbelysning' });
+  await expect(card.getByRole('button', { name: 'På', exact: true })).toBeDisabled();
+  await expect(card).toContainText('Inaktuell / ej verifierad');
+});
+test('Kretsbyggaren fungerar när Live-tjänsten saknas', async ({ page }) => {
+  await page.route('**/api/live/**', (route) => route.abort());
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Live', exact: true }).click();
+  await expect(page.getByText('Starta ElRustys Live-tjänst', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Kretsbyggare', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Kretsnamn' })).toBeVisible();
+});

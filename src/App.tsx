@@ -52,6 +52,7 @@ import { Inspector } from './components/Inspector';
 import { FilterEditor } from './components/FilterEditor';
 import { ExampleLibrary, ExampleGuide } from './components/ExampleLibrary';
 import { openExample } from './data/examples';
+import { LivePage } from './components/LivePage';
 import { ItemImage } from './components/ItemImage';
 
 function useSimulator() {
@@ -216,7 +217,9 @@ function Library() {
 }
 
 export default function App() {
-  const [view, setView] = useState<'circuit' | 'filters' | 'saved' | 'examples'>('circuit'),
+  const [view, setView] = useState<'circuit' | 'filters' | 'saved' | 'examples' | 'live'>(
+      'circuit',
+    ),
     [records, setRecords] = useState<SavedRecord[]>([]),
     [filter, setFilter] = useState<ConveyorFilter>(emptyFilter),
     [filterId, setFilterId] = useState<string>(() => crypto.randomUUID()),
@@ -500,6 +503,10 @@ export default function App() {
             <FolderOpen size={16} />
             Sparat <span className="nav-count">{records.length}</span>
           </button>
+          <button className={view === 'live' ? 'active' : ''} onClick={() => setView('live')}>
+            <Zap size={16} />
+            Live
+          </button>
         </nav>
         <a
           className="source-link"
@@ -638,6 +645,7 @@ export default function App() {
           </div>
         </main>
       )}
+      {view === 'live' && <LivePage />}
       {view === 'examples' && (
         <ExampleLibrary
           onOpen={async (id) => {
@@ -790,9 +798,11 @@ export default function App() {
       )}
       <footer className="app-status">
         <span role="status" aria-live="polite">
-          {message}
+          {view === 'live'
+            ? 'Live-tjänsten behöver köras även när webbläsaren är stängd.'
+            : message}
         </span>
-        <span className="version-label">ElRusty 0.5.1 · lokalt</span>
+        <span className="version-label">ElRusty 0.6.0 · lokalt</span>
       </footer>
       <input
         ref={fileInput}

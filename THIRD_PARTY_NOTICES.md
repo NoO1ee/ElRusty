@@ -28,3 +28,8 @@ React (MIT), React Flow / xyflow (MIT), Zustand (MIT), Dexie (Apache-2.0), Lucid
 ## Kretsreferenser
 
 Exempelbibliotekets källor och attribution redovisas i [docs/EXAMPLES.md](docs/EXAMPLES.md). Namnen Nih Core, BCN Core och NEXUS Core används för att identifiera referensbyggen. Portanslutningar och numeriska inställningar återges som tekniska data med egen layout och egna guider. Inga originaldiagram, sidtexter eller programfiler från Rustrician ingår i distributionen.
+
+
+## Live dependencies
+
+Rust+-integration: @liamcottle/rustplus.js 2.5.0 (MIT), https://github.com/liamcottle/rustplus.js. Discord-integration: discord.js (Apache-2.0), https://github.com/discordjs/discord.js. Dependencies retain their own licenses; consult package metadata and pnpm-lock.yaml for transitive dependencies. No source code from Smartrust or EgorLis/Rustplusbot was copied.

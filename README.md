@@ -12,7 +12,7 @@ pnpm install
 pnpm dev
 ```
 
-Öppna adressen som Vite skriver ut, normalt **http://127.0.0.1:5173**. Använd samma adress och port nästa gång: webbläsarens lokala databas är knuten till adressen. Appen använder inget konto eller backend. Använd inte `file://` för att öppna appen.
+Öppna adressen som Vite skriver ut, normalt **http://127.0.0.1:5173**. Använd samma adress och port nästa gång: webbläsarens lokala databas är knuten till adressen. Kretsar och filter behöver inget konto. Live använder den lokala Node-tjänsten. Använd inte `file://` för att öppna appen.
 
 ```sh
 pnpm check       # TypeScript
@@ -23,9 +23,17 @@ pnpm exec playwright install chromium
 pnpm test:e2e   # webbläsartester
 ```
 
-På Windows kan du efter installation dubbelklicka på **Start-ElRusty.cmd**. Den öppnar webbläsaren och kör den lokala servern; stäng terminalfönstret för att stoppa den. Startfilen hittar även Node i Codex lokala runtime om Node inte ligger i PATH.
+På Windows kan du efter installation dubbelklicka på **Start-ElRusty.cmd**. Den bygger appen, öppnar webbläsaren och kör den lokala tjänsten; stäng terminalfönstret för att stoppa den. Startfilen hittar även Node i Codex lokala runtime om Node inte ligger i PATH.
 
 GitHub Actions kör typkontroll, tester, produktionsbygge och Chromium-scenarier.
+
+## Live — Rust+ och Discord
+
+Version 0.6 lägger till en lokal bakgrundstjänst och fliken **Live**: serverprofiler, teamstatus, verifierade smarta enheter, switchgrupper, manuella lägen, Smart Alarm-historik, Discord-kommandon och `!time` i Rusts teamchatt. Kretsbyggaren styr inga riktiga enheter.
+
+För normal drift: `pnpm build` och sedan `pnpm start`. Öppna **http://127.0.0.1:5173**. För utveckling startar `pnpm dev` både Vite och Live-API:t. Tjänsten behöver vara igång och datorn vaken även med stängd webbläsare. Den är lokal, utan publika konton.
+
+Se [Live-guiden](docs/LIVE.md) för parning, Discord-behörigheter, privat datalagring, Raspberry Pi Zero 2 W och återstående spelkontroller. Rust+-parning, Discord-leverans och Pi-hårdvara är **inte verifierade mot riktiga konton/server i utvecklingstesterna**. Befintliga kretsar och filter fungerar även utan Live-anslutning.
 
 ## Kretsbyggare
 

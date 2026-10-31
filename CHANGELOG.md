@@ -1,5 +1,15 @@
 # Ändringslogg
 
+## 0.6.0 — 2026-10-31
+
+- Ny Live-flik med Rust+-anslutning, serverprofiler, teamstatus och separat SQLite-lagring.
+- Verifierade smarta switches, larm och lagermonitorer; individuell styrning, grupper och redigerbara manuella lägen med delresultat.
+- Discord-bot med serverbundna behörigheter, slash-kommandon och larmnotiser.
+- !time i Rusts teamchatt, med deduplicering, cooldown, felhantering och skydd mot fördröjda svar efter frånkoppling.
+- Återanslutning utan återspelning av kommandon, privata token, loopback-API med Host/Origin- och CSRF-kontroll.
+- Produktionsstart, gemensam utvecklingsstart och systemd-exempel för framtida Pi-flytt.
+- Spel-, Discord- och Pi-verifiering återstår; se docs/LIVE.md.
+
 ## 0.5.1 — 2026-10-31
 
 - Automatisk kabeldragning tar hänsyn till andra kablar och väljer separata spår, bland annat till Memory Cells Power In, Set och Reset i Nih Core.
