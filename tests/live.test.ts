@@ -340,3 +340,26 @@ it('protokollfel visas tydligt och återansluter med bibehållen profil', async 
   expect(adapters[1].set).not.toHaveBeenCalled();
   expect(s.snapshot().devices[0].id).toBe(device.id);
 });
+
+it('upprepade protokollfel efter serverinfo ökar retry-väntan tills anslutningen är stabil', async () => {
+  vi.useFakeTimers();
+  const { s, a, adapters } = await setup();
+  a.emit('lost', 'protocol');
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(adapters).toHaveLength(2);
+  adapters[1].emit('lost', 'protocol');
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(adapters).toHaveLength(2);
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(adapters).toHaveLength(3);
+  adapters[2].emit('lost', 'protocol');
+  await vi.advanceTimersByTimeAsync(3999);
+  expect(adapters).toHaveLength(3);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(adapters).toHaveLength(4);
+  await vi.advanceTimersByTimeAsync(30000);
+  expect(s.snapshot().connection).toBe('connected');
+  adapters[3].emit('lost', 'protocol');
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(adapters).toHaveLength(5);
+});

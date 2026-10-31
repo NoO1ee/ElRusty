@@ -17,7 +17,7 @@ afterEach(async () => {
     await new Promise<void>((r) => s.close(() => r()));
   }
 });
-async function setup(omitQueuedPlayers = false) {
+async function setup(omitQueuedPlayers = false, omitNoteType = false) {
   const schema = await protobuf.load(
     join(dirname(require.resolve('@liamcottle/rustplus.js')), 'rustplus.proto'),
   );
@@ -49,7 +49,8 @@ async function setup(omitQueuedPlayers = false) {
         };
       if (request.getTeamInfo)
         response.teamInfo = {
-          leaderSteamId: '76561198000000000',
+          ...(omitNoteType ? {} : { leaderSteamId: '76561198000000000' }),
+          mapNotes: omitNoteType ? [{ x: 125, y: 250 }] : [],
           members: [
             {
               steamId: '76561198000000000',
@@ -209,4 +210,31 @@ it('bibliotekets protokollfel exponerar inte partiella protobuf-objekt', async (
   } finally {
     raw.disconnect();
   }
+});
+
+it('accepterar teamkartnotering utan type och fortsätter till speltiden', async () => {
+  const { client, schema } = await setup(true, true);
+  const fields = schema.lookupType('rustplus.AppTeamInfo.Note').fields;
+  expect(schema.lookupType('rustplus.AppTeamInfo').fields.leaderSteamId.required).toBe(false);
+  expect(fields.type.id).toBe(2);
+  expect(fields.type.type).toBe('int32');
+  expect(fields.type.required).toBe(false);
+  expect(fields.x.required).toBe(true);
+  expect(fields.y.required).toBe(true);
+  await expect(client.info()).resolves.toBeUndefined();
+  expect((await client.team())[0].name).toBe('Owner');
+  expect(await client.time()).toBeCloseTo(18.7);
+});
+
+it('en spelare utan team får tom teamlista utan protokollfel', async () => {
+  const { client, server, Message } = await setup();
+  for (const socket of server.clients) {
+    socket.removeAllListeners('message');
+    socket.on('message', () =>
+      socket.send(
+        Message.encode(Message.fromObject({ response: { seq: 1, teamInfo: {} } })).finish(),
+      ),
+    );
+  }
+  expect(await client.team()).toEqual([]);
 });

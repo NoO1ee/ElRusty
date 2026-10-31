@@ -1,4 +1,4 @@
-# ElRusty Live 0.6.4
+# ElRusty Live 0.6.5
 
 Live är en separat tjänst för riktiga Rust+-enheter. Kretsbyggaren och dess simulering styr inga enheter i spelet. Tjänsten använder det inofficiella MIT-licensierade [rustplus.js](https://github.com/liamcottle/rustplus.js) och [discord.js](https://discord.js.org/); inga källkodsfiler har kopierats från EgorLis/Rustplusbot eller Smartrust.
 
@@ -97,3 +97,10 @@ Karta, BattleMetrics, scheman, automation, publika teamkonton och direkta koppli
 En versionshanterad pnpm-patch för rustplus.js 2.5.0 gör AppInfo.queuedPlayers valfritt (samma uint32 och fältnummer 9). Detta motsvarar observerade servermeddelanden där köfältet utelämnas. Övriga obligatoriska fält behålls. Patchen fångar avkodnings- och protokolladdningsfel och rapporterar endast ELRUSTY_PROTOCOL, utan rådata. Adaptern stänger berörd anslutning och avbryter väntande anrop; Live visar ett protokollfel och försöker återansluta utan att återspela gamla kommandon.
 
 Patchen i patches/ och dess hash i pnpm-lock.yaml måste följa med vid installation och Pi-flytt. Kör pnpm install --frozen-lockfile efter uppdatering. Inga profiler eller registreringar behöver raderas eller paras om.
+
+
+### Teamnoteringar och återanslutning i 0.6.5
+
+Patchen gör också AppTeamInfo.Note.type valfritt (int32, fältnummer 2). En läsande kontroll identifierade detta utelämnade fält på användarens server. Noteringarnas x/y förblir obligatoriska. Retry-räknaren återställs först efter 30 sekunders stabil anslutning; lyckad getInfo räcker inte för att återställa väntetiden.
+
+Serverkontrollen visade också utelämnat AppTeamInfo.leaderSteamId (uint64, fältnummer 1). Det fältet är nu valfritt; tom teaminformation blir en tom teamlista, inte ett anslutningsfel. Inga ledar-ID:n eller spelvärden fabriceras.

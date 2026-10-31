@@ -38,3 +38,7 @@ Rust+-integration: @liamcottle/rustplus.js 2.5.0 (MIT), https://github.com/liamc
 ### Local rustplus.js compatibility patch
 
 ElRusty 0.6.4 patches @liamcottle/rustplus.js 2.5.0 (MIT): optional AppInfo.queuedPlayers and sanitized decoding/schema-loading failures. The patch preserves upstream copyright and license; see patches/ and pnpm-workspace.yaml.
+
+The 0.6.5 patch also permits omitted AppTeamInfo.Note.type (int32 field 2), observed in server team map notes.
+
+AppTeamInfo.leaderSteamId (uint64 field 1) is also optional for observed team responses without a leader.

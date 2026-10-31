@@ -32,6 +32,7 @@ export class LiveService extends EventEmitter {
   private retry: ReturnType<typeof setTimeout> | undefined;
   private poll: ReturnType<typeof setInterval> | undefined;
   private retries = 0;
+  private stable: ReturnType<typeof setTimeout> | undefined;
   private queue: Promise<unknown> = Promise.resolve();
   private timeBusy = false;
   private timeLast = -Infinity;
@@ -111,6 +112,7 @@ export class LiveService extends EventEmitter {
   private stop() {
     this.generation++;
     clearTimeout(this.retry);
+    clearTimeout(this.stable);
     clearInterval(this.poll);
     this.retry = undefined;
     this.poll = undefined;
@@ -164,6 +166,7 @@ export class LiveService extends EventEmitter {
       if (gen !== this.generation || lost) return;
       lost = true;
       this.generation++;
+      clearTimeout(this.stable);
       adapter.close();
       this.adapter = null;
       clearInterval(this.poll);
@@ -208,7 +211,6 @@ export class LiveService extends EventEmitter {
       await adapter.info();
       if (gen !== this.generation) return;
       this.connection = 'connected';
-      this.retries = 0;
       this.log('info', `Ansluten till ${p.name}.`);
       await this.refreshTeam(gen);
       for (const d of this.config.devices.filter((d) => d.profileId === p.id)) {
@@ -227,6 +229,9 @@ export class LiveService extends EventEmitter {
       if (gen !== this.generation) return;
       this.changed();
       this.poll = setInterval(() => void this.refreshTeam(gen), 15000);
+      this.stable = setTimeout(() => {
+        if (gen === this.generation && this.connection === 'connected') this.retries = 0;
+      }, 30000);
     } catch {
       fail();
     }

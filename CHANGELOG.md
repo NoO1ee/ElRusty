@@ -1,5 +1,10 @@
 # Ändringslogg
 
+## 0.6.5 — 2026-10-31
+
+- Accepterar teamkartnoteringar utan AppTeamInfo.Note.type och teaminformation utan leaderSteamId, verifierat med en läsande kontroll mot användarens server.
+- Retry-räknaren nollställs först efter 30 sekunders stabil anslutning, inte direkt efter serverinformationen. Upprepade protokollfel ger därför ökande väntetid.
+
 ## 0.6.4 — 2026-10-31
 
 - Kompatibilitetspatch för serversvar utan queuedPlayers.

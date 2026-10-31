@@ -10,4 +10,4 @@
 *.cmd text eol=crlf
 *.webp binary
 
-*.patch text eol=lf
+*.patch text eol=lf -whitespace
