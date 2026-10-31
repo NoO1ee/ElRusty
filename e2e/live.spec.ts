@@ -113,16 +113,15 @@ test('Live importerar parning och maskerar hemligheter utan att röra kretsen', 
   const circuit = await page.getByRole('textbox', { name: 'Kretsnamn' }).inputValue();
   await page.getByRole('button', { name: 'Live', exact: true }).click();
   await page.getByRole('button', { name: 'Inställningar', exact: true }).click();
-  await page
-    .getByLabel('Parnings-JSON')
-    .fill(
-      JSON.stringify({
-        ip: '1.2.3.4',
-        port: 28082,
-        playerId: '76561198000000000',
-        playerToken: 123456,
-      }),
-    );
+  await page.getByText('Lägg in manuellt', { exact: true }).click();
+  await page.getByLabel('Parnings-JSON').fill(
+    JSON.stringify({
+      ip: '1.2.3.4',
+      port: 28082,
+      playerId: '76561198000000000',
+      playerToken: 123456,
+    }),
+  );
   await page.getByRole('button', { name: 'Läs parning' }).click();
   await expect(page.getByLabel('PlayerToken', { exact: true })).toHaveAttribute('type', 'password');
   await page.getByRole('button', { name: 'Spara server', exact: true }).click();
@@ -155,4 +154,71 @@ test('Kretsbyggaren fungerar när Live-tjänsten saknas', async ({ page }) => {
   await expect(page.getByText('Starta ElRustys Live-tjänst', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Kretsbyggare', exact: true }).click();
   await expect(page.getByRole('textbox', { name: 'Kretsnamn' })).toBeVisible();
+});
+
+test('guidad Rust+-parning visar steg, avbrott och mottagna serverförslag', async ({ page }) => {
+  const state = initial();
+  state.pairing = {
+    status: 'idle',
+    message: 'Registrera Rust+ för att ta emot serverparningar.',
+    running: false,
+    hasRegistration: false,
+    candidates: [],
+  };
+  const calls: string[] = [];
+  await page.route('**/api/live/**', async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (route.request().method() === 'POST') {
+      calls.push(path);
+      if (path.endsWith('/register'))
+        state.pairing = {
+          status: 'registered',
+          message: 'Rust+ är registrerat.',
+          running: false,
+          hasRegistration: true,
+          candidates: [],
+        };
+      if (path.endsWith('/listen'))
+        state.pairing = {
+          status: 'listening',
+          message: 'Serverparning mottagen.',
+          running: true,
+          hasRegistration: true,
+          candidates: [
+            {
+              id: 'candidate',
+              name: 'Ny Vanilla',
+              host: '1.2.3.4',
+              port: 28082,
+              expiresAt: Date.now() + 60000,
+            },
+          ],
+        };
+      if (path.endsWith('/accept'))
+        state.pairing = {
+          ...state.pairing!,
+          status: 'idle',
+          message: 'Servern har lagts till.',
+          running: false,
+          candidates: [],
+        };
+      await route.fulfill({ json: { ok: true } });
+    } else await route.fulfill({ json: state });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Live', exact: true }).click();
+  await page.getByRole('button', { name: 'Inställningar', exact: true }).click();
+  await expect(page.getByLabel('SteamID64', { exact: true })).not.toBeVisible();
+  await expect(page.getByRole('button', { name: 'Vänta på server', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'Registrera Rust+', exact: true }).click();
+  await page.getByRole('button', { name: 'Vänta på server', exact: true }).click();
+  await expect(page.getByText('Ny Vanilla', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Avbryt parning', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Lägg till och anslut', exact: true }).click();
+  await expect(page.getByText('Servern har lagts till.', { exact: true })).toBeVisible();
+  expect(calls).toEqual([
+    '/api/live/pairing/register',
+    '/api/live/pairing/listen',
+    '/api/live/pairing/accept',
+  ]);
 });

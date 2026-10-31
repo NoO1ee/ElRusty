@@ -1,5 +1,13 @@
 # Ändringslogg
 
+## 0.6.1 — 2026-10-31
+
+- Guidad Rust+-parning med knappar för registrering, servermottagning och godkännande direkt i Live-vyn.
+- Isolerat inloggningsfönster utan avstängd webbsäkerhet; status, avbrott och tidsgränser för egna parningsjobb.
+- Mottagna profiler maskeras och sparas först efter användarens val. Inga token eller råa processloggar visas i sidan.
+- Manuell inmatning och JSON-import ligger nu hopfällda längst ner.
+- Verklig Steam/FCM-parning återstår att verifiera med användarens konto.
+
 ## 0.6.0 — 2026-10-31
 
 - Ny Live-flik med Rust+-anslutning, serverprofiler, teamstatus och separat SQLite-lagring.

@@ -49,6 +49,7 @@ export interface DiscordConfig {
   roleIds: string[];
 }
 export interface LiveSnapshot {
+  pairing?: PairingStatus;
   profiles: Profile[];
   activeProfileId: string | null;
   devices: Device[];
@@ -68,4 +69,12 @@ export interface CommandResult {
   name: string;
   ok: boolean;
   error?: string;
+}
+
+export interface PairingStatus {
+  status: 'idle' | 'registering' | 'registered' | 'listening' | 'error';
+  message: string;
+  hasRegistration: boolean;
+  running: boolean;
+  candidates: { id: string; name: string; host: string; port: number; expiresAt: number }[];
 }

@@ -1,3 +1,4 @@
+import { PairingManager } from './pairing.ts';
 import { resolve } from 'node:path';
 import { LiveDB } from './db.ts';
 import { LiveService } from './service.ts';
@@ -10,7 +11,13 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Ogilti
 const db = new LiveDB(resolve(process.env.ELRUSTY_DATA_DIR || '.private', 'live.sqlite'));
 const service = new LiveService(db, (p) => new RustConnection(p)),
   bot = new DiscordBot(service);
-const server = createLiveHttp(service, bot, { port, dev, dist: dev ? undefined : resolve('dist') });
+const pairing = new PairingManager(service, resolve(process.env.ELRUSTY_DATA_DIR || '.private'));
+const server = createLiveHttp(service, bot, {
+  port,
+  dev,
+  pairing,
+  dist: dev ? undefined : resolve('dist'),
+});
 server.listen(port, '127.0.0.1', () => {
   console.log(`ElRusty ${dev ? 'Live-tjänst' : 'Live'}: http://127.0.0.1:${port}`);
   if (service.config.activeProfileId) service.connect(service.config.activeProfileId);
@@ -27,6 +34,7 @@ let stopping = false;
 async function shutdown(code = 0) {
   if (stopping) return;
   stopping = true;
+  await pairing.close();
   service.close();
   await bot.close();
   server.close();

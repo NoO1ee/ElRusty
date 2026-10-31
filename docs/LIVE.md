@@ -1,4 +1,4 @@
-# ElRusty Live 0.6
+# ElRusty Live 0.6.1
 
 Live är en separat tjänst för riktiga Rust+-enheter. Kretsbyggaren och dess simulering styr inga enheter i spelet. Tjänsten använder det inofficiella MIT-licensierade [rustplus.js](https://github.com/liamcottle/rustplus.js) och [discord.js](https://discord.js.org/); inga källkodsfiler har kopierats från EgorLis/Rustplusbot eller Smartrust.
 
@@ -10,20 +10,27 @@ Utveckling: `pnpm dev` startar Vite på 5173 och Live-API på 5175. `pnpm dev:li
 
 Webbläsaren kan stängas efter konfiguration. Node-processen och datorn måste fortsätta köra och datorn får inte gå i vila. Återstart ansluter senast aktiva Rust-profil och startar en Discord-bot som tidigare aktiverats. Klicka Koppla från respektive Stoppa bot för att stänga av återstartsbeteendet.
 
-## Parning
+## Guidad parning — rekommenderat
 
-1. Kör på datorn, från projektmappen:
-   ```sh
-   pnpm exec rustplus fcm-register --config-file .private/rustplus.config.json
-   pnpm exec rustplus fcm-listen --config-file .private/rustplus.config.json
-   ```
-   Det första kommandot öppnar Steam/Facepunch-inloggningen genom bibliotekets parningsverktyg. Det andra lyssnar på parningsnotiser. Detta är ett externt verktyg, inte en funktion som körs automatiskt av ElRusty.
-2. Öppna spelet på din server: Esc → Rust+ → Pair with Server. Servern måste ha Rust+ aktiverat och dess app.port måste vara nåbar. Rust Console stöds inte.
-3. Kopiera JSON-kroppen med `ip`, `port`, `playerId` och `playerToken` till Live → Inställningar → Importera parningsuppgifter. En yttre `body` med samma JSON stöds också. FCM-konfigurationsfilen är inte samma sak som serverparningen och kan inte importeras som serverprofil.
-4. Spara profilen och anslut. Serverinformation hämtas för att kontrollera autentiseringen innan styrning blir tillgänglig. `playerId` måste vara en sträng med 17 siffror. Token är ett signerat int32-tal. app.port är inte spelport eller RCON-port.
-5. Para Smart Switch / Smart Alarm / Storage Monitor i spelet. Lägg till deras entity-ID under Enheter. Vid behov kan entity-ID hittas via spelets combatlog efter att enheten skadats. ElRusty verifierar typ och behörighet med `getEntityInfo`; den skannar inte servern efter enheter.
+Öppna Live → Inställningar → Anslut med Rust+.
 
-Steam-inloggning sker utanför ElRusty; appen efterfrågar aldrig Steam-lösenord. FCM/Facepunch kan ändra parningsflödet: om CLI-verktyget misslyckas krävs felsökning mot dess aktuella dokumentation. Manuell registrering av redan erhållna serveruppgifter fungerar oberoende av CLI:t. Facepunch-proxy kan väljas per profil om direktanslutning inte fungerar. Token kan behöva förnyas efter wipe eller serverändring.
+1. Klicka **Registrera Rust+**. Ett separat Chrome-/Edge-fönster öppnas för inloggning hos Steam/Facepunch. Återgå till ElRusty när steget är klart. Registreringen görs normalt en gång.
+2. Klicka **Vänta på server**. Öppna spelet på rätt server och välj Esc → Rust+ → Pair with Server. Rust+-mobilappen behöver inte vara öppen.
+3. En mottagen server visas som ett förslag med namn, adress och app.port. Klicka **Lägg till och anslut**. Ingen token kopieras till webbläsaren. En tidigare profil för samma adress, port och Steam-konto får sin parning uppdaterad.
+
+Registrering och lyssning är två steg i samma flöde, inte två olika anslutningsmetoder. Flödet gör samma FCM/Expo/Rust+-registrering som bibliotekets CLI och sparar samma rustplus.config.json i den privata datakatalogen. Det kör inte godtyckliga terminalkommandon. Inloggningen använder en separat tillfällig webbläsarprofil med webbsäkerheten och sidisoleringen kvar. En liten WebView-brygga fångar enbart autentiseringssvaret från Facepunchs huvudkontext, inte Steam-lösenord. Ingen rå processutdata skickas till sidan eller loggas av tjänsten.
+
+Status visas i vyn. Endast ett parningsjobb får köras åt gången. **Avbryt parning** stänger det egna jobbet och dess inloggningsfönster. Registrering avbryts efter fem minuter och lyssning efter tio; förslag giltiga i högst femton minuter sparas först efter ditt val. Fel eller avbrott bevarar tidigare registrering. Vid omstart behöver mottagningen startas igen.
+
+Den guidade registreringen kräver Chrome eller Edge på den dator där tjänsten körs. På en Pi utan skrivbord: registrera på datorn, stoppa båda tjänsterna och flytta den privata rustplus.config.json-filen säkert till Pi:ns datakatalog. Därefter kan Vänta på server användas via SSH-tunneln. Kör inte två mottagare med samma registrering samtidigt.
+
+FCM, Expo och Facepunch kan ändra sina tjänster; verklig inloggning och mottagning är fortfarande användarverifiering. Vid fel visas ett maskerat fel i vyn. Förutsätter Rust PC med Rust+ aktiverat och nåbar app.port.
+
+### Lägg in manuellt
+
+Längst ner under Inställningar finns den hopfällda länken **Lägg in manuellt**. Där kan befintliga uppgifter fyllas i eller JSON med ip, port, playerId och playerToken importeras. SteamID64 måste vara en sträng med 17 siffror och playerToken ett signerat int32-tal. FCM-konfigurationen är inte samma sak som en serverprofil. app.port är inte spelport eller RCON-port. Facepunch-proxy kan väljas per profil. Token kan behöva förnyas efter wipe.
+
+Para därefter Smart Switch / Smart Alarm / Storage Monitor i spelet och lägg till deras entity-ID under Enheter. Enhetens typ och behörighet verifieras mot Rust+.
 
 ## Enheter och lägen
 

@@ -1,3 +1,5 @@
+import type { PairingManager } from '../server/pairing';
+import { vi } from 'vitest';
 import { afterEach, expect, it } from 'vitest';
 import { request } from 'node:http';
 import { EventEmitter } from 'node:events';
@@ -8,10 +10,14 @@ const resources: { close: () => Promise<void> }[] = [];
 afterEach(async () => {
   for (const r of resources.splice(0)) await r.close();
 });
-async function setup() {
+async function setup(pairing?: PairingManager) {
   const db = new LiveDB(':memory:'),
     s = new LiveService(db, () => new EventEmitter() as never);
-  const server = createLiveHttp(s, { start: async () => {}, stop: async () => {} }, { port: 0 });
+  const server = createLiveHttp(
+    s,
+    { start: async () => {}, stop: async () => {} },
+    { port: 0, pairing },
+  );
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
   const port = (server.address() as { port: number }).port;
   resources.push({
@@ -134,4 +140,25 @@ it('SSE skickar initial status och nya ändringar utan privata token', async () 
   expect(messages[0].profiles).toEqual([]);
   expect(messages[1].profiles[0].name).toBe('Stream profile');
   expect(JSON.stringify(messages)).not.toContain('998877');
+});
+
+it('parningsknappar kräver CSRF innan ett jobb startas', async () => {
+  const start = vi.fn(),
+    cancel = vi.fn(async () => {}),
+    accept = vi.fn(async () => ({ id: 'new' }));
+  const { call } = await setup({ start, cancel, accept } as unknown as PairingManager);
+  expect((await call('pairing/register', 'POST', {})).status).toBe(403);
+  expect(start).not.toHaveBeenCalled();
+  const { data } = await call('state');
+  const headers = { 'X-ElRusty-CSRF': data.csrf };
+  expect((await call('pairing/register', 'POST', {}, headers)).status).toBe(200);
+  expect(start).toHaveBeenCalledWith('register');
+  expect((await call('pairing/listen', 'POST', {}, headers)).status).toBe(200);
+  expect(start).toHaveBeenCalledWith('listen');
+  expect((await call('pairing/cancel', 'POST', {}, headers)).status).toBe(200);
+  expect(cancel).toHaveBeenCalledOnce();
+  expect((await call('pairing/accept', 'POST', { id: 'candidate' }, headers)).data).toEqual({
+    id: 'new',
+  });
+  expect(accept).toHaveBeenCalledWith('candidate');
 });

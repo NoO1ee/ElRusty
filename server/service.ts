@@ -1,3 +1,4 @@
+import type { PairingStatus } from '../shared/live.ts';
 import { EventEmitter } from 'node:events';
 import type { LiveSnapshot, Entity, DeviceState, CommandResult, Activity } from '../shared/live.ts';
 import { LiveDB, type Config, type PrivateProfile } from './db.ts';
@@ -11,6 +12,13 @@ export function formatTime(hour: number): string {
 }
 export class LiveService extends EventEmitter {
   config: Config;
+  pairing: PairingStatus = {
+    status: 'idle',
+    message: '',
+    hasRegistration: false,
+    running: false,
+    candidates: [],
+  };
   connection: LiveSnapshot['connection'] = 'disconnected';
   connectionError = '';
   states: Record<string, DeviceState> = {};
@@ -40,6 +48,7 @@ export class LiveService extends EventEmitter {
   snapshot(): LiveSnapshot {
     const { discord, profiles, activeProfileId } = this.config;
     return structuredClone({
+      pairing: this.pairing,
       profiles: profiles.map(({ playerToken, ...p }) => p),
       activeProfileId,
       devices: this.config.devices.filter((d) => d.profileId === activeProfileId),

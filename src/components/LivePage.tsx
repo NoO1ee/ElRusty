@@ -1,3 +1,4 @@
+import { RustPairing } from './RustPairing';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import {
   Radio,
@@ -98,6 +99,7 @@ export function LivePage() {
       setBusy(false);
     }
   }
+  const [manualOpen, setManualOpen] = useState(false);
   const [profile, setProfile] = useState(emptyProfile),
     [editingProfile, setEditingProfile] = useState<string | undefined>(),
     [pairing, setPairing] = useState('');
@@ -136,6 +138,7 @@ export function LivePage() {
   function editProfile(p: Profile) {
     setProfile({ ...p, playerToken: '' });
     setEditingProfile(p.id);
+    setManualOpen(true);
     setTab('Inställningar');
   }
   function editDevice(d: Device) {
@@ -661,103 +664,7 @@ export function LivePage() {
             {tab === 'Inställningar' && (
               <div className="live-columns">
                 <div>
-                  <form
-                    className="live-panel"
-                    onSubmit={submit(
-                      () =>
-                        void act(
-                          'profile',
-                          {
-                            ...profile,
-                            playerToken:
-                              profile.playerToken === '' ? '' : Number(profile.playerToken),
-                            id: editingProfile,
-                          },
-                          () => {
-                            setProfile(emptyProfile);
-                            setEditingProfile(undefined);
-                            setPairing('');
-                          },
-                        ),
-                    )}
-                  >
-                    <h2>{editingProfile ? 'Redigera server' : 'Lägg till Rust-server'}</h2>
-                    <p>
-                      Uppgifterna kommer från Rust+-parningen. app.port är inte serverns vanliga
-                      spelport.
-                    </p>
-                    <Field label="Servernamn">
-                      <input
-                        required
-                        value={profile.name}
-                        onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                      />
-                    </Field>
-                    <div className="live-form-pair">
-                      <Field label="IP eller värdnamn">
-                        <input
-                          required
-                          value={profile.host}
-                          onChange={(e) => setProfile({ ...profile, host: e.target.value })}
-                        />
-                      </Field>
-                      <Field label="app.port">
-                        <input
-                          required
-                          type="number"
-                          min={1}
-                          max={65535}
-                          value={profile.port}
-                          onChange={(e) => setProfile({ ...profile, port: Number(e.target.value) })}
-                        />
-                      </Field>
-                    </div>
-                    <Field label="SteamID64">
-                      <input
-                        required
-                        inputMode="numeric"
-                        value={profile.playerId}
-                        onChange={(e) => setProfile({ ...profile, playerId: e.target.value })}
-                      />
-                    </Field>
-                    <Field
-                      label={
-                        editingProfile ? 'PlayerToken (tomt behåller sparat värde)' : 'PlayerToken'
-                      }
-                    >
-                      <input
-                        required={!editingProfile}
-                        type="password"
-                        autoComplete="off"
-                        value={profile.playerToken}
-                        onChange={(e) => setProfile({ ...profile, playerToken: e.target.value })}
-                      />
-                    </Field>
-                    <label className="live-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={profile.useProxy}
-                        onChange={(e) => setProfile({ ...profile, useProxy: e.target.checked })}
-                      />{' '}
-                      Använd Facepunch-proxy
-                    </label>
-                    <div className="live-actions">
-                      <button disabled={disabled} className="primary">
-                        Spara server
-                      </button>
-                      {editingProfile && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingProfile(undefined);
-                            setProfile(emptyProfile);
-                          }}
-                        >
-                          Avbryt
-                        </button>
-                      )}
-                    </div>
-                  </form>
+                  <RustPairing status={data.pairing} disabled={disabled} act={act} />
                   <section className="live-panel">
                     <h2>Dina serverprofiler</h2>
                     {data.profiles.map((p) => (
@@ -798,66 +705,8 @@ export function LivePage() {
                     ))}
                     {!data.profiles.length && <p>Inga sparade servrar.</p>}
                   </section>
-                  <section className="live-panel">
-                    <h2>Importera parningsuppgifter</h2>
-                    <p>
-                      Klistra in JSON med <code>ip</code>, <code>port</code>, <code>playerId</code>{' '}
-                      och <code>playerToken</code>. Uppgifterna fyller i serverformuläret.
-                    </p>
-                    <textarea
-                      aria-label="Parnings-JSON"
-                      rows={4}
-                      value={pairing}
-                      onChange={(e) => setPairing(e.target.value)}
-                    />
-                    <button
-                      onClick={() => {
-                        try {
-                          setProfile(parsePairing(pairing));
-                          setEditingProfile(undefined);
-                          setPairing('');
-                          setError('');
-                        } catch (e) {
-                          setError((e as Error).message);
-                        }
-                      }}
-                    >
-                      Läs parning
-                    </button>
-                  </section>
                 </div>
                 <div>
-                  <section className="live-panel">
-                    <h2>Kom igång med Rust+</h2>
-                    <ol className="live-setup">
-                      <li>
-                        Kör parningsverktyget på din dator:
-                        <code>
-                          pnpm exec rustplus fcm-register --config-file
-                          .private/rustplus.config.json
-                        </code>
-                      </li>
-                      <li>
-                        Logga in via Steam i verktygets webbläsare och starta sedan lyssnaren:
-                        <code>
-                          pnpm exec rustplus fcm-listen --config-file .private/rustplus.config.json
-                        </code>
-                      </li>
-                      <li>
-                        Öppna Rust på din server, tryck Esc → Rust+ → Pair with Server. Importera
-                        parningsuppgifterna här.
-                      </li>
-                      <li>
-                        Anslut servern i ElRusty. Para smarta enheter i spelet och lägg till deras
-                        entity-ID under Enheter.
-                      </li>
-                    </ol>
-                    <p className="muted">
-                      Parningsverktyget kan påverkas av ändringar hos Facepunch/FCM. Se docs/LIVE.md
-                      för felsökning och manuell import. Skicka aldrig token i chatten eller till
-                      GitHub.
-                    </p>
-                  </section>
                   <form
                     className="live-panel"
                     onSubmit={submit(
@@ -947,6 +796,149 @@ export function LivePage() {
                     </p>
                   </form>
                 </div>
+                <details
+                  className="pairing-manual"
+                  open={manualOpen}
+                  onToggle={(e) => setManualOpen(e.currentTarget.open)}
+                >
+                  <summary>Lägg in manuellt</summary>
+                  <p className="muted">
+                    Använd befintliga Rust+-uppgifter om den guidade parningen inte passar din
+                    miljö.
+                  </p>
+                  <div className="live-columns">
+                    {' '}
+                    <form
+                      className="live-panel"
+                      onSubmit={submit(
+                        () =>
+                          void act(
+                            'profile',
+                            {
+                              ...profile,
+                              playerToken:
+                                profile.playerToken === '' ? '' : Number(profile.playerToken),
+                              id: editingProfile,
+                            },
+                            () => {
+                              setProfile(emptyProfile);
+                              setEditingProfile(undefined);
+                              setPairing('');
+                            },
+                          ),
+                      )}
+                    >
+                      <h2>{editingProfile ? 'Redigera server' : 'Lägg till Rust-server'}</h2>
+                      <p>
+                        Uppgifterna kommer från Rust+-parningen. app.port är inte serverns vanliga
+                        spelport.
+                      </p>
+                      <Field label="Servernamn">
+                        <input
+                          required
+                          value={profile.name}
+                          onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                        />
+                      </Field>
+                      <div className="live-form-pair">
+                        <Field label="IP eller värdnamn">
+                          <input
+                            required
+                            value={profile.host}
+                            onChange={(e) => setProfile({ ...profile, host: e.target.value })}
+                          />
+                        </Field>
+                        <Field label="app.port">
+                          <input
+                            required
+                            type="number"
+                            min={1}
+                            max={65535}
+                            value={profile.port}
+                            onChange={(e) =>
+                              setProfile({ ...profile, port: Number(e.target.value) })
+                            }
+                          />
+                        </Field>
+                      </div>
+                      <Field label="SteamID64">
+                        <input
+                          required
+                          inputMode="numeric"
+                          value={profile.playerId}
+                          onChange={(e) => setProfile({ ...profile, playerId: e.target.value })}
+                        />
+                      </Field>
+                      <Field
+                        label={
+                          editingProfile
+                            ? 'PlayerToken (tomt behåller sparat värde)'
+                            : 'PlayerToken'
+                        }
+                      >
+                        <input
+                          required={!editingProfile}
+                          type="password"
+                          autoComplete="off"
+                          value={profile.playerToken}
+                          onChange={(e) => setProfile({ ...profile, playerToken: e.target.value })}
+                        />
+                      </Field>
+                      <label className="live-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={profile.useProxy}
+                          onChange={(e) => setProfile({ ...profile, useProxy: e.target.checked })}
+                        />{' '}
+                        Använd Facepunch-proxy
+                      </label>
+                      <div className="live-actions">
+                        <button disabled={disabled} className="primary">
+                          Spara server
+                        </button>
+                        {editingProfile && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingProfile(undefined);
+                              setProfile(emptyProfile);
+                            }}
+                          >
+                            Avbryt
+                          </button>
+                        )}
+                      </div>
+                    </form>
+                    <section className="live-panel">
+                      <h2>Importera parningsuppgifter</h2>
+                      <p>
+                        Klistra in JSON med <code>ip</code>, <code>port</code>,{' '}
+                        <code>playerId</code> och <code>playerToken</code>. Uppgifterna fyller i
+                        serverformuläret.
+                      </p>
+                      <textarea
+                        aria-label="Parnings-JSON"
+                        rows={4}
+                        value={pairing}
+                        onChange={(e) => setPairing(e.target.value)}
+                      />
+                      <button
+                        onClick={() => {
+                          try {
+                            setProfile(parsePairing(pairing));
+                            setEditingProfile(undefined);
+                            setPairing('');
+                            setError('');
+                          } catch (e) {
+                            setError((e as Error).message);
+                          }
+                        }}
+                      >
+                        Läs parning
+                      </button>
+                    </section>
+                  </div>
+                </details>
               </div>
             )}
           </>

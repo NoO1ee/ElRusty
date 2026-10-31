@@ -477,3 +477,127 @@
     flex-wrap: wrap;
   }
 }
+
+.pairing-guide {
+  border-color: #ff445340;
+  background: linear-gradient(145deg, #201722, #101722 65%);
+}
+.pairing-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.pairing-title h2 {
+  margin: 5px 0;
+}
+.pairing-symbol {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #ff44531c;
+  color: #ff7b87;
+}
+.pairing-steps {
+  list-style: none;
+  padding: 0;
+  margin: 26px 0;
+}
+.pairing-steps li {
+  display: flex;
+  gap: 16px;
+  padding-bottom: 24px;
+}
+.pairing-steps li > span {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 29px;
+  height: 29px;
+  border-radius: 50%;
+  border: 1px solid #455167;
+  color: #aabbcf;
+}
+.pairing-steps li.done > span {
+  color: var(--green);
+  border-color: #8be3bb70;
+}
+.pairing-steps li.current > span {
+  color: #ff7b87;
+  border-color: #ff7b87;
+}
+.pairing-steps h3 {
+  margin: 4px 0 8px;
+  font-size: 15px;
+}
+.pairing-steps p {
+  margin: 0 0 14px;
+}
+.pairing-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #080e17;
+  padding: 14px;
+  border-radius: 8px;
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+.pairing-status > span {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  background: #9bacc2;
+  border-radius: 50%;
+}
+.pairing-status .pairing-pulse {
+  background: #ff6674;
+  animation: pairing-pulse 1.5s infinite;
+}
+.pairing-guide > small {
+  display: block;
+  margin-top: 18px;
+  line-height: 1.7;
+}
+.pairing-candidates article {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  padding: 16px;
+  background: #12271f;
+  border: 1px solid #8be3bb44;
+  border-radius: 10px;
+  margin: 12px 0;
+}
+.pairing-candidates article > div {
+  flex: 1;
+}
+.pairing-candidates small {
+  display: block;
+  margin-top: 6px;
+}
+.pairing-manual {
+  grid-column: 1/-1;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+  margin-top: 4px;
+}
+.pairing-manual > summary {
+  cursor: pointer;
+  color: var(--muted);
+  width: fit-content;
+  font-size: 12px;
+}
+.pairing-manual > summary:hover {
+  color: white;
+}
+.pairing-manual > .live-columns {
+  margin-top: 18px;
+}
+@keyframes pairing-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}

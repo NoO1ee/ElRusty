@@ -1,3 +1,4 @@
+import type { PairingManager } from './pairing.ts';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
@@ -8,7 +9,7 @@ import { UserError, insist, object, text, discord } from './validation.ts';
 export function createLiveHttp(
   service: LiveService,
   bot: Pick<DiscordBot, 'start' | 'stop'>,
-  options: { port: number; dist?: string; dev?: boolean },
+  options: { port: number; dist?: string; dev?: boolean; pairing?: PairingManager },
 ) {
   const csrf = randomBytes(32).toString('hex'),
     streams = new Set<ServerResponse>();
@@ -98,6 +99,22 @@ export function createLiveHttp(
           return;
         }
         switch (path) {
+          case '/api/live/pairing/register':
+            insist(options.pairing, 'Parning är inte tillgänglig.');
+            options.pairing.start('register');
+            break;
+          case '/api/live/pairing/listen':
+            insist(options.pairing, 'Parning är inte tillgänglig.');
+            options.pairing.start('listen');
+            break;
+          case '/api/live/pairing/cancel':
+            insist(options.pairing, 'Parning är inte tillgänglig.');
+            await options.pairing.cancel();
+            break;
+          case '/api/live/pairing/accept':
+            insist(options.pairing, 'Parning är inte tillgänglig.');
+            result = await options.pairing.accept(text(b.id));
+            break;
           case '/api/live/profile':
             result = { id: service.saveProfile(b, id) };
             break;
