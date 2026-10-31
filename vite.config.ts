@@ -6,5 +6,8 @@ export default defineConfig({
   build: {
     rollupOptions: { output: { manualChunks: { flow: ['@xyflow/react'], storage: ['dexie'] } } },
   },
-  server: { host: '127.0.0.1' },
+  server: {
+    host: '127.0.0.1',
+    watch: { ignored: ['**/*.cmd', '**/.tools/**', '**/test-results/**'] },
+  },
 });
