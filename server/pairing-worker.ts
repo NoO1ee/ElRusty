@@ -1,3 +1,4 @@
+import { safeFailure, type PairingStep } from './pairing-errors.ts';
 import { createRequire } from 'node:module';
 import { readFile, writeFile, rename, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
@@ -8,6 +9,7 @@ const deps = createRequire(createRequire(import.meta.url).resolve('@liamcottle/r
 const [action, configFile] = process.argv.slice(2),
   abort = new AbortController();
 let client: any;
+let step: PairingStep = action === 'listen' ? 'listen' : 'fcm';
 const emit = (value: unknown) => {
   if (process.connected) process.send?.(value);
 };
@@ -39,6 +41,7 @@ async function run() {
       'E28D05345FB78A7A1A63D70F4A302DBF426CA5AD',
     );
     abort.signal.throwIfAborted();
+    step = 'expo';
     stage('Förbereder Rust+-anslutningen…');
     const expo = (
       await axios.post('https://exp.host/--/api/v2/push/getExpoPushToken', {
@@ -50,9 +53,13 @@ async function run() {
         projectId: '49451aca-a822-41e6-ad59-955718d0ff9c',
       })
     ).data.data.expoPushToken;
+    step = 'browser';
     stage('Logga in med Steam i det separata fönstret.');
-    const token = await browserAuth(configFile, abort.signal);
+    const token = await browserAuth(configFile, abort.signal, () =>
+      emit({ type: 'warning', code: 'browser-cleanup' }),
+    );
     abort.signal.throwIfAborted();
+    step = 'companion';
     stage('Slutför registreringen hos Rust+…');
     await axios.post('https://companion-rust.facepunch.com/api/push/register', {
       AuthToken: token,
@@ -61,6 +68,8 @@ async function run() {
       PushToken: expo,
     });
     abort.signal.throwIfAborted();
+    step = 'save';
+    stage('Sparar registreringen lokalt…');
     const temp = configFile + '.' + randomUUID() + '.tmp';
     await writeFile(
       temp,
@@ -71,6 +80,7 @@ async function run() {
       }),
       { mode: 0o600 },
     );
+    abort.signal.throwIfAborted();
     await rename(temp, configFile);
     emit({ type: 'registered' });
   } else if (action === 'listen') {
@@ -102,10 +112,10 @@ async function run() {
   } else throw Error('Okänd parningsåtgärd.');
 }
 void run()
-  .catch(() => {
-    if (!stopping) emit({ type: 'failed' });
+  .catch((error) => {
+    if (!stopping) emit({ type: 'failed', ...safeFailure(step, error) });
   })
   .finally(async () => {
     await stop();
-    process.disconnect?.();
+    if (process.connected) process.disconnect?.();
   });

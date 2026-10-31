@@ -1,10 +1,15 @@
+import { cleanupBrowser } from './pairing-cleanup.ts';
 import { pairingLaunchOptions } from './pairing-launch.ts';
 import { createRequire } from 'node:module';
-import { mkdtemp, rm } from 'node:fs/promises';
-import { dirname, join, relative } from 'node:path';
+import { mkdtemp } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { AUTH_ORIGIN, authBridgeScript, authFromBinding } from './pairing-protocol.ts';
 const deps = createRequire(createRequire(import.meta.url).resolve('@liamcottle/rustplus.js'));
-export async function browserAuth(configFile: string, signal: AbortSignal): Promise<string> {
+export async function browserAuth(
+  configFile: string,
+  signal: AbortSignal,
+  onCleanupWarning?: () => void,
+): Promise<string> {
   const launcher = deps('chrome-launcher'),
     WebSocket = deps('ws');
   const base = dirname(configFile),
@@ -90,10 +95,13 @@ export async function browserAuth(configFile: string, signal: AbortSignal): Prom
       );
     });
   } finally {
-    socket?.close();
-    await chrome?.kill();
-    const inside = relative(base, profile);
-    if (inside && !inside.startsWith('..') && !inside.includes(':'))
-      await rm(profile, { recursive: true, force: true });
+    const cleaned = await cleanupBrowser(chrome, socket, base, profile);
+    if (!cleaned) {
+      try {
+        onCleanupWarning?.();
+      } catch {
+        /* Diagnostics cannot replace the auth result. */
+      }
+    }
   }
 }

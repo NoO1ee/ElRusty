@@ -1,5 +1,11 @@
 # Ändringslogg
 
+## 0.6.3 — 2026-10-31
+
+- Väntar på att det egna inloggningsfönstret stängts och försöker igen vid låsta profilfiler på Windows.
+- Ett städfel kan inte längre skriva över ett mottaget inloggningssvar. Kvarlämnade privata temporärfiler visas som separat varning.
+- Registreringsfel visar nu berört steg och vid behov HTTP-status eller tillåten filfelkod, utan token eller råa serverfel.
+
 ## 0.6.2 — 2026-10-31
 
 - Automatisk Brave-upptäckt på Windows, inklusive användar- och systeminstallationer.

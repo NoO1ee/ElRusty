@@ -72,6 +72,7 @@ export interface CommandResult {
 }
 
 export interface PairingStatus {
+  warning?: string;
   status: 'idle' | 'registering' | 'registered' | 'listening' | 'error';
   message: string;
   hasRegistration: boolean;

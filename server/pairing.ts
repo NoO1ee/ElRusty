@@ -1,3 +1,4 @@
+import { pairingFailureMessage } from './pairing-errors.ts';
 import { fork, execFile, type ChildProcess } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -67,6 +68,7 @@ export class PairingManager {
           ? 'Förbereder Rust+-registreringen…'
           : 'Ansluter till Rust+ notistjänst…',
       candidates: [],
+      warning: undefined,
     });
     let child: ChildProcess;
     try {
@@ -86,6 +88,11 @@ export class PairingManager {
       // Only fixed progress messages cross the worker boundary; no raw stdout is relayed.
       if (raw?.type === 'stage' && typeof raw.text === 'string' && raw.text.length < 300)
         this.publish({ message: raw.text });
+      if (raw?.type === 'warning' && raw.code === 'browser-cleanup')
+        this.publish({
+          warning:
+            'Tillfälliga inloggningsfiler kunde inte tas bort. De ligger kvar i den privata datakatalogen. Registreringen kan fortsätta.',
+        });
       if (raw?.type === 'registered') {
         complete = true;
         this.publish({
@@ -97,10 +104,7 @@ export class PairingManager {
         complete = true;
         this.publish({
           status: 'error',
-          message:
-            action === 'register'
-              ? 'Registreringen misslyckades. Kontrollera internet och att Brave, Chrome eller Edge finns. Försök igen; tidigare registrering behålls.'
-              : 'Kunde inte lyssna på Rust+. Kontrollera anslutningen eller registrera på nytt.',
+          message: pairingFailureMessage(raw, action),
         });
       }
       if (raw?.type === 'candidate' && action === 'listen') {

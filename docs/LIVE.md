@@ -1,4 +1,4 @@
-# ElRusty Live 0.6.2
+# ElRusty Live 0.6.3
 
 Live är en separat tjänst för riktiga Rust+-enheter. Kretsbyggaren och dess simulering styr inga enheter i spelet. Tjänsten använder det inofficiella MIT-licensierade [rustplus.js](https://github.com/liamcottle/rustplus.js) och [discord.js](https://discord.js.org/); inga källkodsfiler har kopierats från EgorLis/Rustplusbot eller Smartrust.
 
@@ -26,7 +26,7 @@ På Windows väljs webbläsaren i ordningen explicit `CHROME_PATH`, Brave, Edge 
 
 Den guidade registreringen kräver Brave, Chrome eller Edge på den dator där tjänsten körs. På en Pi utan skrivbord: registrera på datorn, stoppa båda tjänsterna och flytta den privata rustplus.config.json-filen säkert till Pi:ns datakatalog. Därefter kan Vänta på server användas via SSH-tunneln. Kör inte två mottagare med samma registrering samtidigt.
 
-FCM, Expo och Facepunch kan ändra sina tjänster; verklig inloggning och mottagning är fortfarande användarverifiering. Vid fel visas ett maskerat fel i vyn. Förutsätter Rust PC med Rust+ aktiverat och nåbar app.port.
+FCM, Expo och Facepunch kan ändra sina tjänster; verklig inloggning och mottagning är fortfarande användarverifiering. Vid fel visar vyn vilket steg som misslyckades: FCM, Expo, inloggning, Rust+-registrering eller lokal sparning. Endast HTTP-status och tillåtna filfelkoder visas; råa svar och token exponeras inte. Låsta tillfälliga webbläsarfiler ger en separat varning och avbryter inte en mottagen inloggning. Förutsätter Rust PC med Rust+ aktiverat och nåbar app.port.
 
 ### Lägg in manuellt
 

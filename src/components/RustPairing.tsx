@@ -84,6 +84,11 @@ export function RustPairing({
         <span className={pair.running ? 'pairing-pulse' : ''} />
         {pair.message}
       </div>
+      {status?.warning && (
+        <p className="live-muted-banner" role="status">
+          {status.warning}
+        </p>
+      )}
       {pair.running && (
         <button disabled={disabled} onClick={() => void act('pairing/cancel')}>
           <X size={14} /> Avbryt parning
