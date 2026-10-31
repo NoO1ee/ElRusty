@@ -792,7 +792,7 @@ export default function App() {
         <span role="status" aria-live="polite">
           {message}
         </span>
-        <span className="version-label">ElRusty 0.5 · lokalt</span>
+        <span className="version-label">ElRusty 0.5.1 · lokalt</span>
       </footer>
       <input
         ref={fileInput}

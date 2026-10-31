@@ -2051,3 +2051,16 @@ h3 {
 .logic-lesson-guide {
   max-height: min(390px, 45vh);
 }
+
+.wire-endpoints {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-width: 450px;
+  white-space: normal;
+  line-height: 1.5;
+}
+.wire-endpoints strong {
+  color: #e1ecfa;
+  font-weight: 500;
+}

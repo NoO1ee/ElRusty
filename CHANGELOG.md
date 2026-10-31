@@ -1,5 +1,13 @@
 # Ändringslogg
 
+## 0.5.1 — 2026-10-31
+
+- Automatisk kabeldragning tar hänsyn till andra kablar och väljer separata spår, bland annat till Memory Cells Power In, Set och Reset i Nih Core.
+- En mörk kontur skiljer korsande kablar åt. Korsningar är inte elektriska anslutningar.
+- Markerad kabel visar komponent- och portnamn för båda ändarna.
+- Manuella brytpunkter prioriteras och behålls; färgval påverkar inte kabelvägen.
+- Regressionstester för Nih, BCN och NEXUS samt exakta portändpunkter, kortförflyttning och egna brytpunkter.
+
 ## 0.5.0 — 2026-10-31
 
 - Fem logiklektioner för OR Switch, Memory Cell, Blocker, XOR Switch och AND Switch.

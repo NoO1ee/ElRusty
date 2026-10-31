@@ -31,7 +31,7 @@ GitHub Actions kör typkontroll, tester, produktionsbygge och Chromium-scenarier
 
 - Dra in komponenter eller klicka på ett kort i biblioteket. Placera dem fritt.
 - Anslut en output till en input genom dragning eller två klick. Fel porttyp, upptagna portar och ogiltiga root-anslutningar avvisas.
-- Kablar dras med 90°-hörn runt komponenter. Högerklicka en kabel för individuell färg, nya brytpunkter, automatisk väg eller borttagning.
+- Kablar dras med 90°-hörn runt komponenter och söker separata spår från andra kablar. En mörk kontur skiljer korsningar åt; de är inte anslutningar. Markera en kabel för att se dess start- och slutport. Högerklicka en kabel för individuell färg, nya brytpunkter, automatisk väg eller borttagning.
 - Markera kabeln för att flytta dess böjar. Dubbelklicka en egen brytpunkt för att ta bort den. Konflikter med kort visas på kabeln.
 - Ctrl + scroll: zoom vid muspekaren. Ctrl + vänsterdrag, mellanslag + dra eller mittenknapp: panorera. Handverktyget fungerar även när dragningen börjar över ett kort eller en kabel; korten flyttas inte.
 - Shift + klick: markera flera komponenter. Shift + dra: linjera med närmaste komponent. Delete/Backspace: ta bort markering. Ctrl+Z / Ctrl+Shift+Z: ångra / gör om. Textfält påverkas inte av diagrammets kortkommandon.

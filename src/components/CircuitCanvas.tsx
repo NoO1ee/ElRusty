@@ -1,4 +1,13 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import {
+  createContext,
+  memo,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -24,9 +33,11 @@ import { useStudio } from '../store';
 import { byDefinition, NODE_WIDTH, nodeHeight, portY } from '../data/catalog';
 import { validateConnection } from '../graph';
 import type { ComponentNode, WireEdge } from '../model';
-import { routeWire, pathFromPoints } from '../routing';
+import { routeWire, routeConnections, pathFromPoints } from '../routing';
 import { powerStatus } from '../simulation/power-status';
 import { ItemImage } from './ItemImage';
+
+const WireRoutesContext = createContext<ReturnType<typeof routeConnections> | null>(null);
 
 const ComponentCard = memo(function ComponentCard({
   id,
@@ -103,6 +114,8 @@ function Wire({
   id,
   source,
   sourceHandleId,
+  target,
+  targetHandleId,
   targetX,
   targetY,
   sourceX,
@@ -119,17 +132,51 @@ function Wire({
     width: NODE_WIDTH,
     height: nodeHeight(byDefinition[n.data.definition]),
   }));
-  const routed = routeWire(
-    { x: sourceX, y: sourceY },
-    { x: targetX, y: targetY },
-    obstacles,
-    data?.waypoints || [],
-  );
+  const paths = useContext(WireRoutesContext);
+  const planned = paths?.get(id);
+  const matches =
+    planned &&
+    Math.abs(planned.points[0].x - sourceX) < 0.01 &&
+    Math.abs(planned.points[0].y - sourceY) < 0.01 &&
+    Math.abs(planned.points.at(-1)!.x - targetX) < 0.01 &&
+    Math.abs(planned.points.at(-1)!.y - targetY) < 0.01;
+  const routed = matches
+    ? planned
+    : routeWire(
+        { x: sourceX, y: sourceY },
+        { x: targetX, y: targetY },
+        obstacles,
+        data?.waypoints || [],
+        paths ? [...paths].filter(([key]) => key !== id).map(([, value]) => value.points) : [],
+      );
   const path = pathFromPoints(routed.points);
   const handles = data?.waypoints.length ? data.waypoints : routed.points.slice(1, -1);
   const mid = routed.points[Math.floor(routed.points.length / 2)];
+  const from = nodes.find((n) => n.id === source),
+    to = nodes.find((n) => n.id === target);
+  const sourceName = from?.data.label || (from ? byDefinition[from.data.definition].name : 'Källa');
+  const targetName = to?.data.label || (to ? byDefinition[to.data.definition].name : 'Mål');
+  const referenceOnly = useStudio((s) => s.circuit.example?.mode === 'reference');
+  const endpoints =
+    sourceName +
+    ' · ' +
+    sourceHandleId?.replace('out:', '') +
+    ' → ' +
+    targetName +
+    ' · ' +
+    targetHandleId?.replace('in:', '');
   return (
     <>
+      <path
+        d={path}
+        className="wire-crossing-gap"
+        fill="none"
+        stroke="#0d1724"
+        strokeWidth={selected ? 8 : 6}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        pointerEvents="none"
+      />
       <BaseEdge
         id={id}
         path={path}
@@ -137,6 +184,7 @@ function Wire({
         style={{
           stroke: routed.conflict ? '#f6bd64' : data?.color || '#ff4d59',
           strokeWidth: selected ? 3.5 : 2.5,
+          filter: selected ? 'drop-shadow(0 0 3px ' + (data?.color || '#ff4d59') + ')' : undefined,
           strokeDasharray:
             data?.kind === 'industrial' ? '7 4' : routed.conflict ? '4 4' : undefined,
           opacity: output === 0 && data?.kind === 'power' ? 0.65 : 1,
@@ -180,14 +228,18 @@ function Wire({
           ))}
           {mid && (
             <div
-              className={'wire-value ' + (routed.conflict ? 'conflict' : '')}
+              className={'wire-value wire-endpoints ' + (routed.conflict ? 'conflict' : '')}
+              aria-label="Markerad kabel"
               style={{ transform: `translate(-50%,-100%) translate(${mid.x}px,${mid.y}px)` }}
             >
+              <strong>{endpoints}</strong>
               {routed.conflict
                 ? 'Kabelväg i konflikt'
-                : data?.kind === 'power'
-                  ? (output ?? 0) + ' rW'
-                  : 'Industrial'}
+                : referenceOnly
+                  ? 'Kopplingsreferens'
+                  : data?.kind === 'power'
+                    ? (output ?? 0) + ' rW'
+                    : 'Industrial'}
             </div>
           )}
         </EdgeLabelRenderer>
@@ -206,7 +258,42 @@ function CanvasInner() {
     notify = useStudio((s) => s.notify);
   const initialized = useNodesInitialized();
   const lessonFocus = useStudio((s) => s.lessonFocus);
-  const { screenToFlowPosition, setViewport, fitBounds } = useReactFlow<ComponentNode, WireEdge>();
+  const { screenToFlowPosition, setViewport, fitBounds, getInternalNode } = useReactFlow<
+    ComponentNode,
+    WireEdge
+  >();
+  const obstacles = circuit.nodes.map((n) => ({
+    ...n.position,
+    width: NODE_WIDTH,
+    height: nodeHeight(byDefinition[n.data.definition]),
+  }));
+  const connections = circuit.edges.flatMap((e) => {
+    const a = circuit.nodes.find((n) => n.id === e.source),
+      b = circuit.nodes.find((n) => n.id === e.target);
+    if (!a || !b) return [];
+    const locate = (n: ComponentNode, handle: string | undefined | null) => {
+      const def = byDefinition[n.data.definition],
+        p = def.ports.find((p) => p.id === handle);
+      if (!p) return null;
+      const bounds = getInternalNode(n.id)?.internals.handleBounds?.[
+        p.direction === 'out' ? 'source' : 'target'
+      ]?.find((h) => h.id === handle);
+      return bounds
+        ? {
+            x: n.position.x + bounds.x + bounds.width / 2,
+            y: n.position.y + bounds.y + bounds.height / 2,
+          }
+        : {
+            x: n.position.x + (p.direction === 'out' ? NODE_WIDTH : 0),
+            y: n.position.y + portY(p, def.ports.indexOf(p), def.ports),
+          };
+    };
+    const start = locate(a, e.sourceHandle),
+      end = locate(b, e.targetHandle);
+    return start && end ? [{ id: e.id, start, end, waypoints: e.data?.waypoints || [] }] : [];
+  });
+  const routingKey = JSON.stringify({ connections, obstacles, initialized });
+  const routes = useMemo(() => routeConnections(connections, obstacles), [routingKey]);
   const [menu, setMenu] = useState<{ id: string; x: number; y: number; point: XYPosition } | null>(
       null,
     ),
@@ -270,136 +357,141 @@ function CanvasInner() {
         useStudio.getState().add(definition, p.x, p.y);
       }}
     >
-      <ReactFlow<ComponentNode, WireEdge>
-        nodes={circuit.nodes}
-        edges={circuit.edges}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        onNodesChange={(changes) => {
-          const s = useStudio.getState();
-          setGraph(applyNodeChanges(changes, s.circuit.nodes));
-        }}
-        onEdgesChange={(changes) => {
-          const s = useStudio.getState();
-          setGraph(s.circuit.nodes, applyEdgeChanges(changes, s.circuit.edges));
-        }}
-        onConnect={onConnect}
-        connectOnClick
-        connectionMode={ConnectionMode.Strict}
-        isValidConnection={(c) => {
-          if (!c.sourceHandle || !c.targetHandle) return false;
-          return !validateConnection(
-            useStudio.getState().circuit,
-            c.source,
-            c.target,
-            c.sourceHandle,
-            c.targetHandle,
-          );
-        }}
-        onConnectEnd={(_, state) => {
-          if (state.fromHandle && !state.isValid && state.toHandle)
-            notify('Ogiltig anslutning: kontrollera porttyp, riktning och om porten är upptagen.');
-        }}
-        onNodeDragStart={() => {
-          useStudio.getState().checkpoint();
-          setMenu(null);
-        }}
-        onNodeDrag={(event, node) => {
-          if (!('shiftKey' in event) || !event.shiftKey) {
-            setGuides({});
-            return;
+      <WireRoutesContext.Provider value={routes}>
+        <ReactFlow<ComponentNode, WireEdge>
+          nodes={circuit.nodes}
+          edges={circuit.edges}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          onNodesChange={(changes) => {
+            const s = useStudio.getState();
+            setGraph(applyNodeChanges(changes, s.circuit.nodes));
+          }}
+          onEdgesChange={(changes) => {
+            const s = useStudio.getState();
+            setGraph(s.circuit.nodes, applyEdgeChanges(changes, s.circuit.edges));
+          }}
+          onConnect={onConnect}
+          connectOnClick
+          connectionMode={ConnectionMode.Strict}
+          isValidConnection={(c) => {
+            if (!c.sourceHandle || !c.targetHandle) return false;
+            return !validateConnection(
+              useStudio.getState().circuit,
+              c.source,
+              c.target,
+              c.sourceHandle,
+              c.targetHandle,
+            );
+          }}
+          onConnectEnd={(_, state) => {
+            if (state.fromHandle && !state.isValid && state.toHandle)
+              notify(
+                'Ogiltig anslutning: kontrollera porttyp, riktning och om porten är upptagen.',
+              );
+          }}
+          onNodeDragStart={() => {
+            useStudio.getState().checkpoint();
+            setMenu(null);
+          }}
+          onNodeDrag={(event, node) => {
+            if (!('shiftKey' in event) || !event.shiftKey) {
+              setGuides({});
+              return;
+            }
+            const others = useStudio.getState().circuit.nodes.filter((n) => n.id !== node.id);
+            if (!others.length) return;
+            const closest = others.reduce((a, b) =>
+              Math.hypot(a.position.x - node.position.x, a.position.y - node.position.y) <
+              Math.hypot(b.position.x - node.position.x, b.position.y - node.position.y)
+                ? a
+                : b,
+            );
+            const h = nodeHeight(byDefinition[node.data.definition]),
+              oh = nodeHeight(byDefinition[closest.data.definition]);
+            const candidatesX = [
+                closest.position.x,
+                closest.position.x + NODE_WIDTH / 2 - NODE_WIDTH / 2,
+                closest.position.x + NODE_WIDTH - NODE_WIDTH,
+              ],
+              candidatesY = [
+                closest.position.y,
+                closest.position.y + oh / 2 - h / 2,
+                closest.position.y + oh - h,
+              ];
+            const x = candidatesX.sort(
+                (a, b) => Math.abs(a - node.position.x) - Math.abs(b - node.position.x),
+              )[0],
+              y = candidatesY.sort(
+                (a, b) => Math.abs(a - node.position.y) - Math.abs(b - node.position.y),
+              )[0];
+            const snapX = Math.abs(x - node.position.x) < 18,
+              snapY = Math.abs(y - node.position.y) < 18;
+            const newPosition = { x: snapX ? x : node.position.x, y: snapY ? y : node.position.y };
+            const s = useStudio.getState();
+            setGraph(
+              s.circuit.nodes.map((n) => (n.id === node.id ? { ...n, position: newPosition } : n)),
+            );
+            setGuides({ x: snapX ? x : undefined, y: snapY ? y : undefined });
+          }}
+          onNodeDragStop={() => setGuides({})}
+          onEdgeContextMenu={(e, edge) => {
+            e.preventDefault();
+            setMenu({
+              id: edge.id,
+              x: Math.min(e.clientX, window.innerWidth - 240),
+              y: Math.min(e.clientY, window.innerHeight - 340),
+              point: screenToFlowPosition({ x: e.clientX, y: e.clientY }),
+            });
+            setGraph(
+              circuit.nodes,
+              circuit.edges.map((x) => ({ ...x, selected: x.id === edge.id })),
+            );
+          }}
+          onPaneClick={() => setMenu(null)}
+          onMoveEnd={(_, viewport) =>
+            useStudio.setState((s) => ({ circuit: { ...s.circuit, viewport } }))
           }
-          const others = useStudio.getState().circuit.nodes.filter((n) => n.id !== node.id);
-          if (!others.length) return;
-          const closest = others.reduce((a, b) =>
-            Math.hypot(a.position.x - node.position.x, a.position.y - node.position.y) <
-            Math.hypot(b.position.x - node.position.x, b.position.y - node.position.y)
-              ? a
-              : b,
-          );
-          const h = nodeHeight(byDefinition[node.data.definition]),
-            oh = nodeHeight(byDefinition[closest.data.definition]);
-          const candidatesX = [
-              closest.position.x,
-              closest.position.x + NODE_WIDTH / 2 - NODE_WIDTH / 2,
-              closest.position.x + NODE_WIDTH - NODE_WIDTH,
-            ],
-            candidatesY = [
-              closest.position.y,
-              closest.position.y + oh / 2 - h / 2,
-              closest.position.y + oh - h,
-            ];
-          const x = candidatesX.sort(
-              (a, b) => Math.abs(a - node.position.x) - Math.abs(b - node.position.x),
-            )[0],
-            y = candidatesY.sort(
-              (a, b) => Math.abs(a - node.position.y) - Math.abs(b - node.position.y),
-            )[0];
-          const snapX = Math.abs(x - node.position.x) < 18,
-            snapY = Math.abs(y - node.position.y) < 18;
-          const newPosition = { x: snapX ? x : node.position.x, y: snapY ? y : node.position.y };
-          const s = useStudio.getState();
-          setGraph(
-            s.circuit.nodes.map((n) => (n.id === node.id ? { ...n, position: newPosition } : n)),
-          );
-          setGuides({ x: snapX ? x : undefined, y: snapY ? y : undefined });
-        }}
-        onNodeDragStop={() => setGuides({})}
-        onEdgeContextMenu={(e, edge) => {
-          e.preventDefault();
-          setMenu({
-            id: edge.id,
-            x: Math.min(e.clientX, window.innerWidth - 240),
-            y: Math.min(e.clientY, window.innerHeight - 340),
-            point: screenToFlowPosition({ x: e.clientX, y: e.clientY }),
-          });
-          setGraph(
-            circuit.nodes,
-            circuit.edges.map((x) => ({ ...x, selected: x.id === edge.id })),
-          );
-        }}
-        onPaneClick={() => setMenu(null)}
-        onMoveEnd={(_, viewport) =>
-          useStudio.setState((s) => ({ circuit: { ...s.circuit, viewport } }))
-        }
-        defaultViewport={circuit.viewport}
-        fitView
-        fitViewOptions={{ padding: 0.18, maxZoom: 0.85 }}
-        minZoom={0.15}
-        maxZoom={2.5}
-        zoomOnScroll={false}
-        zoomOnPinch
-        zoomActivationKeyCode="Control"
-        panActivationKeyCode={['Space', 'Control']}
-        panOnDrag={[1]}
-        selectionOnDrag={!handActive}
-        nodesDraggable={!handActive}
-        nodesConnectable={!handActive}
-        elementsSelectable={!handActive}
-        selectionKeyCode={null}
-        deleteKeyCode={null}
-        multiSelectionKeyCode="Shift"
-        proOptions={{ hideAttribution: false }}
-      >
-        {circuit.lesson && (
-          <ViewportPortal>
-            {circuit.lesson.areas.map((area) => (
-              <div
-                className="lesson-area"
-                key={area.id}
-                style={{ left: area.x, top: area.y, width: area.width, height: area.height }}
-              >
-                <strong>{area.title}</strong>
-                <p>{area.description}</p>
-              </div>
-            ))}
-          </ViewportPortal>
-        )}
-        <Controls showInteractive={false} />
-        {Object.entries(guides).map(
-          ([axis, value]) => value !== undefined && <Guide key={axis} axis={axis} value={value} />,
-        )}
-      </ReactFlow>
+          defaultViewport={circuit.viewport}
+          fitView
+          fitViewOptions={{ padding: 0.18, maxZoom: 0.85 }}
+          minZoom={0.15}
+          maxZoom={2.5}
+          zoomOnScroll={false}
+          zoomOnPinch
+          zoomActivationKeyCode="Control"
+          panActivationKeyCode={['Space', 'Control']}
+          panOnDrag={[1]}
+          selectionOnDrag={!handActive}
+          nodesDraggable={!handActive}
+          nodesConnectable={!handActive}
+          elementsSelectable={!handActive}
+          selectionKeyCode={null}
+          deleteKeyCode={null}
+          multiSelectionKeyCode="Shift"
+          proOptions={{ hideAttribution: false }}
+        >
+          {circuit.lesson && (
+            <ViewportPortal>
+              {circuit.lesson.areas.map((area) => (
+                <div
+                  className="lesson-area"
+                  key={area.id}
+                  style={{ left: area.x, top: area.y, width: area.width, height: area.height }}
+                >
+                  <strong>{area.title}</strong>
+                  <p>{area.description}</p>
+                </div>
+              ))}
+            </ViewportPortal>
+          )}
+          <Controls showInteractive={false} />
+          {Object.entries(guides).map(
+            ([axis, value]) =>
+              value !== undefined && <Guide key={axis} axis={axis} value={value} />,
+          )}
+        </ReactFlow>
+      </WireRoutesContext.Provider>
       <div className="canvas-heading">
         <span className="eyebrow">FRI ARBETSYTA</span>
         <button
