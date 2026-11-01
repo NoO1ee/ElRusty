@@ -1,3 +1,4 @@
+import { notificationBody } from './device-notification.ts';
 import { parsePairing } from '../shared/pairing.ts';
 export const AUTH_ORIGIN = 'https://companion-rust.facepunch.com';
 export const authBridgeScript = `if (location.origin === '${AUTH_ORIGIN}' && window.top === window) {
@@ -21,6 +22,8 @@ export function authFromBinding(origin: string, defaultContext: boolean, payload
   }
 }
 export function serverNotification(data: any) {
+  const decoded = notificationBody(data);
+  if (decoded?.type && decoded.type !== 'server') return null;
   // push-receiver emits a decrypted FCM stanza with appData name/value entries.
   let body: unknown = data?.body;
   if (Array.isArray(data?.appData)) body = data.appData.find((v: any) => v.key === 'body')?.value;

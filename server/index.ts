@@ -23,6 +23,7 @@ const server = createLiveHttp(service, bot, {
 server.listen(port, '127.0.0.1', () => {
   console.log(`ElRusty ${dev ? 'Live-tjänst' : 'Live'}: http://127.0.0.1:${port}`);
   if (service.config.activeProfileId) service.connect(service.config.activeProfileId);
+  pairing.enable();
   if (service.config.discord.enabled)
     void bot
       .start()

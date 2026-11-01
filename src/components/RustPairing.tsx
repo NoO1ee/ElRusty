@@ -42,7 +42,7 @@ export function RustPairing({
             </p>
             <button
               className={pair.hasRegistration ? '' : 'primary'}
-              disabled={disabled || pair.running}
+              disabled={disabled || pair.status === 'registering'}
               onClick={() => void act('pairing/register')}
             >
               {pair.hasRegistration ? 'Registrera på nytt' : 'Registrera Rust+'}
@@ -54,7 +54,7 @@ export function RustPairing({
           <div>
             <h3>Para din server i spelet</h3>
             <p>
-              Starta mottagningen här. Öppna sedan{' '}
+              Mottagningen startar automatiskt när tjänsten är igång. Öppna sedan{' '}
               <strong>Rust → Esc → Rust+ → Pair with Server</strong> på servern du spelar på.
             </p>
             <button
@@ -116,8 +116,9 @@ export function RustPairing({
         </div>
       )}
       <small>
-        Registreringen görs normalt en gång. Därefter använder du Vänta på server för varje ny
-        server. Rust+-appen behöver inte vara öppen; parningen görs från spelet.
+        Registreringen görs normalt en gång. Därefter lyssnar tjänsten automatiskt efter server- och
+        enhetsparningar, även med stängd webbläsare. Avbryt parning pausar mottagningen till nästa
+        tjänstestart eller tills du startar den igen. Nya enheter visas under Live → Enheter.
       </small>
     </section>
   );

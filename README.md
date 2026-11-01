@@ -101,3 +101,7 @@ Egen källkod: MIT. Rust-spelmaterial omfattas inte av MIT. Se [THIRD_PARTY_NOTI
 ### Tid till natt och dag
 
 I Rusts teamchatt visar !time speltiden och ungefärlig verklig väntetid till natt/dag. Uppskattningen förbättras när tjänsten har lärt kompletta dag-/nattfaser. Fryst tid markeras tydligt. Inlärningen fortsätter med stängd webbläsare när tjänsten är ansluten; se [Live-guiden](docs/LIVE.md).
+
+### Para smarta enheter
+
+Med sparad Rust+-registrering lyssnar ElRusty automatiskt efter parningar när tjänsten startar. Para switchen i spelet och öppna Live → Enheter: namn och Entity-ID visas som ett förslag. Klicka Lägg till för att verifiera och spara mot rätt serverprofil. Ingen terminal behövs.

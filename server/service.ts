@@ -366,7 +366,7 @@ export class LiveService extends EventEmitter {
       'Anslutningen ändrades. Kommandot avbröts.',
     );
   }
-  async addDevice(body: unknown) {
+  async addDevice(body: unknown, expectedType?: import('../shared/live.ts').DeviceType) {
     const { adapter, gen, profileId } = this.session(),
       draft = validate.device(body, profileId);
     insist(
@@ -382,6 +382,10 @@ export class LiveService extends EventEmitter {
     insist(
       !this.config.devices.some((d) => d.profileId === profileId && d.entityId === draft.entityId),
       'Enheten finns redan.',
+    );
+    insist(
+      !expectedType || entity.type === expectedType,
+      'Enhetens typ stämmer inte med parningen.',
     );
     const d = { ...draft, type: entity.type };
     this.config.devices.push(d);

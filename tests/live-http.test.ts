@@ -146,8 +146,17 @@ it('parningsknappar kräver CSRF innan ett jobb startas', async () => {
   const start = vi.fn(),
     cancel = vi.fn(async () => {}),
     accept = vi.fn(async () => ({ id: 'new' }));
-  const { call } = await setup({ start, cancel, accept } as unknown as PairingManager);
+  const { call } = await setup({
+    start,
+    register: async () => start('register'),
+    enable: () => start('listen'),
+    cancel,
+    accept,
+    acceptDevice: accept,
+  } as unknown as PairingManager);
   expect((await call('pairing/register', 'POST', {})).status).toBe(403);
+  expect((await call('pairing/device/accept', 'POST', { id: 'device' })).status).toBe(403);
+  expect(accept).not.toHaveBeenCalled();
   expect(start).not.toHaveBeenCalled();
   const { data } = await call('state');
   const headers = { 'X-ElRusty-CSRF': data.csrf };
@@ -161,6 +170,8 @@ it('parningsknappar kräver CSRF innan ett jobb startas', async () => {
     id: 'new',
   });
   expect(accept).toHaveBeenCalledWith('candidate');
+  expect((await call('pairing/device/accept', 'POST', { id: 'device' }, headers)).status).toBe(200);
+  expect(accept).toHaveBeenCalledWith('device');
 });
 
 it('timer-API kräver CSRF, validerar och ignorerar falsk skapare/profil från klienten', async () => {

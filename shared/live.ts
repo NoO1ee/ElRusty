@@ -96,7 +96,16 @@ export interface CommandResult {
   error?: string;
 }
 
+export interface DevicePairingCandidate {
+  id: string;
+  profileId: string;
+  entityId: number;
+  entityType: 1 | 2 | 3;
+  name: string;
+  expiresAt: number;
+}
 export interface PairingStatus {
+  devices?: DevicePairingCandidate[];
   warning?: string;
   status: 'idle' | 'registering' | 'registered' | 'listening' | 'error';
   message: string;

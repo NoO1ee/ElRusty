@@ -4,6 +4,7 @@ import { readFile, writeFile, rename, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { browserAuth } from './pairing-browser.ts';
+import { entityNotification } from './device-notification.ts';
 import { serverNotification } from './pairing-protocol.ts';
 const deps = createRequire(createRequire(import.meta.url).resolve('@liamcottle/rustplus.js'));
 const [action, configFile] = process.argv.slice(2),
@@ -95,9 +96,11 @@ async function run() {
       if (stopping) return;
       const server = serverNotification(data);
       if (server) emit({ type: 'candidate', server });
+      const device = entityNotification(data);
+      if (device) emit({ type: 'device', device });
     });
     client.on('connect', () =>
-      stage('Lyssnar efter serverparning. Öppna Rust → Esc → Rust+ → Pair with Server.'),
+      stage('Lyssnar efter server- och enhetsparningar. Para servern eller en smart enhet i Rust.'),
     );
     client.on('disconnect', () => stage('Anslutningen till notistjänsten bröts. Försöker igen…'));
     stage('Ansluter till Rust+ notistjänst…');

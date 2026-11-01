@@ -3,6 +3,7 @@ import { ChatControls } from './ChatControls';
 import { DiscordSetup } from './DiscordSetup';
 import { LiveMap } from './LiveMap';
 import { useLive, refreshLive, liveAction } from '../live-store';
+import { DevicePairing } from './DevicePairing';
 import { RustPairing } from './RustPairing';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import {
@@ -319,6 +320,13 @@ export function LivePage() {
             )}
             {tab === 'Enheter' && (
               <>
+                <DevicePairing
+                  status={data.pairing}
+                  profileId={data.activeProfileId}
+                  connected={connected}
+                  disabled={disabled}
+                  act={act}
+                />
                 {!connected && (
                   <p className="live-muted-banner">
                     Status är inaktuell. Anslut till Rust+ för att verifiera eller styra enheter.

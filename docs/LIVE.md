@@ -32,7 +32,7 @@ FCM, Expo och Facepunch kan ändra sina tjänster; verklig inloggning och mottag
 
 Längst ner under Inställningar finns den hopfällda länken **Lägg in manuellt**. Där kan befintliga uppgifter fyllas i eller JSON med ip, port, playerId och playerToken importeras. SteamID64 måste vara en sträng med 17 siffror och playerToken ett signerat int32-tal. FCM-konfigurationen är inte samma sak som en serverprofil. app.port är inte spelport eller RCON-port. Facepunch-proxy kan väljas per profil. Token kan behöva förnyas efter wipe.
 
-Para därefter Smart Switch / Smart Alarm / Storage Monitor i spelet och lägg till deras entity-ID under Enheter. Enhetens typ och behörighet verifieras mot Rust+.
+Para därefter Smart Switch / Smart Alarm / Storage Monitor i spelet. Från 0.13 visas förslag med namn och Entity-ID under Live → Enheter; klicka Lägg till för serververifiering. Manuell inmatning av Entity-ID finns kvar.
 
 ## Enheter och lägen
 
@@ -226,3 +226,19 @@ Färdiga kurvor sparas i privat SQLite-konfiguration som timeCalibrations, separ
 Pågående fas kastas vid avbrott, omstart eller över 15 sekunder mellan observationer. Färdiga kurvor återställs vid wipe, fryst/ogiltig cykel, bakåthopp eller tydliga framåthopp (mer än det större av 0,1 speltimme och fem gånger förväntad framåtrörelse). Ändrad dygnslängd/tidsskala över 1 procent eller solgräns över 0,05 speltimme (tre spelminuter) återställer också kurvorna. Små gränsändringar tolereras genom normaliserad fasposition. Gränspassager interpoleras mellan avläsningarna.
 
 Verifiera direktuppskattning och fryst tid mot dina servrar. För verklig inlärning behöver ElRusty observera en komplett dag respektive natt utan avbrott; jämför därefter den inlärda prognosen med nästa skifte. Automatiska tester täcker kompletta syntetiska dygn, ojämn hastighet, medianer, klockhopp, avbrott, profilbyte, lagring och omstart. Inga nattaviseringar eller automatiska enhetsåtgärder ingår. Protokollfält: [rustplus.js AppTime](https://github.com/liamcottle/rustplus.js/blob/master/rustplus.proto). Implementation och inlärningsalgoritm är skrivna självständigt.
+
+## Automatisk parningsmottagning 0.13
+
+När tjänsten startar läser den den befintliga privata Rust+-registreringen och startar mottagning av server- och enhetsparningar automatiskt. Ingen webbläsare eller mobilapp behöver vara öppen. Saknas registrering visas guiden; Steam-inloggning öppnas bara när du väljer Registrera Rust+. En omstart börjar lyssna igen. Starta mottagning under Enheter eller Vänta på server under Inställningar kan återuppta manuellt pausad mottagning.
+
+Bakgrundsläget har ingen tiominutersgräns. Notisbiblioteket återansluter vid nätavbrott. Om lyssnarprocessen avslutas oväntat startar tjänsten en ny med 1–30 sekunders ökande väntetid; det finns bara en ägd worker åt gången. Avbryt parning pausar mottagningen och avbryter väntande återstart fram till nästa tjänstestart eller manuell start. Ny registrering pausar lyssnaren och lyckad registrering återstartar den med de nya uppgifterna. Tjänstens avslut stoppar dess worker och återstartstimer.
+
+I spelet parar du själva Smart Switchen, Smart Alarm eller Storage Monitor med Rust+. Under Live → Enheter visas namn, typ och Entity-ID för förslag som tillhör vald sparad serverprofil. Klicka Lägg till; appen kontrollerar ansluten profil, behörighet och faktisk enhetstyp via Rust+ innan något sparas. Förslaget skickar inga på/av-kommandon. Mottagningen fortsätter efter både enhets- och servergodkännanden. Namn och grupp kan sedan ändras i det vanliga enhetsformuläret.
+
+Förslag matchas med parningsadress (host), app.port och SteamID när det finns i notisen. Saknas SteamID krävs exakt en matchande sparad endpoint-profil. Den separata connectionHost används vid verifieringen; den publika parningsadressen ändras inte. Okänd eller tvetydig server ger en varning och ingen enhet läggs till. Para servern först vid behov. Token från enhetsnotiser används inte för att skriva över serverparningen och skickas inte till frontend eller loggar.
+
+Högst 20 enhetsförslag och 20 serverförslag finns i minnet. De förfaller efter 15 minuter och behöver paras igen efter tjänsteomstart. Upprepade notiser dedupliceras per profil/Entity-ID; redan sparade enheter föreslås inte igen. Felaktiga notiser ignoreras. Enhetsgodkännandet är ett CSRF-skyddat POST till /api/live/pairing/device/accept med förslagets id; användaren behöver inte kopiera något Entity-ID.
+
+På egen server med administratörsbehörighet kan entity.debug_lookat i F1 aktivera debugvisning för objektet du tittar på. Nätverks-ID/Entity-ID är inte samma sak som ett item-ID eller prefabnamn. Automatisk parning är det normala arbetsflödet på servrar där du saknar admin. Källor: [Facepunchs adminkommando](https://rust.facepunch.com/news/devblog-65) och [Rust+-notisernas fält](https://github.com/liamcottle/rustplus.js/blob/master/docs/API.md).
+
+Automatiska tester täcker start, paus, processavbrott, förfall, dubbletter, fel profil, typkonflikt, avbrott under verifiering, maskerade notiser, CSRF och webbläsarflödet. Verklig kontroll: para en ny Smart Switch medan tjänsten körs, kontrollera namn/ID i Enheter, välj Lägg till och prova individuell styrning. Upprepa efter tjänsteomstart och med stängd webbläsare.

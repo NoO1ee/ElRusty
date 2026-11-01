@@ -154,15 +154,19 @@ export function createLiveHttp(
             break;
           case '/api/live/pairing/register':
             insist(options.pairing, 'Parning är inte tillgänglig.');
-            options.pairing.start('register');
+            await options.pairing.register();
             break;
           case '/api/live/pairing/listen':
             insist(options.pairing, 'Parning är inte tillgänglig.');
-            options.pairing.start('listen');
+            options.pairing.enable();
             break;
           case '/api/live/pairing/cancel':
             insist(options.pairing, 'Parning är inte tillgänglig.');
             await options.pairing.cancel();
+            break;
+          case '/api/live/pairing/device/accept':
+            insist(options.pairing, 'Parning är inte tillgänglig.');
+            result = await options.pairing.acceptDevice(text(b.id));
             break;
           case '/api/live/pairing/accept':
             insist(options.pairing, 'Parning är inte tillgänglig.');

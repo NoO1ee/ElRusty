@@ -522,3 +522,62 @@ test('lokal anslutningsadress sparas separat från parningsadressen', async ({ p
     '127.0.0.1',
   );
 });
+
+test('enhetsförslag visar namn och Entity-ID och sparas först vid Lägg till', async ({ page }) => {
+  const state = initial();
+  state.pairing = {
+    status: 'listening',
+    running: true,
+    hasRegistration: true,
+    message: 'Lyssnar efter server- och enhetsparningar.',
+    candidates: [],
+    devices: [
+      {
+        id: 'proposal',
+        profileId: 'p1',
+        entityId: 456,
+        entityType: 1,
+        name: 'Garage',
+        expiresAt: Date.now() + 60000,
+      },
+      {
+        id: 'other',
+        profileId: 'other-profile',
+        entityId: 789,
+        entityType: 2,
+        name: 'Other server',
+        expiresAt: Date.now() + 60000,
+      },
+    ],
+  };
+  let accepted: any;
+  await page.route('**/api/live/**', async (route) => {
+    if (route.request().method() === 'POST') {
+      accepted = route.request().postDataJSON();
+      state.pairing!.devices = state.pairing!.devices!.filter((d) => d.id !== accepted.id);
+      state.devices.push({
+        id: 'new',
+        profileId: 'p1',
+        entityId: 456,
+        type: 'switch',
+        name: 'Garage',
+        group: '',
+      });
+      state.states.new = { type: 'switch', value: false, updatedAt: Date.now() };
+      state.verified.push('new');
+      await route.fulfill({ json: { id: 'new' } });
+    } else await route.fulfill({ json: state });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Live', exact: true }).click();
+  await page.getByRole('button', { name: 'Enheter', exact: true }).click();
+  const region = page.getByRole('region', { name: 'Enhetsparning' });
+  await expect(region).toContainText('Garage');
+  await expect(region).toContainText('Entity-ID: 456');
+  await expect(region).not.toContainText('Other server');
+  expect(accepted).toBeUndefined();
+  await region.getByRole('button', { name: 'Lägg till', exact: true }).click();
+  expect(accepted).toEqual({ id: 'proposal' });
+  await expect(region.getByRole('button', { name: 'Lägg till', exact: true })).toHaveCount(0);
+  await expect(page.locator('.live-device').filter({ hasText: 'Garage' })).toBeVisible();
+});

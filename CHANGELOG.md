@@ -1,5 +1,11 @@
 # Ändringslogg
 
+## 0.13.0 — 2026-11-01
+
+- Automatisk bakgrundsmottagning av Rust+-server- och enhetsparningar när tjänsten startar med sparad registrering. Ingen tiominutersgräns i bakgrundsläget; oväntat processavbrott försöks igen med ökande väntetid.
+- Smart Switch, Smart Alarm och Storage Monitor visas som förslag med namn och Entity-ID under Live → Enheter. Lägg till verifierar rätt ansluten profil, behörighet och faktisk enhetstyp innan sparning.
+- Ingen automatisk enhetsstyrning eller tillägg utan användarens klick. Serverparning förblir ett separat godkännande, och lokal anslutningsadress behålls.
+
 ## 0.12.0 — 2026-11-01
 
 - !time visar ungefärlig verklig väntetid till nästa solnedgång eller soluppgång samt tydligt besked vid fryst tid.
