@@ -39,10 +39,28 @@ export async function discordSetupPreview(guild: any, botId: string, config: Con
     required.every((p) => me.permissions.has(p)),
     'Boten behöver Manage Channels, Manage Roles, View Channel, Send Messages, Read Message History och Embed Links.',
   );
-  for (const id of config.roleIds)
-    insist(await guild.roles.fetch(id), 'En tillåten roll finns inte i servern.');
-  for (const id of config.userIds)
-    insist(await guild.members.fetch(id), 'En tillåten användare finns inte i servern.');
+  async function verifyAccess(id: string, role: boolean) {
+    const message =
+      (role ? 'Discord-rollen ' : 'Discord-användaren ') +
+      id +
+      ' finns inte i vald Discord-server. Kontrollera ID:t eller ta bort det under Behörigheter och kommandon → Discord och försök igen.';
+    try {
+      const entry = role
+        ? await guild.roles.fetch(id, { force: true })
+        : await guild.members.fetch({ user: id, force: true });
+      insist(entry, message);
+    } catch (error) {
+      const code = (error as { code?: number }).code;
+      insist(code !== (role ? 10011 : 10007) && code !== 10013, message);
+      insist(
+        code !== 50001 && code !== 50013,
+        'Boten saknar åtkomst till Discord-serverns medlemmar eller roller. Kontrollera botens behörigheter.',
+      );
+      throw error;
+    }
+  }
+  for (const id of config.roleIds) await verifyAccess(id, true);
+  for (const id of config.userIds) await verifyAccess(id, false);
   return {
     guildId: guild.id,
     guildName: guild.name,
@@ -79,7 +97,7 @@ export async function provisionDiscord(
   async function existing(id?: string) {
     if (!id) return null;
     try {
-      return await guild.channels.fetch(id);
+      return await guild.channels.fetch(id, { force: true });
     } catch (e) {
       if ((e as { code?: number }).code === 10003) return null;
       throw e;
@@ -119,6 +137,8 @@ export async function provisionDiscord(
         topic: 'ElRusty · ' + key,
         reason: 'ElRusty guidad setup',
       });
+      if (key === 'status') delete config.statusMessageId;
+      if (key === 'styrning') delete config.instructionsMessageId;
       config.channels[key] = channel.id;
       save();
     }

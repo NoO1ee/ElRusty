@@ -106,3 +106,61 @@ it('ändrad åtkomst spärrar nya leveranser tills kanalsetup har applicerats', 
   await provisionDiscord(guild, 'bot', config, vi.fn());
   expect(managedAccessValid(config)).toBe(true);
 });
+
+it('återskapar raderad kategori och kanaler med färska hämtningar', async () => {
+  const { guild, config, all, create } = fixture();
+  await provisionDiscord(guild, 'bot', config, vi.fn());
+  const oldCategory = config.categoryId;
+  config.statusMessageId = 'deleted-status-message';
+  config.instructionsMessageId = 'deleted-instructions-message';
+  all.clear();
+  guild.channels.fetch.mockImplementation(async () => {
+    throw Object.assign(new Error('private payload'), { code: 10003 });
+  });
+  await provisionDiscord(guild, 'bot', config, vi.fn());
+  expect(create).toHaveBeenCalledTimes(14);
+  expect(config.categoryId).not.toBe(oldCategory);
+  expect(config.statusMessageId).toBeUndefined();
+  expect(config.instructionsMessageId).toBeUndefined();
+  expect(
+    guild.channels.fetch.mock.calls.every(
+      (call) => (call as unknown[])[1] && ((call as unknown[])[1] as any).force,
+    ),
+  ).toBe(true);
+});
+it('ersätter bara saknade kanaler och behåller kategori och befintliga kanaler', async () => {
+  const { guild, config, all, create } = fixture();
+  await provisionDiscord(guild, 'bot', config, vi.fn());
+  const category = config.categoryId,
+    status = config.channels!.status,
+    alarm = config.channels!.larm;
+  all.delete(status!);
+  await provisionDiscord(guild, 'bot', config, vi.fn());
+  expect(create).toHaveBeenCalledTimes(8);
+  expect(config.categoryId).toBe(category);
+  expect(config.channels!.status).not.toBe(status);
+  expect(config.channels!.larm).toBe(alarm);
+});
+it('visar begripligt fel för saknade medlemmar och roller utan att ändra åtkomst', async () => {
+  const { guild, config, create } = fixture();
+  guild.members.fetch.mockRejectedValue(
+    Object.assign(new Error('private payload'), { code: 10007 }),
+  );
+  await expect(discordSetupPreview(guild, 'bot', config)).rejects.toThrow(
+    'Discord-användaren owner finns inte',
+  );
+  expect(config.userIds).toEqual(['owner']);
+  guild.members.fetch.mockResolvedValue({ id: 'owner' });
+  guild.roles.fetch.mockRejectedValue(Object.assign(new Error('private payload'), { code: 10011 }));
+  await expect(discordSetupPreview(guild, 'bot', config)).rejects.toThrow(
+    'Discord-rollen team finns inte',
+  );
+  expect(create).not.toHaveBeenCalled();
+});
+it('tolkar inte åtkomstfel på kanaler som raderade kanaler', async () => {
+  const { guild, config, create } = fixture();
+  await provisionDiscord(guild, 'bot', config, vi.fn());
+  guild.channels.fetch.mockRejectedValue(Object.assign(new Error('denied'), { code: 50013 }));
+  await expect(provisionDiscord(guild, 'bot', config, vi.fn())).rejects.toThrow('denied');
+  expect(create).toHaveBeenCalledTimes(7);
+});
