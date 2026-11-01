@@ -672,7 +672,15 @@
   padding: 16px 24px 22px;
 }
 .live-page-map .page-heading {
+  display: flex;
+  margin-bottom: 12px;
+}
+.live-page-map .page-heading p,
+.live-page-map .page-heading .eyebrow {
   display: none;
+}
+.live-page-map .page-heading h1 {
+  font-size: 21px;
 }
 .live-page-map .live-tabs {
   padding-bottom: 10px;
