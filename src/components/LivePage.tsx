@@ -844,6 +844,7 @@ export function LivePage() {
                       </div>
                       <Field label="Anslutningsadress (valfri)">
                         <input
+                          aria-label="Anslutningsadress (valfri)"
                           value={profile.connectionHost}
                           placeholder="Till exempel 127.0.0.1"
                           onChange={(e) =>
