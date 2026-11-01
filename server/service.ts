@@ -1,3 +1,4 @@
+import { LiveClock } from './live-clock.ts';
 import { TimerEngine } from './timer-engine.ts';
 import { nextLastDeath, type LastDeath, type TeamMapNote } from '../shared/team-map.ts';
 import { commandReply, isKnownCommand, plainText, publicChatError, TextQueue } from './chat.ts';
@@ -17,6 +18,7 @@ export function formatTime(hour: number): string {
 export class LiveService extends EventEmitter {
   config: Config;
   readonly timers: TimerEngine;
+  readonly clock: LiveClock;
   profileEpoch = 0;
   world?: LiveWorld;
   pairing: PairingStatus = {
@@ -61,6 +63,7 @@ export class LiveService extends EventEmitter {
     this.config = db.load();
     this.serviceStartedAt = this.now();
     this.timers = new TimerEngine(this, this.now);
+    this.clock = new LiveClock(this);
   }
   snapshot(): LiveSnapshot {
     const { discord, profiles, activeProfileId } = this.config;
@@ -131,6 +134,7 @@ export class LiveService extends EventEmitter {
   deleteProfile(id: string) {
     if (id === this.config.activeProfileId) this.disconnect();
     this.db.timers.deleteProfile(id);
+    if (this.config.timeCalibrations) delete this.config.timeCalibrations[id];
     this.config.profiles = this.config.profiles.filter((p) => p.id !== id);
     for (const key of Object.keys(this.config.deathLocations || {}))
       if (key.startsWith(id + ':')) delete this.config.deathLocations![key];
@@ -152,6 +156,7 @@ export class LiveService extends EventEmitter {
     this.relayQueue.clear();
     this.emit('sessionLost');
     this.world?.stop();
+    this.clock.stop();
     clearTimeout(this.retry);
     clearTimeout(this.stable);
     clearInterval(this.poll);
@@ -215,6 +220,7 @@ export class LiveService extends EventEmitter {
       this.emit('sessionLost');
       clearTimeout(this.stable);
       this.world?.stop();
+      this.clock.stop();
       adapter.close();
       this.adapter = null;
       clearInterval(this.poll);
@@ -275,6 +281,7 @@ export class LiveService extends EventEmitter {
           delete this.config.deathLocations[key];
       this.lastDeath = this.config.deathLocations[this.deathKey] || null;
       this.world?.connected(information);
+      this.clock.start(p.id, this.deathKey);
       this.log('info', `Ansluten till ${p.name}.`);
       await this.refreshTeam(gen);
       for (const d of this.config.devices.filter((d) => d.profileId === p.id)) {

@@ -370,3 +370,15 @@ it('dödsbroadcast med utelämnade standardvärden behåller anslutningen och l�
   expect(await client.time()).toBe(12);
   expect(lost).not.toHaveBeenCalled();
 });
+
+it('timeInfo läser hela serverns tidssnapshot och time behåller sitt talformat', async () => {
+  const { client } = await setup(false, false, undefined, { time: 0 });
+  expect(await client.timeInfo()).toEqual({
+    time: 0,
+    timeScale: 0,
+    sunrise: 8,
+    sunset: 18,
+    dayLengthMinutes: 60,
+  });
+  expect(await client.time()).toBe(0);
+});

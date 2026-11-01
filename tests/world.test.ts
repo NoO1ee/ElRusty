@@ -31,6 +31,13 @@ async function setup() {
     team: async () => [],
     entity: async () => ({ type: 'switch' as const, value: false }),
     set: async () => {},
+    timeInfo: async () => ({
+      time: 12,
+      sunrise: 8,
+      sunset: 18,
+      dayLengthMinutes: 60,
+      timeScale: 1,
+    }),
     time: async () => 12,
     chat: async () => {},
     map: vi.fn(async () => ({

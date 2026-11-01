@@ -41,6 +41,13 @@ class Fake extends EventEmitter implements RustAdapter {
     maxPlayers: 100,
   }));
   team = vi.fn(async () => structuredClone(this.members));
+  timeInfo = vi.fn(async () => ({
+    time: await this.time(),
+    sunrise: 8,
+    sunset: 18,
+    dayLengthMinutes: 60,
+    timeScale: 1,
+  }));
   time = vi.fn(async () => 12);
   chat = vi.fn(async (_text: string) => {});
   value = false;

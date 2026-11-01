@@ -97,3 +97,7 @@ Version 0.3 rättar Electric Furnace till enbart Power In, visar dov röd bakgru
 ## Licens
 
 Egen källkod: MIT. Rust-spelmaterial omfattas inte av MIT. Se [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+### Tid till natt och dag
+
+I Rusts teamchatt visar !time speltiden och ungefärlig verklig väntetid till natt/dag. Uppskattningen förbättras när tjänsten har lärt kompletta dag-/nattfaser. Fryst tid markeras tydligt. Inlärningen fortsätter med stängd webbläsare när tjänsten är ansluten; se [Live-guiden](docs/LIVE.md).

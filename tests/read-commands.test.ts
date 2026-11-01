@@ -60,6 +60,13 @@ async function setup() {
     team: vi.fn(async () => structuredClone(members)),
     entity: async () => ({ type: 'switch' as const, value: false }),
     set: vi.fn(async () => {}),
+    timeInfo: async () => ({
+      time: 12,
+      sunrise: 8,
+      sunset: 18,
+      dayLengthMinutes: 60,
+      timeScale: 1,
+    }),
     time: async () => 12,
     chat: vi.fn(async (_text: string) => {}),
   });

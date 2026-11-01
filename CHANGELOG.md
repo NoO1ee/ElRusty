@@ -1,5 +1,11 @@
 # Ändringslogg
 
+## 0.12.0 — 2026-11-01
+
+- !time visar ungefärlig verklig väntetid till nästa solnedgång eller soluppgång samt tydligt besked vid fryst tid.
+- Automatisk inlärning av separata dag-/nattkurvor med 21 mätpunkter, median från de tre senaste kompletta faserna och beständig lagring per profil/wipe.
+- Tidsläsning var femte sekund utan överlappande anrop, även med stängd webbläsare. Avbrott och ändrade tidsförhållanden avbryter eller återställer inlärningen utan gamla chattsvar.
+
 ## 0.11.2 — 2026-11-01
 
 - AppTime.timeScale och time är valfria float-fält med oförändrade nummer. Fryst tid och midnatt kan utelämna nollvärden utan protokollfel.

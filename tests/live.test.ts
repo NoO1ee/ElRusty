@@ -27,6 +27,13 @@ class FakeRust extends EventEmitter implements RustAdapter {
   set = vi.fn(async (id: number, value: boolean) => {
     this.values.get(id)!.value = value;
   });
+  timeInfo = vi.fn(async () => ({
+    time: await this.time(),
+    sunrise: 8,
+    sunset: 18,
+    dayLengthMinutes: 60,
+    timeScale: 1,
+  }));
   time = vi.fn(async () => 18.7);
   chat = vi.fn(async (_message: string) => {});
 }
@@ -205,7 +212,9 @@ describe('!time', () => {
   it('svarar i teamchatten även på det parade kontots kommando', async () => {
     const { s, a } = await setup();
     await s.onChat(msg());
-    expect(a.chat).toHaveBeenCalledWith('[ElRusty] Speltid: 18:42');
+    expect(a.chat).toHaveBeenCalledWith(
+      '[ElRusty] Speltid: 18:42 · Dag om cirka 34 min (uppskattat).',
+    );
     await s.onChat({ steamId: input.playerId, message: '[ElRusty] Speltid: 18:42', time: 2 });
     expect(a.time).toHaveBeenCalledOnce();
   });
@@ -231,7 +240,9 @@ describe('!time', () => {
     await pending;
     await s.onChat(msg(3));
     expect(a.time).toHaveBeenCalledOnce();
-    expect(a.chat).toHaveBeenCalledWith('[ElRusty] Speltid: 00:00');
+    expect(a.chat).toHaveBeenCalledWith(
+      '[ElRusty] Speltid: 00:00 · Dag om cirka 20 min (uppskattat).',
+    );
   });
   it('skickar ett kort fel när tidsfrågan misslyckas', async () => {
     const { s, a } = await setup();

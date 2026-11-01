@@ -18,7 +18,13 @@ export const teamCommands = [
     description: 'Visa hjälp. Grupper: server, team, timers, styrning.',
     group: 'server',
   },
-  { name: 'time', syntax: '!time', description: 'Visa aktuell speltid.', group: 'server' },
+  {
+    name: 'time',
+    syntax: '!time',
+    description:
+      'Visa speltid och ungefärlig verklig tid till natt/dag. Uppskattning direkt; bättre precision efter inlärning. Fryst tid anges.',
+    group: 'server',
+  },
   {
     name: 'pop',
     syntax: '!pop',

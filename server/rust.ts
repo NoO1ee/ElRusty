@@ -1,3 +1,4 @@
+import type { RustTimeInfo } from '../shared/time.ts';
 import { normalizeTeamInfo } from './team-info.ts';
 import type { TeamMapNote } from '../shared/team-map.ts';
 import type { ServerInfo, MapData, MapMarker } from '../shared/world.ts';
@@ -23,6 +24,7 @@ export interface RustAdapter extends EventEmitter {
   entity(id: number): Promise<Entity>;
   set(id: number, value: boolean): Promise<void>;
   time(): Promise<number>;
+  timeInfo(): Promise<RustTimeInfo>;
   chat(message: string): Promise<void>;
 }
 export function normalizeEntity(raw: any): Entity {
@@ -217,8 +219,20 @@ export class RustConnection extends EventEmitter implements RustAdapter {
   async set(id: number, value: boolean) {
     await this.request({ entityId: id, setEntityValue: { value } });
   }
+  async timeInfo(): Promise<RustTimeInfo> {
+    const r = await this.request({ getTime: {} });
+    if (!r.time) throw Error('Ingen tidsinformation.');
+    const t = r.time;
+    return {
+      time: Number(t.time ?? 0),
+      sunrise: Number(t.sunrise),
+      sunset: Number(t.sunset),
+      dayLengthMinutes: Number(t.dayLengthMinutes),
+      timeScale: Number(t.timeScale ?? 0),
+    };
+  }
   async time() {
-    return Number((await this.request({ getTime: {} })).time?.time);
+    return (await this.timeInfo()).time;
   }
   async chat(message: string) {
     await this.request({ sendTeamMessage: { message } });

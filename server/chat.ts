@@ -4,7 +4,6 @@ import type { LiveService } from './service.ts';
 import type { ChatMessage } from './rust.ts';
 import { eventNames, gridLocation } from '../shared/world.ts';
 import { insist, UserError } from './validation.ts';
-import { formatTime } from './service.ts';
 
 export function plainText(value: string, max = 120) {
   return [
@@ -61,11 +60,7 @@ export async function commandReply(service: LiveService, message: ChatMessage, g
   if (readCommands.has(command)) return readReply(service, message, command, arg);
   switch (command) {
     case 'time':
-      try {
-        return 'Speltid: ' + formatTime(await adapter.time());
-      } catch {
-        return 'Kunde inte hämta speltiden.';
-      }
+      return service.clock.reply();
     case 'help':
       return helpReply(arg);
     case 'pop': {

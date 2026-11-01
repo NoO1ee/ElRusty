@@ -379,6 +379,9 @@ test('chattbehörigheter sparas per server och tvåvägschatt är ett uttrycklig
   await page.getByRole('button', { name: 'Inställningar', exact: true }).click();
   await page.getByText('Alla teamkommandon', { exact: true }).click();
   await expect(page.locator('.live-command-list')).toContainText('!wipe');
+  await expect(page.locator('.live-command-list')).toContainText(
+    'ungefärlig verklig tid till natt/dag',
+  );
   await expect(page.locator('.live-command-list')).toContainText('!prox');
   await expect(page.locator('.live-command-list')).toContainText('!alive');
   await expect(page.locator('.live-command-list')).not.toContainText('!team');
