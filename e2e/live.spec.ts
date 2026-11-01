@@ -399,9 +399,10 @@ test('timers skapas, räknar ned, överlever omladdning och visar kanalvis histo
   page,
 }) => {
   const state = initial(),
-    base = Date.now();
+    base = Date.now() + 1000;
   state.timers = [];
-  await page.clock.install({ time: new Date(base) });
+  await page.clock.install({ time: new Date(base - 1000) });
+  await page.clock.pauseAt(new Date(base));
   let count = 0;
   await page.route('**/api/live/**', async (route) => {
     const path = new URL(route.request().url()).pathname;

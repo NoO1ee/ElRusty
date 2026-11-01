@@ -168,7 +168,7 @@ Alla aktuella teammedlemmar får använda följande kommandon i Rusts teamchatt.
 
 Facepunch tog bort event- och vending-maskiners kartmarkörer från Rust+ den 6 augusti 2026 i [Power Trip](https://rust.facepunch.com/news/power-trip). Rust++-listorna beskriver därför funktioner som inte kan återskapas automatiskt på en vanlig aktuell vanilla-server med enbart Rust+. !events visar fortfarande eventmarkörer om en server faktiskt skickar dem; ett tomt svar bevisar aldrig att inget event pågår. På vanilla kan dessa data saknas helt. ElRusty räknar inte fram påhittade Cargo-/Oil Rig-timers från frånvaro av markörer.
 
-Användaren valde andra fungerande kommandon först. Manuella teamrapporter och deras eventkommandon är uppskjutna, liksom BattleMetrics, timerhantering, marknadsdata och övriga Rust++-funktioner. Referensens [kommandolista](https://rustplusplus-credentials.netlify.app/docs/commands) används för funktionernas syfte; implementation och hjälptexter är skrivna självständigt.
+Användaren valde andra fungerande kommandon först. Manuella teamrapporter och deras eventkommandon är uppskjutna, liksom BattleMetrics, marknadsdata och övriga Rust++-funktioner. Referensens [kommandolista](https://rustplusplus-credentials.netlify.app/docs/commands) används för funktionernas syfte; implementation och hjälptexter är skrivna självständigt.
 
 
 ## Timers och påminnelser 0.11
