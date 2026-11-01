@@ -169,3 +169,26 @@ Alla aktuella teammedlemmar får använda följande kommandon i Rusts teamchatt.
 Facepunch tog bort event- och vending-maskiners kartmarkörer från Rust+ den 6 augusti 2026 i [Power Trip](https://rust.facepunch.com/news/power-trip). Rust++-listorna beskriver därför funktioner som inte kan återskapas automatiskt på en vanlig aktuell vanilla-server med enbart Rust+. !events visar fortfarande eventmarkörer om en server faktiskt skickar dem; ett tomt svar bevisar aldrig att inget event pågår. På vanilla kan dessa data saknas helt. ElRusty räknar inte fram påhittade Cargo-/Oil Rig-timers från frånvaro av markörer.
 
 Användaren valde andra fungerande kommandon först. Manuella teamrapporter och deras eventkommandon är uppskjutna, liksom BattleMetrics, timerhantering, marknadsdata och övriga Rust++-funktioner. Referensens [kommandolista](https://rustplusplus-credentials.netlify.app/docs/commands) används för funktionernas syfte; implementation och hjälptexter är skrivna självständigt.
+
+
+## Timers och påminnelser 0.11
+
+Skapa namngivna engångstimrar med !timer add 15m Oil Rig. !timer utan argument och !timers [sida] visar aktiva timers, fem per sida. Avbryt med !timer cancel <ID>; det åttateckens-ID som visas i listan är skiftlägesokänsligt. !help timer visar syntax och !help timers gruppen. Namn med mellanslag och identiska namn fungerar; avbrytning använder alltid ID.
+
+Tillåten tid är 10 sekunder–7 dagar. Skriv heltal med enheterna d, h, m, s i fallande ordning, högst en gång per enhet: 90s, 15m, 1h30m. Enhetslösa tal, decimaler, negativa tal och upprepade/felordnade enheter avvisas. Namn är 1–60 tecken och högst 20 aktiva timers tillåts per profil.
+
+Alla aktuella Rust-teammedlemmar får läsa listan och skapa/avbryta egna timers. Parade kontot och konfigurerade styr-SteamID:n får avbryta allas. Webbpanelen är lokal ägaradministration: skaparen är parade kontot med namnet Webbpanelen, och den kan avbryta alla timers för vald profil. API:t tar inte emot en betrodd skapare eller profil från klienten. Befintlig CSRF-, Host- och Origin-kontroll gäller.
+
+Live → Timers visar formulär, återstående tid, sluttid, skapare och historik med de senaste 100 avslutade timrarna per profil. Nedräkningen i webbläsaren är visuell. När noll nås väntar vyn på tjänstens resultat; webbläsaren skickar ingen avisering själv. Tjänsten fortsätter med stängd webbläsare när datorn är vaken.
+
+En separat SQLite-tabell skapas genom en additiv migrering till databasversion 2. Config-, aktivitets-, parnings- och IndexedDB-data ändras inte. Timers lagrar profil, fullständigt ID och kort-ID, namn, skapare, absoluta UTC-tider, tillstånd och aviseringsresultat. Tillstånden är aktiv, utgången och avbruten. Profilradering tar bort profilens timers; wipe ändrar inte manuella påminnelsers sluttid.
+
+Schedulern söker förfallna timers varje sekund. SQLite-transaktioner skyddar kvoten och avgör atomiskt avbrytning/utgång samt sändningsanspråk, även mellan två instanser. Framtida timers återställs efter omstart. Redan förfallna timers registreras som missade utan gamla chattutskick. En timer som förfaller för en inaktiv profil ger missat i båda kanalerna; serverbyte pausar inte sluttiden.
+
+Rust-aviseringen är [ElRusty] Timer klar: namn (ID). Discord använder registrerade privata #events, med servernamn och skapare. Message Content Intent och tvåvägschatt behövs inte. Kanalerna fungerar oberoende: exempelvis kan Discord avisera under Rust-avbrott. Ändrad kanalåtkomst spärrar utskick tills setupen uppdaterats.
+
+Varje kanal har en separat kö med högst 20 meddelanden inklusive pågående sändning och minst en sekund mellan sändningsstarter. Full kö, ogiltig profil/anslutning eller avbruten väntan markeras missad. Köade Rust-aviseringar släpps vid Rust-avbrott, Discord-aviseringar vid Discord-avbrott och båda vid serverbyte. Inga gamla meddelanden återspelas.
+
+Sändningsförsök registreras beständigt före nätanrop. Bekräftat betyder att servern/API:t godkänt sändningen, inte att någon läst den. Missat betyder att sändning inte genomfördes. Obekräftat används vid timeout, transportfel eller avbrutet pågående försök; meddelandet kan ha hunnit skickas och försöks därför inte igen. Mentions neutraliseras, text längdbegränsas och råa fel/payloads sparas inte i historiken.
+
+Automatiska tester täcker tidstolkning, migration, kvoter, behörigheter, köer, två schedulerinstanser, omstart, serverbyte, wipe, kanalåtkomst och webbflöden. Verklig slutkontroll: skapa en 10s-timer från ditt Rust-konto, en från webben och en från en lagkamrat; kontrollera Rust och #events, avbryt en timer och prova omstart/avbrott. Återkommande timers, Discord-kommandon för timeradministration, automatisk enhetsstyrning och manuella eventrapporter ingår inte.

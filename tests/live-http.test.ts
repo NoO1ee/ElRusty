@@ -162,3 +162,47 @@ it('parningsknappar kräver CSRF innan ett jobb startas', async () => {
   });
   expect(accept).toHaveBeenCalledWith('candidate');
 });
+
+it('timer-API kräver CSRF, validerar och ignorerar falsk skapare/profil från klienten', async () => {
+  const { s, call } = await setup();
+  const { data } = await call('state'),
+    headers = { 'X-ElRusty-CSRF': data.csrf };
+  const id = s.saveProfile({
+    name: 'Timer server',
+    host: 'localhost',
+    port: 1,
+    playerId: '76561198000000000',
+    playerToken: 123,
+  });
+  s.config.activeProfileId = id;
+  expect((await call('timers', 'POST', { name: 'Oil Rig', duration: '15m' })).status).toBe(403);
+  expect((await call('timers', 'POST', { name: 'Invalid', duration: '9s' }, headers)).status).toBe(
+    400,
+  );
+  const created = await call(
+    'timers',
+    'POST',
+    { name: 'Oil Rig', duration: '15m', creatorId: 'stranger', profileId: 'foreign' },
+    headers,
+  );
+  expect(created.status).toBe(200);
+  expect(created.data).toMatchObject({
+    creatorId: '76561198000000000',
+    profileId: id,
+    state: 'active',
+  });
+  const other = s.saveProfile({
+    name: 'Other',
+    host: 'localhost',
+    port: 2,
+    playerId: '76561198000000000',
+    playerToken: 123,
+  });
+  s.config.activeProfileId = other;
+  expect((await call('timers/cancel', 'POST', { id: created.data.id }, headers)).status).toBe(400);
+  s.config.activeProfileId = id;
+  expect(
+    (await call('timers/cancel', 'POST', { id: created.data.shortId }, headers)).data.state,
+  ).toBe('cancelled');
+  expect((await call('state')).data.timers[0].state).toBe('cancelled');
+});

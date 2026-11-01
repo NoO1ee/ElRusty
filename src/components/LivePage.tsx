@@ -1,3 +1,4 @@
+import { LiveTimers } from './LiveTimers';
 import { ChatControls } from './ChatControls';
 import { DiscordSetup } from './DiscordSetup';
 import { LiveMap } from './LiveMap';
@@ -6,6 +7,7 @@ import { RustPairing } from './RustPairing';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import {
   Radio,
+  Timer,
   Power,
   Shield,
   Users,
@@ -162,6 +164,7 @@ export function LivePage() {
             ['Enheter', Power],
             ['Team', Users],
             ['Lägen', Layers],
+            ['Timers', Timer],
             ['Inställningar', Settings],
           ].map(([name, Icon]) => (
             <button
@@ -237,6 +240,7 @@ export function LivePage() {
                 <Plus size={14} /> Hantera servrar
               </button>
             </section>
+            {tab === 'Timers' && <LiveTimers data={data} offline={offline} />}
             {tab === 'Karta' && <LiveMap data={data} offline={offline} />}
             {tab === 'Översikt' && (
               <>

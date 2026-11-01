@@ -394,3 +394,93 @@ test('chattbehörigheter sparas per server och tvåvägschatt är ett uttrycklig
   await expect(page.getByRole('alert').filter({ hasText: 'Message Content Intent' })).toBeVisible();
   expect(calls.find((c) => c.path.endsWith('/relay'))?.body.enabled).toBe(true);
 });
+
+test('timers skapas, räknar ned, överlever omladdning och visar kanalvis historik', async ({
+  page,
+}) => {
+  const state = initial(),
+    base = Date.now();
+  state.timers = [];
+  await page.clock.install({ time: new Date(base) });
+  let count = 0;
+  await page.route('**/api/live/**', async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (route.request().method() === 'POST') {
+      const body = route.request().postDataJSON();
+      if (path === '/api/live/timers') {
+        if (body.duration === '9s') {
+          await route.fulfill({
+            status: 400,
+            json: { error: 'Timern måste vara mellan 10 sekunder och 7 dagar.' },
+          });
+          return;
+        }
+        const shortId = (++count).toString().padStart(8, '0');
+        const t = {
+          id: 'timer-' + count,
+          shortId,
+          profileId: 'p1',
+          name: body.name,
+          creatorId: state.profiles[0].playerId,
+          creatorName: 'Webbpanelen',
+          createdAt: base,
+          dueAt: base + 10000,
+          state: 'active' as const,
+          finishedAt: null,
+          rust: 'pending' as const,
+          discord: 'pending' as const,
+        };
+        state.timers!.push(t);
+        await route.fulfill({ json: t });
+        return;
+      }
+      if (path === '/api/live/timers/cancel') {
+        const t = state.timers!.find((t) => t.id === body.id)!;
+        t.state = 'cancelled';
+        t.finishedAt = base + 3000;
+        t.rust = 'missed';
+        t.discord = 'missed';
+        await route.fulfill({ json: t });
+        return;
+      }
+      await route.fulfill({ json: { ok: true } });
+    } else await route.fulfill({ json: state });
+  });
+  const open = async () => {
+    await page.getByRole('button', { name: 'Live', exact: true }).click();
+    await page.getByRole('button', { name: 'Timers', exact: true }).click();
+  };
+  await page.goto('/');
+  await open();
+  await page.getByLabel('Timernamn', { exact: true }).fill('Oil Rig');
+  await page.getByLabel('Tid', { exact: true }).fill('9s');
+  await page.getByRole('button', { name: 'Skapa timer' }).click();
+  await expect(page.getByRole('alert')).toContainText('10 sekunder');
+  await page.getByLabel('Tid', { exact: true }).fill('10s');
+  await page.getByRole('button', { name: 'Skapa timer' }).click();
+  await expect(page.locator('.timer-card').filter({ hasText: 'Oil Rig' })).toContainText('10 s');
+  await page.reload();
+  await open();
+  await expect(page.locator('.timer-card').filter({ hasText: 'Oil Rig' })).toBeVisible();
+  await page.clock.fastForward(3000);
+  await expect(page.locator('.timer-countdown')).toHaveText('7 s');
+  await page.getByRole('button', { name: 'Avbryt timer 00000001' }).click();
+  await expect(page.getByRole('region', { name: 'Timerhistorik' })).toContainText('AVBRUTEN');
+  await page.getByLabel('Timernamn', { exact: true }).fill('Andra påminnelsen');
+  await page.getByRole('button', { name: 'Skapa timer' }).click();
+  await page.clock.fastForward(8000);
+  await expect(page.locator('.timer-countdown')).toHaveText('Väntar på tjänsten…');
+  const t = state.timers![1];
+  t.state = 'expired';
+  t.finishedAt = base + 10000;
+  t.rust = 'sent';
+  t.discord = 'missed';
+  await page.reload();
+  await open();
+  const completed = page.locator('.timer-card').filter({ hasText: 'Andra påminnelsen' });
+  await expect(completed).toContainText('Rust: Bekräftat');
+  await expect(completed).toContainText('Discord: Missat');
+  await page.getByRole('button', { name: 'Inställningar', exact: true }).click();
+  await page.getByText('Alla teamkommandon', { exact: true }).click();
+  await expect(page.locator('.live-command-list')).toContainText('!timer add');
+});

@@ -1,8 +1,21 @@
 export const teamCommands = [
   {
+    name: 'timer',
+    syntax: '!timer add <tid> <namn> / !timer cancel <ID>',
+    description:
+      'Skapa 10s–7d engångstimer eller avbryt din egen. Exempel: !timer add 15m Oil Rig.',
+    group: 'timers',
+  },
+  {
+    name: 'timers',
+    syntax: '!timers [sida]',
+    description: 'Lista aktiva timers, fem per sida. !timer utan argument visar samma lista.',
+    group: 'timers',
+  },
+  {
     name: 'help',
     syntax: '!help [kommando/grupp]',
-    description: 'Visa hjälp. Grupper: server, team, styrning.',
+    description: 'Visa hjälp. Grupper: server, team, timers, styrning.',
     group: 'server',
   },
   { name: 'time', syntax: '!time', description: 'Visa aktuell speltid.', group: 'server' },

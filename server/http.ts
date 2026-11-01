@@ -114,6 +114,12 @@ export function createLiveHttp(
           return;
         }
         switch (path) {
+          case '/api/live/timers':
+            result = service.timers.create(b);
+            break;
+          case '/api/live/timers/cancel':
+            result = service.timers.cancel(text(b.id));
+            break;
           case '/api/live/controls':
             service.setControlUsers(text(b.id), b.steamIds);
             break;

@@ -1,5 +1,14 @@
 # Ändringslogg
 
+## 0.11.0 — 2026-11-01
+
+- Namngivna engångstimrar genom !timer add, !timer cancel och !timers samt ny Live → Timers-vy.
+- SQLite-migrering till version 2 med separat timertabell, atomiska tillståndsbyten och högst 100 avslutade timers per profil. Sparade parningar och övrig data bevaras.
+- Oberoende Rust-/Discord-aviseringar med begränsade köer, beständiga sändningsförsök och kanalvis resultat. Ingen återspelning efter avbrott/omstart.
+- Ägarbehörigheter, 10s–7d, max 20 aktiva per profil och skydd mot utskick till fel server. Framtida timers fortsätter över omstart och wipe.
+- Automatiska tester för migration, dubbla schedulers, kvoter, avbrott, API-skydd och browserflöden. Verkliga spel-/Discord-aviseringar återstår att användarverifiera.
+
+
 ## 0.10.0 — 2026-11-01
 
 - Nya teamkommandon: !wipe, !death, !online, !offline, !alive, !steamid, !prox och !uptime. !where utan namn visar avsändarens position.

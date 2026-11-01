@@ -1,3 +1,4 @@
+import type { TimerTransport } from './timer-engine.ts';
 import { plainText, TextQueue } from './chat.ts';
 import {
   discordSetupPreview,
@@ -112,6 +113,7 @@ export class DiscordBot {
     private makeClient = (intents: number[]) =>
       new Client({ intents, rest: { timeout: 8000, retries: 0 } }),
   ) {
+    service.timers.discord = () => this.prepareTimerNotification();
     service.on('teamChat', this.teamChat);
     service.on('sessionLost', this.clearChat);
     service.on('alarm', this.alarm);
@@ -155,6 +157,7 @@ export class DiscordBot {
     client.on('shardDisconnect', (event) => {
       this.clearChat();
       if (gen !== this.generation) return;
+      this.service.timers.dropDiscord();
       if (event.code === 4014 && wantsRelay) {
         deniedIntent = true;
         if (loggedIn) void this.start(discoverOnly, true).catch(() => {});
@@ -347,6 +350,60 @@ export class DiscordBot {
     this.service.changed();
     await this.start();
   }
+  prepareTimerNotification(): TimerTransport | null {
+    const client = this.client,
+      gen = this.generation,
+      epoch = this.service.profileEpoch,
+      config = this.service.config.discord,
+      profileId = this.service.config.activeProfileId;
+    const id = config.channels?.events,
+      guildId = config.guildId;
+    if (
+      !client?.isReady() ||
+      !config.enabled ||
+      !profileId ||
+      !config.categoryId ||
+      !id ||
+      !managedAccessValid(config)
+    )
+      return null;
+    const valid = () =>
+      gen === this.generation &&
+      client.isReady() &&
+      epoch === this.service.profileEpoch &&
+      profileId === this.service.config.activeProfileId &&
+      !!this.service.config.discord.enabled &&
+      this.service.config.discord.channels?.events === id &&
+      managedAccessValid(this.service.config.discord);
+    return {
+      valid,
+      send: async (timer) => {
+        if (!valid()) return false;
+        const channel = await client.channels.fetch(id);
+        if (!valid()) return false;
+        insist(
+          channel && 'guildId' in channel && channel.guildId === guildId && channel.isSendable(),
+          'Ogiltig timerkanal.',
+        );
+        const name = this.service.config.profiles.find((p) => p.id === profileId)?.name || 'Rust';
+        await channel.send({
+          content: plainText(
+            'Timer klar: ' +
+              timer.name +
+              ' (' +
+              timer.shortId +
+              ') · ' +
+              name +
+              ' · ' +
+              timer.creatorName,
+            300,
+          ),
+          allowedMentions: { parse: [] },
+        });
+        return true;
+      },
+    };
+  }
   private setupBusy = false;
   get isSettingUp() {
     return this.setupBusy;
@@ -522,6 +579,7 @@ export class DiscordBot {
     this.service.db.save(this.service.config);
   }
   async stop() {
+    this.service.timers.dropDiscord();
     this.relayReady = false;
     this.clearChat();
     this.generation++;
@@ -536,6 +594,8 @@ export class DiscordBot {
     this.status('Avstängd');
   }
   async close() {
+    this.service.timers.dropDiscord();
+    this.service.timers.discord = undefined;
     this.relayReady = false;
     this.clearChat();
     this.service.off('teamChat', this.teamChat);

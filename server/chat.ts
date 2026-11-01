@@ -53,6 +53,11 @@ export async function commandReply(service: LiveService, message: ChatMessage, g
       'Spelaren finns inte i teamet.',
     );
   }
+  if (command === 'timer' || command === 'timers')
+    return service.timers.command(command, arg, {
+      steamId: message.steamId,
+      name: service.team.find((m) => m.steamId === message.steamId)!.name,
+    });
   if (readCommands.has(command)) return readReply(service, message, command, arg);
   switch (command) {
     case 'time':

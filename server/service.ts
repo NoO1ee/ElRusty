@@ -1,3 +1,4 @@
+import { TimerEngine } from './timer-engine.ts';
 import { nextLastDeath, type LastDeath, type TeamMapNote } from '../shared/team-map.ts';
 import { commandReply, isKnownCommand, plainText, publicChatError, TextQueue } from './chat.ts';
 import type { LiveWorld } from './world.ts';
@@ -15,6 +16,8 @@ export function formatTime(hour: number): string {
 }
 export class LiveService extends EventEmitter {
   config: Config;
+  readonly timers: TimerEngine;
+  profileEpoch = 0;
   world?: LiveWorld;
   pairing: PairingStatus = {
     status: 'idle',
@@ -57,11 +60,13 @@ export class LiveService extends EventEmitter {
     super();
     this.config = db.load();
     this.serviceStartedAt = this.now();
+    this.timers = new TimerEngine(this, this.now);
   }
   snapshot(): LiveSnapshot {
     const { discord, profiles, activeProfileId } = this.config;
     return structuredClone({
       world: this.world?.snapshot(),
+      ...this.timers.snapshot(),
       mapNotes: this.mapNotes,
       lastDeath: this.lastDeath,
       pairing: this.pairing,
@@ -125,6 +130,7 @@ export class LiveService extends EventEmitter {
   }
   deleteProfile(id: string) {
     if (id === this.config.activeProfileId) this.disconnect();
+    this.db.timers.deleteProfile(id);
     this.config.profiles = this.config.profiles.filter((p) => p.id !== id);
     for (const key of Object.keys(this.config.deathLocations || {}))
       if (key.startsWith(id + ':')) delete this.config.deathLocations![key];
@@ -140,6 +146,7 @@ export class LiveService extends EventEmitter {
     };
   }
   private stop() {
+    this.profileEpoch++;
     this.connectedAt = null;
     this.generation++;
     this.relayQueue.clear();
@@ -613,6 +620,7 @@ export class LiveService extends EventEmitter {
   }
   close() {
     this.stop();
+    this.timers.close();
     this.removeAllListeners();
   }
 }

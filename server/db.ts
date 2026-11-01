@@ -1,3 +1,4 @@
+import { TimerStore } from './timer-store.ts';
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync, chmodSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -22,6 +23,7 @@ const empty = (): Config => ({
 });
 export class LiveDB {
   sql: DatabaseSync;
+  timers: TimerStore;
   constructor(path: string) {
     if (path !== ':memory:') {
       mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
@@ -30,8 +32,9 @@ export class LiveDB {
     this.sql = new DatabaseSync(path);
     if (path !== ':memory:') chmodSync(path, 0o600);
     this.sql.exec(
-      'PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS config (id INTEGER PRIMARY KEY CHECK(id=1), json TEXT NOT NULL); CREATE TABLE IF NOT EXISTS activity (id TEXT PRIMARY KEY, at INTEGER NOT NULL, json TEXT NOT NULL); PRAGMA user_version=1;',
+      'PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS config (id INTEGER PRIMARY KEY CHECK(id=1), json TEXT NOT NULL); CREATE TABLE IF NOT EXISTS activity (id TEXT PRIMARY KEY, at INTEGER NOT NULL, json TEXT NOT NULL);',
     );
+    this.timers = new TimerStore(this.sql);
   }
   load(): Config {
     const row = this.sql.prepare('SELECT json FROM config WHERE id=1').get() as

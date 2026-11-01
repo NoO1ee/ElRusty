@@ -30,8 +30,13 @@ export function helpReply(query: string) {
   if (!key)
     return (
       teamCommands.map((c) => '!' + c.name).join(' · ') +
-      ' · Hjälp: !help <kommando> eller !help server/team/styrning'
+      ' · Hjälp: !help <kommando> eller !help server/team/timers/styrning'
     );
+  if (key === 'timers')
+    return teamCommands
+      .filter((c) => c.group === 'timers')
+      .map((c) => c.syntax)
+      .join(' · ');
   const command = teamCommands.find((c) => c.name === key);
   if (command) return command.syntax + ' — ' + command.description;
   const group = teamCommands.filter((c) => c.group === key);

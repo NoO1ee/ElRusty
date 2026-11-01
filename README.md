@@ -31,6 +31,8 @@ GitHub Actions kör typkontroll, tester, produktionsbygge och Chromium-scenarier
 
 **Guidad Rust+-parning:** öppna Live → Inställningar och välj Registrera Rust+, sedan Vänta på server. Godkänn den mottagna servern i vyn. Manuell inmatning finns hopfälld längst ner.
 
+Version 0.11 lägger till namngivna engångstimrar: !timer add 15m Oil Rig, !timer cancel <ID> och !timers [sida]. Skapa och följ dem även i Live → Timers. Sluttider sparas lokalt; Rust och privata Discord-kanalen #events aviseras när de är tillgängliga. Missade aviseringar återspelas inte.
+
 Version 0.10 lägger till !wipe, !death, !online, !offline, !alive, !steamid, !prox och !uptime samt detaljhjälp via !help <kommando/grupp>. Alla kommandon finns i Live-inställningarna.
 
 Version 0.9 innehåller livekarta med valbara lager, global anslutningsprick, guidad privat Discord-kanalsetup och valbar tvåvägschatt. Teamkommandon: !help, !time, !pop, !where, !events, !switch, !group, !mode och serverbekräftat !makeleader. Styrning kräver tillåtet SteamID; chattkopplingen kräver Message Content Intent.

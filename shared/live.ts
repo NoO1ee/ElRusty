@@ -1,3 +1,4 @@
+import type { LiveTimer } from './timers';
 import type { TeamMapNote, LastDeath } from './team-map';
 import type { WorldSnapshot } from './world';
 export type DeviceType = 'switch' | 'alarm' | 'storage';
@@ -67,6 +68,8 @@ export interface DiscordConfig {
   roleIds: string[];
 }
 export interface LiveSnapshot {
+  timers?: LiveTimer[];
+  timerError?: string;
   mapNotes?: TeamMapNote[];
   lastDeath?: LastDeath | null;
   world?: WorldSnapshot;
