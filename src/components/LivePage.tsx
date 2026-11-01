@@ -436,6 +436,15 @@ export function LivePage() {
                           >
                             <Pencil size={14} />
                           </button>
+                          <button
+                            className="subtle icon-button"
+                            disabled={disabled || pending}
+                            aria-label={'Ta bort ' + d.name + ' från ElRusty'}
+                            title="Ta bort från ElRusty"
+                            onClick={() => void act('device/delete', { id: d.id })}
+                          >
+                            <Trash2 size={15} />
+                          </button>
                         </div>
                         <div className="live-device-status">
                           <span className={fresh ? 'success' : ''}>
@@ -475,12 +484,6 @@ export function LivePage() {
                           <summary>Enhetsuppgifter</summary>
                           <p>Entity-ID: {d.entityId}</p>
                           <p className="live-id">ElRusty-ID: {d.id}</p>
-                          <button
-                            disabled={disabled || pending}
-                            onClick={() => void act('device/delete', { id: d.id })}
-                          >
-                            <Trash2 size={13} /> Ta bort från ElRusty
-                          </button>
                         </details>
                       </article>
                     );

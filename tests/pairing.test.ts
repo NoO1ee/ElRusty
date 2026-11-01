@@ -403,6 +403,7 @@ it('typkonflikt och avbrott under verifiering lämnar inga sparade enheter', asy
   const pending = manager.acceptDevice(candidate.id);
   const check = expect(pending).rejects.toThrow();
   await expect(manager.acceptDevice(candidate.id)).rejects.toThrow('redan');
+  expect(() => manager.dismissDevice(candidate.id)).toThrow('verifiering');
   service.disconnect();
   finish({ type: 'alarm', value: false });
   await check;
@@ -422,4 +423,30 @@ it('servergodkännande stoppar inte automatisk enhetsmottagning och behåller lo
   });
   expect(service.pairing.running).toBe(true);
   expect(children[0].send).not.toHaveBeenCalled();
+});
+
+it('X avvisar endast förslaget för vald profil och tillåter en ny parning', async () => {
+  const { manager, service, db, children, adapter } = setup(true);
+  const id = service.saveProfile({ ...incoming, playerToken: 1 });
+  service.connect(id);
+  await flushPairing();
+  manager.enable();
+  children[0].emit('message', { type: 'device', device: deviceNotice });
+  const candidate = service.pairing.devices![0];
+  service.config.activeProfileId = null;
+  expect(() => manager.dismissDevice(candidate.id)).toThrow('vald profil');
+  service.config.activeProfileId = id;
+  service.connection = 'reconnecting';
+  const config = structuredClone(service.config),
+    save = vi.spyOn(db, 'save');
+  manager.dismissDevice(candidate.id);
+  expect(service.pairing.devices).toEqual([]);
+  expect(service.pairing.running).toBe(true);
+  expect(service.config).toEqual(config);
+  expect(save).not.toHaveBeenCalled();
+  expect(adapter.entity).not.toHaveBeenCalled();
+  expect(children[0].send).not.toHaveBeenCalled();
+  children[0].emit('message', { type: 'device', device: deviceNotice });
+  expect(service.pairing.devices).toHaveLength(1);
+  expect(service.pairing.devices![0].id).not.toBe(candidate.id);
 });

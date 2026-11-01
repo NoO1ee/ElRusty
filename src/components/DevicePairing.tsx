@@ -1,3 +1,4 @@
+import { X } from 'lucide-react';
 import type { PairingStatus } from '../../shared/live';
 export function DevicePairing({
   status,
@@ -48,6 +49,15 @@ export function DevicePairing({
               onClick={() => void act('pairing/device/accept', { id: d.id })}
             >
               Lägg till
+            </button>
+            <button
+              className="subtle icon-button"
+              disabled={disabled}
+              aria-label={'Avvisa ' + d.name}
+              title="Avvisa förslag"
+              onClick={() => void act('pairing/device/dismiss', { id: d.id })}
+            >
+              <X size={16} />
             </button>
           </article>
         ))}

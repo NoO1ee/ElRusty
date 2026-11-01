@@ -1,5 +1,10 @@
 # Ändringslogg
 
+## 0.13.1 — 2026-11-01
+
+- Synlig papperskorg på sparade enhetskort för borttagning från ElRusty. Enheten i spelet påverkas inte.
+- X på enhetsförslag avvisar förslaget utan att spara enheten eller stoppa mottagningen. Avvisning kräver vald profil och CSRF-skydd.
+
 ## 0.13.0 — 2026-11-01
 
 - Automatisk bakgrundsmottagning av Rust+-server- och enhetsparningar när tjänsten startar med sparad registrering. Ingen tiominutersgräns i bakgrundsläget; oväntat processavbrott försöks igen med ökande väntetid.

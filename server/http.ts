@@ -164,6 +164,10 @@ export function createLiveHttp(
             insist(options.pairing, 'Parning är inte tillgänglig.');
             await options.pairing.cancel();
             break;
+          case '/api/live/pairing/device/dismiss':
+            insist(options.pairing, 'Parning är inte tillgänglig.');
+            options.pairing.dismissDevice(text(b.id));
+            break;
           case '/api/live/pairing/device/accept':
             insist(options.pairing, 'Parning är inte tillgänglig.');
             result = await options.pairing.acceptDevice(text(b.id));

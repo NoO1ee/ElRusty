@@ -242,3 +242,7 @@ Högst 20 enhetsförslag och 20 serverförslag finns i minnet. De förfaller eft
 På egen server med administratörsbehörighet kan entity.debug_lookat i F1 aktivera debugvisning för objektet du tittar på. Nätverks-ID/Entity-ID är inte samma sak som ett item-ID eller prefabnamn. Automatisk parning är det normala arbetsflödet på servrar där du saknar admin. Källor: [Facepunchs adminkommando](https://rust.facepunch.com/news/devblog-65) och [Rust+-notisernas fält](https://github.com/liamcottle/rustplus.js/blob/master/docs/API.md).
 
 Automatiska tester täcker start, paus, processavbrott, förfall, dubbletter, fel profil, typkonflikt, avbrott under verifiering, maskerade notiser, CSRF och webbläsarflödet. Verklig kontroll: para en ny Smart Switch medan tjänsten körs, kontrollera namn/ID i Enheter, välj Lägg till och prova individuell styrning. Upprepa efter tjänsteomstart och med stängd webbläsare.
+
+### Ta bort eller avvisa 0.13.1
+
+Papperskorgen bredvid namnet på ett sparat enhetskort tar bort enheten från ElRusty, inklusive dess referenser i sparade lägen. Det skickar inget kommando till switchen och tar inte bort objektet i Rust. X vid ett enhetsförslag avvisar bara förslaget. Mottagningen fortsätter, och en ny parning kan skapa ett nytt förslag. Avvisning fungerar även när Rust+ återansluter, förutsatt att lokal tjänst och vald profil finns. Pågående verifiering måste slutföras innan förslaget kan avvisas. POST /api/live/pairing/device/dismiss tar förslagets id och använder befintligt CSRF-skydd.

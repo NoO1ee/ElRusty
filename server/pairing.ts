@@ -269,6 +269,16 @@ export class PairingManager {
     this.devices.set(candidate.id, candidate);
     this.publish({ message: 'Enhetsparning mottagen. Öppna Live → Enheter och välj Lägg till.' });
   }
+  dismissDevice(id: string) {
+    const candidate = this.devices.get(id);
+    insist(
+      candidate && candidate.profileId === this.service.config.activeProfileId,
+      'Förslaget finns inte på vald profil.',
+    );
+    insist(!this.accepting.has(id), 'Vänta tills enhetens verifiering är klar.');
+    this.devices.delete(id);
+    this.publish({ message: 'Enhetsförslaget avvisades. Mottagningen fortsätter.' });
+  }
   async acceptDevice(id: string) {
     const d = this.devices.get(id);
     insist(d && d.expiresAt > Date.now(), 'Enhetsförslaget har gått ut. Para enheten igen.');

@@ -550,10 +550,32 @@ test('enhetsförslag visar namn och Entity-ID och sparas först vid Lägg till',
       },
     ],
   };
+  state.pairing.devices!.push({
+    id: 'dismiss',
+    profileId: 'p1',
+    entityId: 999,
+    entityType: 1,
+    name: 'Oönskad',
+    expiresAt: Date.now() + 60000,
+  });
+  const calls: string[] = [];
   let accepted: any;
   await page.route('**/api/live/**', async (route) => {
     if (route.request().method() === 'POST') {
-      accepted = route.request().postDataJSON();
+      const path = new URL(route.request().url()).pathname;
+      calls.push(path);
+      const body = route.request().postDataJSON();
+      if (path.endsWith('/dismiss')) {
+        state.pairing!.devices = state.pairing!.devices!.filter((d) => d.id !== body.id);
+        await route.fulfill({ json: { ok: true } });
+        return;
+      }
+      if (path.endsWith('/delete')) {
+        state.devices = state.devices.filter((d) => d.id !== body.id);
+        await route.fulfill({ json: { ok: true } });
+        return;
+      }
+      accepted = body;
       state.pairing!.devices = state.pairing!.devices!.filter((d) => d.id !== accepted.id);
       state.devices.push({
         id: 'new',
@@ -576,8 +598,19 @@ test('enhetsförslag visar namn och Entity-ID och sparas först vid Lägg till',
   await expect(region).toContainText('Entity-ID: 456');
   await expect(region).not.toContainText('Other server');
   expect(accepted).toBeUndefined();
+  await region.getByRole('button', { name: 'Avvisa Oönskad', exact: true }).click();
+  await expect(region).not.toContainText('Oönskad');
+  expect(accepted).toBeUndefined();
   await region.getByRole('button', { name: 'Lägg till', exact: true }).click();
   expect(accepted).toEqual({ id: 'proposal' });
   await expect(region.getByRole('button', { name: 'Lägg till', exact: true })).toHaveCount(0);
-  await expect(page.locator('.live-device').filter({ hasText: 'Garage' })).toBeVisible();
+  const card = page.locator('.live-device').filter({ hasText: 'Garage' });
+  await expect(card).toBeVisible();
+  await card.getByRole('button', { name: 'Ta bort Garage från ElRusty', exact: true }).click();
+  await expect(card).toHaveCount(0);
+  expect(calls).toEqual([
+    '/api/live/pairing/device/dismiss',
+    '/api/live/pairing/device/accept',
+    '/api/live/device/delete',
+  ]);
 });

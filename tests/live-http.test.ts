@@ -153,9 +153,12 @@ it('parningsknappar kräver CSRF innan ett jobb startas', async () => {
     cancel,
     accept,
     acceptDevice: accept,
+    dismissDevice: cancel,
   } as unknown as PairingManager);
   expect((await call('pairing/register', 'POST', {})).status).toBe(403);
   expect((await call('pairing/device/accept', 'POST', { id: 'device' })).status).toBe(403);
+  expect((await call('pairing/device/dismiss', 'POST', { id: 'dismiss' })).status).toBe(403);
+  expect(cancel).not.toHaveBeenCalled();
   expect(accept).not.toHaveBeenCalled();
   expect(start).not.toHaveBeenCalled();
   const { data } = await call('state');
@@ -172,6 +175,10 @@ it('parningsknappar kräver CSRF innan ett jobb startas', async () => {
   expect(accept).toHaveBeenCalledWith('candidate');
   expect((await call('pairing/device/accept', 'POST', { id: 'device' }, headers)).status).toBe(200);
   expect(accept).toHaveBeenCalledWith('device');
+  expect((await call('pairing/device/dismiss', 'POST', { id: 'dismiss' }, headers)).status).toBe(
+    200,
+  );
+  expect(cancel).toHaveBeenCalledWith('dismiss');
 });
 
 it('timer-API kräver CSRF, validerar och ignorerar falsk skapare/profil från klienten', async () => {
