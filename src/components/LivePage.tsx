@@ -34,6 +34,7 @@ const clock = (n: number | null) =>
 const emptyProfile = {
   name: '',
   host: '',
+  connectionHost: '',
   port: 28082,
   playerId: '',
   playerToken: '',
@@ -110,7 +111,7 @@ export function LivePage() {
   const switches = data?.devices.filter((d) => d.type === 'switch') || [],
     groups = [...new Set(switches.map((d) => d.group).filter(Boolean))];
   function editProfile(p: Profile) {
-    setProfile({ ...p, playerToken: '' });
+    setProfile({ ...p, connectionHost: p.connectionHost || '', playerToken: '' });
     setEditingProfile(p.id);
     setManualOpen(true);
     setTab('Inställningar');
@@ -650,7 +651,8 @@ export function LivePage() {
                         <div>
                           <strong>{p.name}</strong>
                           <small>
-                            {p.host}:{p.port}
+                            {p.connectionHost || p.host}:{p.port}
+                            {p.connectionHost && ` · Parningsadress: ${p.host}`}
                           </small>
                         </div>
                         <button
@@ -840,6 +842,20 @@ export function LivePage() {
                           />
                         </Field>
                       </div>
+                      <Field label="Anslutningsadress (valfri)">
+                        <input
+                          value={profile.connectionHost}
+                          placeholder="Till exempel 127.0.0.1"
+                          onChange={(e) =>
+                            setProfile({ ...profile, connectionHost: e.target.value })
+                          }
+                          aria-describedby="connection-host-help"
+                        />
+                        <small id="connection-host-help">
+                          För lokal anslutning eller LAN. Lämna tomt för parningsadressen. Bevaras
+                          vid omparning; kräver avstängd Facepunch-proxy.
+                        </small>
+                      </Field>
                       <Field label="SteamID64">
                         <input
                           required
@@ -904,7 +920,7 @@ export function LivePage() {
                       <button
                         onClick={() => {
                           try {
-                            setProfile(parsePairing(pairing));
+                            setProfile({ ...parsePairing(pairing), connectionHost: '' });
                             setEditingProfile(undefined);
                             setPairing('');
                             setError('');

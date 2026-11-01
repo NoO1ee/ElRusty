@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
-  '@liamcottle/rustplus.js@2.5.0': d17ead0b2986d04c3cc89cfd694f0d64e50364d359151d06432ffa53c8c640a2
+  '@liamcottle/rustplus.js@2.5.0': b0736026d29753cbad5bad8c2a4de57bd152383a13ecefeeab16f3325767ce73
 
 importers:
 
@@ -19,7 +19,7 @@ importers:
         version: 5.3.0
       '@liamcottle/rustplus.js':
         specifier: 2.5.0
-        version: 2.5.0(patch_hash=d17ead0b2986d04c3cc89cfd694f0d64e50364d359151d06432ffa53c8c640a2)(debug@4.4.3(supports-color@5.5.0))(supports-color@5.5.0)
+        version: 2.5.0(patch_hash=b0736026d29753cbad5bad8c2a4de57bd152383a13ecefeeab16f3325767ce73)(debug@4.4.3(supports-color@5.5.0))(supports-color@5.5.0)
       '@xyflow/react':
         specifier: ^12.10.0
         version: 12.12.0(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -2836,7 +2836,7 @@ snapshots:
       - debug
       - supports-color
 
-  '@liamcottle/rustplus.js@2.5.0(patch_hash=d17ead0b2986d04c3cc89cfd694f0d64e50364d359151d06432ffa53c8c640a2)(debug@4.4.3(supports-color@5.5.0))(supports-color@5.5.0)':
+  '@liamcottle/rustplus.js@2.5.0(patch_hash=b0736026d29753cbad5bad8c2a4de57bd152383a13ecefeeab16f3325767ce73)(debug@4.4.3(supports-color@5.5.0))(supports-color@5.5.0)':
     dependencies:
       '@liamcottle/push-receiver': 0.0.3(debug@4.4.3(supports-color@5.5.0))(supports-color@5.5.0)
       axios: 1.21.0(debug@4.4.3(supports-color@5.5.0))(supports-color@5.5.0)

@@ -364,3 +364,14 @@ it('upprepade protokollfel efter serverinfo ökar retry-väntan tills anslutning
   await vi.advanceTimersByTimeAsync(1000);
   expect(adapters).toHaveLength(5);
 });
+
+it('validerar, bevarar och tar bort separat anslutningsadress', () => {
+  const saved = profile({ ...input, host: '203.0.113.1', connectionHost: '127.0.0.1' });
+  expect(saved).toMatchObject({ host: '203.0.113.1', connectionHost: '127.0.0.1' });
+  expect(profile({ ...input, playerToken: '' }, saved).connectionHost).toBe('127.0.0.1');
+  expect(profile({ ...input, connectionHost: '' }, saved)).not.toHaveProperty('connectionHost');
+  expect(() => profile({ ...input, connectionHost: 'http://invalid/path' })).toThrow(
+    'anslutningsadress',
+  );
+  expect(() => profile({ ...input, connectionHost: '127.0.0.1', useProxy: true })).toThrow('proxy');
+});

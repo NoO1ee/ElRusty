@@ -42,7 +42,7 @@ function setup(registered = false, desktop = true) {
     });
   const manager = new PairingManager(service, dir, spawn, desktop);
   resources.push({ manager, service, db, dir });
-  return { manager, service, dir, spawn, children };
+  return { manager, service, db, dir, spawn, children };
 }
 afterEach(async () => {
   for (const { manager, service, db, dir } of resources.splice(0)) {
@@ -158,4 +158,54 @@ it('läser FCM appData och ignorerar larm eller bristfälliga serverparningar', 
   });
   expect(serverNotification({ appData: [{ key: 'body', value: '{"type":"alarm"}' }] })).toBeNull();
   expect(serverNotification({ body: 'not json' })).toBeNull();
+});
+
+it('omparning bevarar lokal anslutningsadress, profil-ID och befintlig data', async () => {
+  const { manager, service, db, children } = setup(true);
+  const id = service.saveProfile({
+    ...incoming,
+    host: '203.0.113.1',
+    playerToken: 100,
+    connectionHost: '127.0.0.1',
+  });
+  service.config.profiles[0].controlSteamIds = ['76561198000000001'];
+  service.config.devices.push({
+    id: 'device',
+    profileId: id,
+    name: 'Light',
+    entityId: 1,
+    group: '',
+    type: 'switch',
+  });
+  service.config.modes.push({
+    id: 'mode',
+    profileId: id,
+    name: 'Night',
+    values: [{ deviceId: 'device', value: true }],
+  });
+  const timer = db.timers.create({
+    profileId: id,
+    name: 'Reminder',
+    creatorId: incoming.playerId,
+    creatorName: 'Owner',
+    createdAt: Date.now(),
+    dueAt: Date.now() + 60000,
+  });
+  service.connect = vi.fn();
+  manager.start('listen');
+  children[0].emit('message', { type: 'candidate', server: { ...incoming, host: '203.0.113.1' } });
+  await manager.accept(service.snapshot().pairing!.candidates[0].id);
+  expect(service.config.profiles).toHaveLength(1);
+  expect(service.config.profiles[0]).toMatchObject({
+    id,
+    host: '203.0.113.1',
+    connectionHost: '127.0.0.1',
+    playerToken: 123456,
+    controlSteamIds: ['76561198000000001'],
+  });
+  expect(db.load().profiles[0].connectionHost).toBe('127.0.0.1');
+  expect(service.config.devices[0].profileId).toBe(id);
+  expect(service.config.modes[0].profileId).toBe(id);
+  expect(db.timers.get(id, timer.id)?.state).toBe('active');
+  expect(service.connect).toHaveBeenCalledWith(id);
 });

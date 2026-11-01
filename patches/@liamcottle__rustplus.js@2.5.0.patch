@@ -69,6 +69,17 @@ index d89386502022a2c429f2391ff74711ff4a82364a..8252ef5591f0e146b2c925114b3b717c
  	optional uint32 seed = 10;
  	optional uint32 salt = 11;
  	optional string logoImage = 12;
+@@ -241,8 +241,8 @@ message AppInfo {
+ message AppTime {
+ 	required float dayLengthMinutes = 1;
+-	required float timeScale = 2;
++	optional float timeScale = 2;
+ 	required float sunrise = 3;
+ 	required float sunset = 4;
+-	required float time = 5;
++	optional float time = 5;
+ }
+ 
 @@ -281,7 +281,7 @@ message AppEntityPayload {
  }
  

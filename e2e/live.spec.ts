@@ -485,3 +485,37 @@ test('timers skapas, räknar ned, överlever omladdning och visar kanalvis histo
   await page.getByText('Alla teamkommandon', { exact: true }).click();
   await expect(page.locator('.live-command-list')).toContainText('!timer add');
 });
+
+test('lokal anslutningsadress sparas separat från parningsadressen', async ({ page }) => {
+  const state = initial();
+  state.profiles[0].host = '203.0.113.1';
+  let saved: any;
+  await page.route('**/api/live/**', async (route) => {
+    if (route.request().method() === 'POST') {
+      saved = route.request().postDataJSON();
+      state.profiles[0] = { ...state.profiles[0], connectionHost: saved.connectionHost };
+      await route.fulfill({ json: { id: 'p1' } });
+    } else await route.fulfill({ json: state });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Live', exact: true }).click();
+  await page.getByRole('button', { name: 'Inställningar', exact: true }).click();
+  await page.getByRole('button', { name: 'Redigera server Vanilla · EU', exact: true }).click();
+  await page.getByLabel('Anslutningsadress (valfri)', { exact: true }).fill('127.0.0.1');
+  await page.getByRole('button', { name: 'Spara server', exact: true }).click();
+  expect(saved).toMatchObject({
+    id: 'p1',
+    host: '203.0.113.1',
+    connectionHost: '127.0.0.1',
+    playerToken: '',
+  });
+  await expect(page.locator('.live-profile')).toContainText('127.0.0.1:28082');
+  await expect(page.locator('.live-profile')).toContainText('Parningsadress: 203.0.113.1');
+  await page.reload();
+  await page.getByRole('button', { name: 'Live', exact: true }).click();
+  await page.getByRole('button', { name: 'Inställningar', exact: true }).click();
+  await page.getByRole('button', { name: 'Redigera server Vanilla · EU', exact: true }).click();
+  await expect(page.getByLabel('Anslutningsadress (valfri)', { exact: true })).toHaveValue(
+    '127.0.0.1',
+  );
+});

@@ -202,3 +202,11 @@ När ElRusty och RustDedicated körs på samma dator kan ElRusty-profilen använ
 För extern åtkomst ska app.info visa rätt publik adress och TCP-port, portvidarebefordran gå till serverdatorn och brandväggen tillåta porten. Testa med Rust+-appen över mobildata; ett misslyckat test mot den egna publika adressen från hemnätet bevisar inte att extern åtkomst är trasig. Ingen automatisk ändring av router eller brandvägg görs. Befintlig profil kan behålla sitt ID och sin parning när anslutningsadressen ändras.
 
 Referenser: [Facepunchs Rust+-serverguide](https://wiki.facepunch.com/rust/rust-companion-server) och [proto3-definitionens AppInfo](https://github.com/olijeffers0n/rustplus/blob/master/rustplus.proto).
+
+## Fryst tid och beständig lokal adress 0.11.2
+
+AppTime.timeScale (float, fält 2) kan utelämnas vid fryst tid, vilket observerades på byggservern. AppTime.time (float, fält 5) kan utelämnas vid midnatt. Patchen gör dessa valfria enligt proto3-semantik: nollvärdet accepteras utan att tappa anslutningen. Övriga obligatoriska tidsfält och skydd mot trasiga meddelanden behålls.
+
+Under Live → Inställningar, redigera serverprofilen och ange **Anslutningsadress (valfri)**, exempelvis 127.0.0.1 på samma dator eller serverns LAN-adress på en Pi. Fältet sparas separat som connectionHost; host förblir adressen från parningen. Ny parning med samma host, port och Steam-konto uppdaterar därmed samma profil och behåller connectionHost. Tom anslutningsadress återgår till parningsadressen. En separat anslutningsadress kräver att Facepunch-proxy är avstängd.
+
+Ingen publik adress i Rust-serverns app.info ändras. **Vänta på server** är knappen som börjar ta emot parningsförslag i ElRusty; den är inte samma sak som **Anslut** på den sparade profilen.

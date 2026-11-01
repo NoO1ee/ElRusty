@@ -27,6 +27,22 @@ export function profile(value: unknown, previous?: PrivateProfile): PrivateProfi
     isIP(host) || /^(?=.{1,253}$)[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/i.test(host),
     'Ogiltig serveradress.',
   );
+  const rawConnectionHost =
+    b.connectionHost === undefined ? previous?.connectionHost : b.connectionHost;
+  const connectionHost =
+    rawConnectionHost === undefined || rawConnectionHost === ''
+      ? undefined
+      : text(rawConnectionHost, 253);
+  insist(
+    !connectionHost ||
+      isIP(connectionHost) ||
+      /^(?=.{1,253}$)[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/i.test(connectionHost),
+    'Ogiltig anslutningsadress.',
+  );
+  insist(
+    !connectionHost || b.useProxy !== true,
+    'Anslutningsadress kan inte kombineras med Facepunch-proxy.',
+  );
   insist(/^\d{17}$/.test(playerId), 'Ange SteamID64 som 17 siffror.');
   insist(
     Number.isInteger(b.port) && Number(b.port) > 0 && Number(b.port) <= 65535,
@@ -44,6 +60,7 @@ export function profile(value: unknown, previous?: PrivateProfile): PrivateProfi
     id: previous?.id || crypto.randomUUID(),
     name: text(b.name),
     host,
+    ...(connectionHost ? { connectionHost } : {}),
     port: Number(b.port),
     playerId,
     playerToken: Number(token),

@@ -7,6 +7,7 @@ export interface Profile {
   id: string;
   name: string;
   host: string;
+  connectionHost?: string;
   port: number;
   playerId: string;
   useProxy: boolean;

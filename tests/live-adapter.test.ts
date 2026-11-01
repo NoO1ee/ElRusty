@@ -21,6 +21,7 @@ async function setup(
   omitQueuedPlayers = false,
   omitNoteType = false,
   counts: { players?: number; maxPlayers?: number } = { players: 1, maxPlayers: 100 },
+  clock: { timeScale?: number; time?: number } = { timeScale: 1, time: 18.7 },
 ) {
   const schema = await protobuf.load(
     join(dirname(require.resolve('@liamcottle/rustplus.js')), 'rustplus.proto'),
@@ -68,7 +69,7 @@ async function setup(
           ],
         };
       if (request.getTime)
-        response.time = { dayLengthMinutes: 60, timeScale: 1, sunrise: 8, sunset: 18, time: 18.7 };
+        response.time = { dayLengthMinutes: 60, sunrise: 8, sunset: 18, ...clock };
       if (request.getEntityInfo) response.entityInfo = { type: 1, payload: { value: true } };
       if (request.setEntityValue || request.sendTeamMessage || request.promoteToLeader)
         response.success = {};
@@ -79,7 +80,8 @@ async function setup(
   const client = new RustConnection({
     id: 'test',
     name: 'test',
-    host: '127.0.0.1',
+    host: '192.0.2.1',
+    connectionHost: '127.0.0.1',
     port,
     playerId: '76561198000000000',
     playerToken: 123,
@@ -190,6 +192,25 @@ it.each([
   expect(info).not.toHaveProperty('queuedPlayers');
   expect((await client.team())[0].name).toBe('Owner');
   expect(await client.time()).toBeCloseTo(18.7);
+});
+
+it.each([
+  { clock: { time: 12 }, expected: 12, label: 'fryst tid utan timeScale' },
+  { clock: { timeScale: 1 }, expected: 0, label: 'midnatt utan time' },
+  { clock: {}, expected: 0, label: 'fryst midnatt' },
+  { clock: { timeScale: 0, time: 0 }, expected: 0, label: 'explicita nollvärden' },
+])('accepterar $label utan att tappa anslutningen', async ({ clock, expected }) => {
+  const { client, schema } = await setup(false, false, undefined, clock);
+  const lost = vi.fn();
+  client.on('lost', lost);
+  const fields = schema.lookupType('rustplus.AppTime').fields;
+  expect(fields.timeScale).toMatchObject({ id: 2, type: 'float', required: false });
+  expect(fields.time).toMatchObject({ id: 5, type: 'float', required: false });
+  expect(fields.sunrise.required).toBe(true);
+  expect(await client.time()).toBe(expected);
+  await client.info();
+  expect((await client.team())[0].name).toBe('Owner');
+  expect(lost).not.toHaveBeenCalled();
 });
 
 it('trasig protobuf avbryter väntande anrop och signalerar förlust en gång utan processkrasch', async () => {

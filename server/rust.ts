@@ -48,7 +48,7 @@ export class RustConnection extends EventEmitter implements RustAdapter {
     super();
     this.playerId = profile.playerId;
     this.client = new RustPlus(
-      profile.host,
+      profile.connectionHost || profile.host,
       profile.port,
       profile.playerId,
       profile.playerToken,

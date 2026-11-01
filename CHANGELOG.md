@@ -1,5 +1,11 @@
 # Ändringslogg
 
+## 0.11.2 — 2026-11-01
+
+- AppTime.timeScale och time är valfria float-fält med oförändrade nummer. Fryst tid och midnatt kan utelämna nollvärden utan protokollfel.
+- Separat valfri anslutningsadress för lokal/LAN-åtkomst. Parningsadressen behålls så ny parning uppdaterar samma profil utan att nollställa den lokala anslutningen.
+- Inställningen visas i profilredigeringen och bevarar profil-ID, enheter, lägen, behörigheter och timers vid omparning.
+
 ## 0.11.1 — 2026-11-01
 
 - Rust+-kompatibilitet för egna och tomma servrar: AppInfo.players och maxPlayers får utelämnas och normaliseras till noll, med oförändrade fältnummer och datatyper.
