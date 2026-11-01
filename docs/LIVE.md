@@ -145,3 +145,27 @@ Kartan har lager för **Waypoints** och **Senaste dödsplats**. Personliga mapNo
 Egen dödsnotering (typ 2) används i första hand. Saknas den används position från ett observerat dödsfall eller den föregående teamuppdateringen, märkt **ungefärlig**. En redan återspawnad spelares nuvarande position används aldrig som historisk dödsplats. Ingen historisk plats gissas vid första anslutning. Senaste observerade platsen sparas i den privata lokala konfigurationen, isolerad per profil och wipe. Den försvinner inte när du återspawnar. Ny server/wipe visar inte den gamla platsen.
 
 Källor för protokollfakta: [aktuell proto3-definition](https://github.com/olijeffers0n/rustplus/blob/master/rustplus.proto) och [SDK-fält för kartnoteringar](https://github.com/HandyS11/RustPlusApi/blob/develop/src/RustPlusApi/Protobuf/RustPlusContracts.proto). Funktionerna är självständigt implementerade. Läsande kontroll mot användarens server bekräftar en personlig waypoint; det exakta meddelandet vid nästa dödsfall återstår att verifiera på den riktiga servern. Regressionstester skickar utelämnade medlemsfält i både svar och dödsbroadcast och kontrollerar fortsatt anslutning.
+
+
+## Läskommandon 0.10
+
+Alla aktuella teammedlemmar får använda följande kommandon i Rusts teamchatt. Befintlig deduplicering, femsekundersspärr och avbrottsskydd gäller. Inga externa API-nycklar behövs. !team läggs inte till.
+
+| Kommando | Svar |
+| --- | --- |
+| !wipe | Tid sedan senaste wipe enligt ett nytt Rust+-serveranrop. Saknad, felaktig eller framtida tidsstämpel räknas inte om. |
+| !online / !offline | Namn och antal från senaste aktuella teamuppdatering. |
+| !alive [namn/SteamID] | Överlevnadstid; utan namn visas den längst levande medlemmen med giltig spawn-tid. Offline men levande medlemmar kan ingå. |
+| !steamid [namn] | Teammedlemmens SteamID64; utan namn avsändarens. |
+| !prox | Avstånd i kartplanet till högst tre närmaste levande teammedlemmar online. Okända positioner hoppas över. |
+| !death [namn/SteamID] | Senaste sparade dödsplats, med kartruta och eventuell tid/ungefärlig märkning. Dödsplatser lagras för parade kontot; annan medlem får tydligt besked om att plats saknas. Utan namn avses avsändaren. |
+| !uptime | ElRusty-tjänstens livstid och den aktuella Rust+-anslutningens livstid. Anslutningstiden börjar om efter återanslutning. |
+| !where [namn/SteamID] | Kartruta för avsändaren eller vald medlem. |
+
+!help visar katalogen. !help server, !help team och !help styrning visar grupper. !help prox och motsvarande ger detaljer. Katalogen finns också i Live → Inställningar → Kommandon och behörigheter → Alla teamkommandon. Namn med mellanslag fungerar; ett tvetydigt namn kräver SteamID.
+
+### Varför Cargo/Oil Rig inte ingår här
+
+Facepunch tog bort event- och vending-maskiners kartmarkörer från Rust+ den 6 augusti 2026 i [Power Trip](https://rust.facepunch.com/news/power-trip). Rust++-listorna beskriver därför funktioner som inte kan återskapas automatiskt på en vanlig aktuell vanilla-server med enbart Rust+. !events visar fortfarande eventmarkörer om en server faktiskt skickar dem; ett tomt svar bevisar aldrig att inget event pågår. På vanilla kan dessa data saknas helt. ElRusty räknar inte fram påhittade Cargo-/Oil Rig-timers från frånvaro av markörer.
+
+Användaren valde andra fungerande kommandon först. Manuella teamrapporter och deras eventkommandon är uppskjutna, liksom BattleMetrics, timerhantering, marknadsdata och övriga Rust++-funktioner. Referensens [kommandolista](https://rustplusplus-credentials.netlify.app/docs/commands) används för funktionernas syfte; implementation och hjälptexter är skrivna självständigt.

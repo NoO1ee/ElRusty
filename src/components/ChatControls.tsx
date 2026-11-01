@@ -1,3 +1,4 @@
+import { teamCommands } from '../../shared/commands';
 import { useEffect, useState } from 'react';
 import type { LiveSnapshot } from '../../shared/live';
 import { liveAction } from '../live-store';
@@ -16,8 +17,8 @@ export function ChatControls({ data }: { data: LiveSnapshot }) {
       <div className="eyebrow">RUST TEAMCHATT</div>
       <h2>Kommandon och behörigheter</h2>
       <p>
-        Alla i teamet kan använda !time, !help, !pop, !where och !events. Styrning kräver det parade
-        kontot eller ett tillåtet SteamID för vald server.
+        Alla i teamet kan använda läskommandona. Skriv !help för listan eller !help team för
+        teamkommandon. Styrning kräver det parade kontot eller ett tillåtet SteamID för vald server.
       </p>
       <label className="live-field">
         <span>Server för chattbehörigheter</span>
@@ -60,6 +61,17 @@ export function ChatControls({ data }: { data: LiveSnapshot }) {
         <br />
         <code>!makeleader</code>
       </p>
+      <details className="live-command-help">
+        <summary>Alla teamkommandon</summary>
+        <div className="live-command-list">
+          {teamCommands.map((c) => (
+            <div key={c.name}>
+              <code>{c.syntax}</code>
+              <span>{c.description}</span>
+            </div>
+          ))}
+        </div>
+      </details>
       <small>
         Namn med mellanslag fungerar. Använd ID vid namnkonflikt. !makeleader ger avsändaren
         ledarskapet när det parade kontot är nuvarande ledare; serverns svar kontrolleras innan

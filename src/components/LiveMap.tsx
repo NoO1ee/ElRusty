@@ -413,6 +413,7 @@ export function LiveMap({ data, offline }: { data: LiveSnapshot; offline: boolea
                   }
                 </label>
               ))}
+              <small>Vanilla-Rust+ skickar inte längre event- eller butiksmarkörer.</small>
             </div>
           )}
         </div>

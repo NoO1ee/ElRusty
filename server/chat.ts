@@ -1,3 +1,5 @@
+import { readCommands, readReply, helpReply } from './read-commands.ts';
+import { teamCommands } from '../shared/commands.ts';
 import type { LiveService } from './service.ts';
 import type { ChatMessage } from './rust.ts';
 import { eventNames, gridLocation } from '../shared/world.ts';
@@ -24,17 +26,7 @@ export function unique<T extends { id: string; name: string }>(items: T[], query
   insist(matches.length === 1, 'Ange ett unikt namn eller ID.');
   return matches[0];
 }
-const known = new Set([
-  'time',
-  'help',
-  'pop',
-  'where',
-  'events',
-  'switch',
-  'group',
-  'mode',
-  'makeleader',
-]);
+const known = new Set<string>(teamCommands.map((c) => c.name));
 export function commandName(text: string) {
   return /^!(\w+)(?:\s|$)/.exec(text.trim().toLowerCase())?.[1] || '';
 }
@@ -61,6 +53,7 @@ export async function commandReply(service: LiveService, message: ChatMessage, g
       'Spelaren finns inte i teamet.',
     );
   }
+  if (readCommands.has(command)) return readReply(service, message, command, arg);
   switch (command) {
     case 'time':
       try {
@@ -69,7 +62,7 @@ export async function commandReply(service: LiveService, message: ChatMessage, g
         return 'Kunde inte hämta speltiden.';
       }
     case 'help':
-      return '!help · !time · !pop · !where <namn> · !events · !switch <namn/ID> on/off · !group <namn> on/off · !mode <namn/ID> · !makeleader';
+      return helpReply(arg);
     case 'pop': {
       const info = await service.world?.refreshInfo();
       insist(info, 'Serverinformation saknas.');
@@ -78,7 +71,7 @@ export async function commandReply(service: LiveService, message: ChatMessage, g
     case 'where': {
       const member = unique(
         service.team.map((m) => ({ ...m, id: m.steamId })),
-        arg,
+        arg || message.steamId,
       );
       const size = service.world?.snapshot().info?.mapSize;
       insist(size && member.x !== undefined && member.y !== undefined, 'Position saknas.');
@@ -91,7 +84,8 @@ export async function commandReply(service: LiveService, message: ChatMessage, g
         world.markers
           .filter((m) => eventNames[m.type])
           .map((m) => `${eventNames[m.type]} ${gridLocation(m.x, m.y, world.info!.mapSize)}`)
-          .join(' · ') || 'Inga eventmarkörer synliga.'
+          .join(' · ') ||
+        'Inga eventdata från Rust+. Det säger inte om event pågår; vanilla skickar inte längre sådana markörer.'
       );
     }
     case 'makeleader':

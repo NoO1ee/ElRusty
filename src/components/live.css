@@ -938,3 +938,28 @@
     display: none;
   }
 }
+
+.live-command-help {
+  margin: 18px 0;
+}
+.live-command-help summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: #d5dce5;
+}
+.live-command-list {
+  display: grid;
+  gap: 12px;
+  margin: 14px 0;
+}
+.live-command-list > div {
+  display: grid;
+  gap: 5px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.live-command-list span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}

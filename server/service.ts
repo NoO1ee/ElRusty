@@ -33,6 +33,8 @@ export class LiveService extends EventEmitter {
   mapNotes: TeamMapNote[] = [];
   lastDeath: LastDeath | null = null;
   private deathKey = '';
+  private serviceStartedAt: number;
+  private connectedAt: number | null = null;
   discordStatus = 'Avstängd';
   relayError = '';
   private relayQueue = new TextQueue();
@@ -54,6 +56,7 @@ export class LiveService extends EventEmitter {
   ) {
     super();
     this.config = db.load();
+    this.serviceStartedAt = this.now();
   }
   snapshot(): LiveSnapshot {
     const { discord, profiles, activeProfileId } = this.config;
@@ -129,7 +132,15 @@ export class LiveService extends EventEmitter {
     this.config.modes = this.config.modes.filter((m) => m.profileId !== id);
     this.save();
   }
+  timing() {
+    return {
+      now: this.now(),
+      serviceStartedAt: this.serviceStartedAt,
+      connectedAt: this.connectedAt,
+    };
+  }
   private stop() {
+    this.connectedAt = null;
     this.generation++;
     this.relayQueue.clear();
     this.emit('sessionLost');
@@ -203,6 +214,7 @@ export class LiveService extends EventEmitter {
       this.pending.clear();
       this.verified.clear();
       this.timeBusy = false;
+      this.connectedAt = null;
       this.connection = 'reconnecting';
       this.connectionError =
         reason === 'protocol'
@@ -243,6 +255,7 @@ export class LiveService extends EventEmitter {
       const information = await adapter.info();
       if (gen !== this.generation) return;
       this.connection = 'connected';
+      this.connectedAt = this.now();
       this.deathKey =
         p.id +
         ':' +

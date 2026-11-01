@@ -1,5 +1,13 @@
 # Ändringslogg
 
+## 0.10.0 — 2026-11-01
+
+- Nya teamkommandon: !wipe, !death, !online, !offline, !alive, !steamid, !prox och !uptime. !where utan namn visar avsändarens position.
+- Gemensam kommandokatalog i webbpanelen och !help, med grupp-/detaljhjälp. Oförändrade styrbehörigheter och ingen ny !team.
+- Saknad/felaktig tid eller position ger tydliga svar. !death använder endast sparad dödsplats för parade kontot.
+- Förtydligat att vanilla-Rust+ inte längre skickar event-/butiksmarkörer efter Power Trip (2026-08-06). Automatiska Cargo-/Oil Rig-kommandon ingår inte; manuella teamrapporter skjuts upp enligt användarens val.
+
+
 ## 0.9.2 — 2026-11-01
 
 - Accepterar utelämnade standardvärden i teammedlemmars tillstånd (inklusive isAlive=false vid död) och behåller okända positioner som okända.

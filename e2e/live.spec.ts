@@ -377,6 +377,11 @@ test('chattbehörigheter sparas per server och tvåvägschatt är ett uttrycklig
   await page.goto('/');
   await page.getByRole('button', { name: 'Live', exact: true }).click();
   await page.getByRole('button', { name: 'Inställningar', exact: true }).click();
+  await page.getByText('Alla teamkommandon', { exact: true }).click();
+  await expect(page.locator('.live-command-list')).toContainText('!wipe');
+  await expect(page.locator('.live-command-list')).toContainText('!prox');
+  await expect(page.locator('.live-command-list')).toContainText('!alive');
+  await expect(page.locator('.live-command-list')).not.toContainText('!team');
   await page.getByLabel('Tillåtna SteamID:n för styrkommandon').fill('76561198000000001');
   await page.getByRole('button', { name: 'Spara chattbehörigheter' }).click();
   await expect(page.getByText('Chattbehörigheterna är sparade.')).toBeVisible();
