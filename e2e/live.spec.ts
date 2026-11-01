@@ -87,7 +87,10 @@ test('Live styr en bekräftad switch, visar team och kör ett sparat läge', asy
   await card.getByRole('button', { name: 'På', exact: true }).click();
   await expect(card.getByText('● På / aktiv')).toBeVisible();
   await expect(page.getByLabel('Kommandoresultat')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Team', exact: true }).click();
+  await page
+    .getByRole('navigation', { name: 'Live-menyer' })
+    .getByRole('button', { name: 'Team', exact: true })
+    .click();
   await expect(page.getByText('Spelare', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Lägen', exact: true }).click();
   await page.getByRole('button', { name: 'Aktivera', exact: true }).click();
@@ -742,7 +745,10 @@ test('lagchatt visar historik och sändningsstatus samt spärrar sändning efter
   expect(sent.text).toBe('Hej från webben');
   await expect(page.getByRole('log')).toContainText('[Webb] Hej från webben');
   await expect(page.getByRole('log')).toContainText('Skickat');
-  await page.getByRole('button', { name: 'Team', exact: true }).click();
+  await page
+    .getByRole('navigation', { name: 'Live-menyer' })
+    .getByRole('button', { name: 'Team', exact: true })
+    .click();
   await expect(page.getByText(/Teamledare/)).toBeVisible();
   await expect(page.getByText('Observerad tid denna wipe: 2 h 0 min')).toBeVisible();
   await page.getByRole('button', { name: 'Översikt', exact: true }).click();
