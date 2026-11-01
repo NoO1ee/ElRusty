@@ -1,5 +1,11 @@
 # Ändringslogg
 
+## 0.11.1 — 2026-11-01
+
+- Rust+-kompatibilitet för egna och tomma servrar: AppInfo.players och maxPlayers får utelämnas och normaliseras till noll, med oförändrade fältnummer och datatyper.
+- Regressionstester för utelämnade, nollställda och positiva spelarantal samt fortsatta team-/tidsanrop. Befintligt skydd mot trasiga protokollmeddelanden behålls.
+- Dokumenterad lokal Rust+-anslutning när ElRusty och Rust-servern körs på samma dator, utan ändring av serverns publika mobilåtkomst.
+
 ## 0.11.0 — 2026-11-01
 
 - Namngivna engångstimrar genom !timer add, !timer cancel och !timers samt ny Live → Timers-vy.

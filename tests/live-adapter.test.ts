@@ -17,7 +17,11 @@ afterEach(async () => {
     await new Promise<void>((r) => s.close(() => r()));
   }
 });
-async function setup(omitQueuedPlayers = false, omitNoteType = false) {
+async function setup(
+  omitQueuedPlayers = false,
+  omitNoteType = false,
+  counts: { players?: number; maxPlayers?: number } = { players: 1, maxPlayers: 100 },
+) {
   const schema = await protobuf.load(
     join(dirname(require.resolve('@liamcottle/rustplus.js')), 'rustplus.proto'),
   );
@@ -43,8 +47,7 @@ async function setup(omitQueuedPlayers = false, omitNoteType = false) {
           map: 'Procedural',
           mapSize: 3500,
           wipeTime: 0,
-          players: 1,
-          maxPlayers: 100,
+          ...counts,
           ...(omitQueuedPlayers ? {} : { queuedPlayers: 0 }),
         };
       if (request.getTeamInfo)
@@ -151,11 +154,44 @@ it('accepterar serversvar utan queuedPlayers och fortsätter med team och tid', 
   expect(fields.queuedPlayers.type).toBe('uint32');
   expect(fields.queuedPlayers.required).toBe(false);
   expect(fields.name.required).toBe(true);
-  expect(fields.players.required).toBe(true);
+  expect(fields.players.required).toBe(false);
   await expect(client.info()).resolves.toMatchObject({ name: 'Local Rust fixture' });
   expect((await client.team())[0].name).toBe('Owner');
   expect(await client.time()).toBeCloseTo(18.7);
 });
+it.each([
+  { counts: { players: 1 }, expected: { players: 1, maxPlayers: 0 }, label: 'utan maxPlayers' },
+  { counts: { maxPlayers: 100 }, expected: { players: 0, maxPlayers: 100 }, label: 'utan players' },
+  { counts: {}, expected: { players: 0, maxPlayers: 0 }, label: 'utan båda spelarantal' },
+  {
+    counts: { players: 0, maxPlayers: 0 },
+    expected: { players: 0, maxPlayers: 0 },
+    label: 'med explicita nollor',
+  },
+  {
+    counts: { players: 17, maxPlayers: 350 },
+    expected: { players: 17, maxPlayers: 350 },
+    label: 'med positiva antal',
+  },
+])('läser serverinfo $label och fortsätter med team och tid', async ({ counts, expected }) => {
+  const { client, schema } = await setup(true, false, counts);
+  const fields = schema.lookupType('rustplus.AppInfo').fields;
+  for (const [name, id] of [
+    ['players', 7],
+    ['maxPlayers', 8],
+  ] as const) {
+    expect(fields[name].id).toBe(id);
+    expect(fields[name].type).toBe('uint32');
+    expect(fields[name].required).toBe(false);
+  }
+  expect(fields.mapSize.required).toBe(true);
+  const info = await client.info();
+  expect(info).toMatchObject(expected);
+  expect(info).not.toHaveProperty('queuedPlayers');
+  expect((await client.team())[0].name).toBe('Owner');
+  expect(await client.time()).toBeCloseTo(18.7);
+});
+
 it('trasig protobuf avbryter väntande anrop och signalerar förlust en gång utan processkrasch', async () => {
   const { client, server } = await setup();
   const lost = vi.fn();

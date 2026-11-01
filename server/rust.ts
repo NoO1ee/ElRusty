@@ -166,8 +166,8 @@ export class RustConnection extends EventEmitter implements RustAdapter {
       mapSize: Number(i.mapSize),
       wipeTime: Number(i.wipeTime),
       seed: Object.hasOwn(i, 'seed') ? Number(i.seed) : undefined,
-      players: Number(i.players),
-      maxPlayers: Number(i.maxPlayers),
+      players: Number(i.players ?? 0),
+      maxPlayers: Number(i.maxPlayers ?? 0),
       ...(Object.hasOwn(i, 'queuedPlayers') ? { queuedPlayers: Number(i.queuedPlayers) } : {}),
     } satisfies ServerInfo;
   }

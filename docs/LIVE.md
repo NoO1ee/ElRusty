@@ -94,7 +94,7 @@ BattleMetrics, scheman, automation, publika teamkonton och direkta kopplingar fr
 
 ### Protokollkompatibilitet i 0.6.4
 
-En versionshanterad pnpm-patch för rustplus.js 2.5.0 gör AppInfo.queuedPlayers valfritt (samma uint32 och fältnummer 9). Detta motsvarar observerade servermeddelanden där köfältet utelämnas. Övriga obligatoriska fält behålls. Patchen fångar avkodnings- och protokolladdningsfel och rapporterar endast ELRUSTY_PROTOCOL, utan rådata. Adaptern stänger berörd anslutning och avbryter väntande anrop; Live visar ett protokollfel och försöker återansluta utan att återspela gamla kommandon.
+En versionshanterad pnpm-patch för rustplus.js 2.5.0 gör AppInfo.queuedPlayers valfritt (samma uint32 och fältnummer 9). Detta motsvarar observerade servermeddelanden där köfältet utelämnas. I 0.11.1 utökas patchen även för spelarantal, se nedan. Övriga obligatoriska fält behålls. Patchen fångar avkodnings- och protokolladdningsfel och rapporterar endast ELRUSTY_PROTOCOL, utan rådata. Adaptern stänger berörd anslutning och avbryter väntande anrop; Live visar ett protokollfel och försöker återansluta utan att återspela gamla kommandon.
 
 Patchen i patches/ och dess hash i pnpm-lock.yaml måste följa med vid installation och Pi-flytt. Kör pnpm install --frozen-lockfile efter uppdatering. Inga profiler eller registreringar behöver raderas eller paras om.
 
@@ -192,3 +192,13 @@ Varje kanal har en separat kö med högst 20 meddelanden inklusive pågående s�
 Sändningsförsök registreras beständigt före nätanrop. Bekräftat betyder att servern/API:t godkänt sändningen, inte att någon läst den. Missat betyder att sändning inte genomfördes. Obekräftat används vid timeout, transportfel eller avbrutet pågående försök; meddelandet kan ha hunnit skickas och försöks därför inte igen. Mentions neutraliseras, text längdbegränsas och råa fel/payloads sparas inte i historiken.
 
 Automatiska tester täcker tidstolkning, migration, kvoter, behörigheter, köer, två schedulerinstanser, omstart, serverbyte, wipe, kanalåtkomst och webbflöden. Verklig slutkontroll: skapa en 10s-timer från ditt Rust-konto, en från webben och en från en lagkamrat; kontrollera Rust och #events, avbryt en timer och prova omstart/avbrott. Återkommande timers, Discord-kommandon för timeradministration, automatisk enhetsstyrning och manuella eventrapporter ingår inte.
+
+## Egna servrar och spelarantal 0.11.1
+
+AppInfo.players (uint32, fält 7) och maxPlayers (uint32, fält 8) är valfria i samma versionshanterade pnpm-patch. Proto3-servrar kan utelämna nollvärden, exempelvis maxPlayers på en byggserver med server.maxplayers 0 och players på en tom server. Utelämnade spelarantal normaliseras till noll; noll tolkas inte som ett påhittat positivt maxantal. queuedPlayers förblir valfritt och visas endast om servern skickar det. Protokollfelhantering och övriga obligatoriska fält behålls.
+
+När ElRusty och RustDedicated körs på samma dator kan ElRusty-profilen använda 127.0.0.1, serverns app.port och avstängd Facepunch-proxy. Rust-serverns app.publicip fortsätter annonsera den publika adressen för Rust+-mobilappen. Detta undviker beroende av routerns NAT loopback för den lokala anslutningen. På en Raspberry Pi eller annan dator på samma nät används Rust-serverdatorns LAN-adress i ElRusty. Använd inte loopback på Pi för en server som körs på Windows.
+
+För extern åtkomst ska app.info visa rätt publik adress och TCP-port, portvidarebefordran gå till serverdatorn och brandväggen tillåta porten. Testa med Rust+-appen över mobildata; ett misslyckat test mot den egna publika adressen från hemnätet bevisar inte att extern åtkomst är trasig. Ingen automatisk ändring av router eller brandvägg görs. Befintlig profil kan behålla sitt ID och sin parning när anslutningsadressen ändras.
+
+Referenser: [Facepunchs Rust+-serverguide](https://wiki.facepunch.com/rust/rust-companion-server) och [proto3-definitionens AppInfo](https://github.com/olijeffers0n/rustplus/blob/master/rustplus.proto).

@@ -57,11 +57,14 @@ diff --git a/rustplus.proto b/rustplus.proto
 index d89386502022a2c429f2391ff74711ff4a82364a..8252ef5591f0e146b2c925114b3b717cb9017a31 100644
 --- a/rustplus.proto
 +++ b/rustplus.proto
-@@ -229,7 +229,7 @@ message AppInfo {
+@@ -228,8 +228,8 @@ message AppInfo {
+ 	required uint32 mapSize = 5;
  	required uint32 wipeTime = 6;
- 	required uint32 players = 7;
- 	required uint32 maxPlayers = 8;
+-	required uint32 players = 7;
+-	required uint32 maxPlayers = 8;
 -	required uint32 queuedPlayers = 9;
++	optional uint32 players = 7;
++	optional uint32 maxPlayers = 8;
 +	optional uint32 queuedPlayers = 9;
  	optional uint32 seed = 10;
  	optional uint32 salt = 11;
