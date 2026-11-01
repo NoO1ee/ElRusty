@@ -25,8 +25,8 @@ export function DiscordSetup({ data }: { data: LiveSnapshot }) {
       <div className="eyebrow">GUIDAD SETUP</div>
       <h2>Skapa plats för teamet i Discord</h2>
       <p>
-        Spara din bottoken och tillåtna användare/roller i formuläret ovan. Bjud in boten till din
-        Discord-server och välj den här. Botens ID hämtas automatiskt.
+        Spara bottoken i Discord-fliken och välj användare/roller under Behörigheter och kommandon.
+        Bjud in boten till din Discord-server och välj den här. Botens ID hämtas automatiskt.
       </p>
       <button
         disabled={busy || !data.discord.hasToken}

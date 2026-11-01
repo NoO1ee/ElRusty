@@ -382,3 +382,38 @@ it('timeInfo läser hela serverns tidssnapshot och time behåller sitt talformat
   });
   expect(await client.time()).toBe(0);
 });
+
+it('läser chatthistorik genom getTeamChat utan att behandla den som nya broadcast', async () => {
+  const { client, server, Message } = await setup();
+  const received = vi.fn();
+  client.on('chat', received);
+  for (const socket of server.clients) {
+    socket.removeAllListeners('message');
+    socket.on('message', () =>
+      socket.send(
+        Message.encode(
+          Message.fromObject({
+            response: {
+              seq: 1,
+              teamChat: {
+                messages: [
+                  {
+                    steamId: '76561198000000000',
+                    name: 'Owner',
+                    message: '!time',
+                    color: '',
+                    time: 123,
+                  },
+                ],
+              },
+            },
+          }),
+        ).finish(),
+      ),
+    );
+  }
+  expect(await client.chatHistory()).toEqual([
+    { steamId: '76561198000000000', name: 'Owner', message: '!time', time: 123 },
+  ]);
+  expect(received).not.toHaveBeenCalled();
+});

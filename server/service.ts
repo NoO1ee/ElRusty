@@ -1,3 +1,5 @@
+import { TeamChat } from './team-chat.ts';
+import { TeamObservations } from './team-observations.ts';
 import { LiveClock } from './live-clock.ts';
 import { TimerEngine } from './timer-engine.ts';
 import { nextLastDeath, type LastDeath, type TeamMapNote } from '../shared/team-map.ts';
@@ -19,6 +21,8 @@ export class LiveService extends EventEmitter {
   config: Config;
   readonly timers: TimerEngine;
   readonly clock: LiveClock;
+  readonly chat: TeamChat;
+  readonly observations: TeamObservations;
   profileEpoch = 0;
   world?: LiveWorld;
   pairing: PairingStatus = {
@@ -65,6 +69,8 @@ export class LiveService extends EventEmitter {
     this.serviceStartedAt = this.now();
     this.timers = new TimerEngine(this, this.now);
     this.clock = new LiveClock(this);
+    this.chat = new TeamChat(this);
+    this.observations = new TeamObservations(this);
   }
   snapshot(): LiveSnapshot {
     const { discord, profiles, activeProfileId } = this.config;
@@ -82,7 +88,21 @@ export class LiveService extends EventEmitter {
       connectionAttempts: this.retries,
       retryExhausted: this.retryExhausted,
       connectionError: this.connectionError,
-      team: this.team,
+      teamChat: this.chat.snapshot(),
+      team: this.team.map((m) => {
+        const o = this.observations.snapshot(m.steamId);
+        return {
+          ...m,
+          ...(o
+            ? {
+                observedOnlineMs: o.onlineMs,
+                lastSeenOnlineAt: o.lastSeenOnlineAt,
+                lastDeathAt: o.lastDeathAt,
+                lastDeath: o.lastDeath,
+              }
+            : {}),
+        };
+      }),
       teamUpdatedAt: this.teamUpdatedAt,
       states: this.states,
       verified: [...this.verified],
@@ -110,7 +130,11 @@ export class LiveService extends EventEmitter {
     this.db.save(this.config);
     this.changed();
   }
-  log(kind: Activity['kind'], text: string) {
+  log(
+    kind: Activity['kind'],
+    text: string,
+    details: Pick<Activity, 'event' | 'steamId' | 'position'> = {},
+  ) {
     if (!this.config.activeProfileId) return;
     const entry = {
       id: crypto.randomUUID(),
@@ -118,6 +142,7 @@ export class LiveService extends EventEmitter {
       profileId: this.config.activeProfileId,
       kind,
       text,
+      ...details,
     };
     this.db.log(entry);
     this.emit('activity', entry);
@@ -137,6 +162,8 @@ export class LiveService extends EventEmitter {
   deleteProfile(id: string) {
     if (id === this.config.activeProfileId) this.disconnect();
     this.db.timers.deleteProfile(id);
+    this.chat.deleteProfile(id);
+    if (this.config.teamObservations) delete this.config.teamObservations[id];
     if (this.config.timeCalibrations) delete this.config.timeCalibrations[id];
     this.config.profiles = this.config.profiles.filter((p) => p.id !== id);
     for (const key of Object.keys(this.config.deathLocations || {}))
@@ -160,6 +187,7 @@ export class LiveService extends EventEmitter {
     this.emit('sessionLost');
     this.world?.stop();
     this.clock.stop();
+    this.observations.stop();
     clearTimeout(this.retry);
     clearTimeout(this.stable);
     clearInterval(this.poll);
@@ -227,6 +255,7 @@ export class LiveService extends EventEmitter {
       clearTimeout(this.stable);
       this.world?.stop();
       this.clock.stop();
+      this.observations.stop();
       adapter.close();
       this.adapter = null;
       clearInterval(this.poll);
@@ -292,8 +321,10 @@ export class LiveService extends EventEmitter {
       this.lastDeath = this.config.deathLocations[this.deathKey] || null;
       this.world?.connected(information);
       this.clock.start(p.id, this.deathKey);
+      this.observations.start(p.id, this.deathKey);
       this.log('info', `Ansluten till ${p.name}.`);
       await this.refreshTeam(gen);
+      if (gen === this.generation) this.chat.start(p.id, this.deathKey);
       for (const d of this.config.devices.filter((d) => d.profileId === p.id)) {
         try {
           const state = await adapter.entity(d.entityId);
@@ -333,6 +364,7 @@ export class LiveService extends EventEmitter {
     } catch {
       if (gen === this.generation) {
         this.teamUpdatedAt = null;
+        this.observations.interrupt();
         this.changed();
       }
     } finally {
@@ -348,6 +380,7 @@ export class LiveService extends EventEmitter {
       notes,
       this.now(),
     );
+    this.observations.observe(team, next);
     this.team = team;
     this.mapNotes = notes;
     if (next !== this.lastDeath && next && this.deathKey) {
@@ -588,6 +621,7 @@ export class LiveService extends EventEmitter {
       !Number.isFinite(message.time)
     )
       return;
+    this.chat.receive(message);
     if (/^\s*\[(ElRusty|Discord)\]/i.test(message.message)) return;
     const key = JSON.stringify([message.steamId, message.time, message.message]);
     if (this.seenChat.has(key)) return;
@@ -642,6 +676,7 @@ export class LiveService extends EventEmitter {
   close() {
     this.stop();
     this.timers.close();
+    this.chat.close();
     this.removeAllListeners();
   }
 }

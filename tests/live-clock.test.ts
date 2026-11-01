@@ -117,7 +117,7 @@ it('sparar endast slutförda faser och återställer kurvor efter omstart och wi
     time: (6 + performance.now() / 6000) % 24,
     dayLengthMinutes: 2.4,
   }));
-  const save = vi.spyOn(db, 'save');
+  const save = vi.spyOn(s.clock as any, 'persist');
   await s.clock.reply();
   save.mockClear();
   await vi.advanceTimersByTimeAsync(150000);

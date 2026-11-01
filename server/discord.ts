@@ -496,7 +496,8 @@ export class DiscordBot {
   private alarm = (event: Activity) => this.deliver('larm', event);
   private worldEvent = (event: Activity) => this.deliver('events', event);
   private activity = (event: Activity) => {
-    if (!event.text.startsWith('Discord-')) this.deliver('aktivitet', event);
+    if (event.kind !== 'team' && !event.text.startsWith('Discord-'))
+      this.deliver('aktivitet', event);
   };
   private statusTimer: ReturnType<typeof setTimeout> | undefined;
   private statusBusy = false;

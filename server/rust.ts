@@ -26,6 +26,7 @@ export interface RustAdapter extends EventEmitter {
   time(): Promise<number>;
   timeInfo(): Promise<RustTimeInfo>;
   chat(message: string): Promise<void>;
+  chatHistory?(): Promise<ChatMessage[]>;
 }
 export function normalizeEntity(raw: any): Entity {
   const types = { 1: 'switch', 2: 'alarm', 3: 'storage' } as const;
@@ -233,6 +234,17 @@ export class RustConnection extends EventEmitter implements RustAdapter {
   }
   async time() {
     return (await this.timeInfo()).time;
+  }
+  async chatHistory(): Promise<ChatMessage[]> {
+    const r = await this.request({ getTeamChat: {} });
+    return (r.teamChat?.messages || [])
+      .slice(-100)
+      .map((m: any) => ({
+        steamId: String(m.steamId),
+        name: String(m.name || 'Spelare'),
+        message: String(m.message || ''),
+        time: Number(m.time),
+      }));
   }
   async chat(message: string) {
     await this.request({ sendTeamMessage: { message } });

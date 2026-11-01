@@ -49,7 +49,15 @@ type Marker = {
   alive?: boolean;
   at: number | null;
 };
-export function LiveMap({ data, offline }: { data: LiveSnapshot; offline: boolean }) {
+export function LiveMap({
+  data,
+  offline,
+  focus,
+}: {
+  data: LiveSnapshot;
+  offline: boolean;
+  focus?: { id: string; x: number; y: number; name: string; at: number; approximate: boolean };
+}) {
   const world = data.world,
     map = world?.map;
   const [error, setError] = useState(''),
@@ -206,6 +214,25 @@ export function LiveMap({ data, offline }: { data: LiveSnapshot; offline: boolea
           : []),
       ]
     : [];
+  if (focus && map)
+    markers.push({
+      id: 'history-focus',
+      x: focus.x,
+      y: focus.y,
+      name: focus.name,
+      kind: 'death',
+      color: '#f05252',
+      type: 101,
+      at: focus.at,
+      approximate: focus.approximate,
+    });
+  useEffect(() => {
+    if (!focus || !map) return;
+    const p = imagePosition(focus.x, focus.y, map),
+      z = 3;
+    setView({ x: p.x - map.width / (2 * z), y: p.y - map.height / (2 * z), z });
+    setSelected('history-focus');
+  }, [focus?.id, map?.revision]);
   const chosen = markers.find((m) => m.id === selected);
   return (
     <section

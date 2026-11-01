@@ -26,7 +26,31 @@ export interface Mode {
   name: string;
   values: { deviceId: string; value: boolean }[];
 }
+export interface TeamObservation {
+  name: string;
+  onlineMs: number;
+  lastSeenOnlineAt?: number;
+  lastDeathAt?: number;
+  lastDeath?: LastDeath;
+}
+export interface SavedTeamObservations {
+  wipeKey: string;
+  members: Record<string, TeamObservation>;
+}
+export interface TeamChatLine {
+  id: string;
+  steamId: string;
+  name: string;
+  text: string;
+  at: number;
+  origin: 'web' | 'rust' | 'history';
+  status: 'pending' | 'sent' | 'received' | 'unconfirmed' | 'failed';
+}
 export interface Member {
+  observedOnlineMs?: number;
+  lastSeenOnlineAt?: number;
+  lastDeathAt?: number;
+  lastDeath?: LastDeath;
   deathTime?: number;
   spawnTime?: number;
   x?: number;
@@ -49,7 +73,10 @@ export interface Activity {
   id: string;
   at: number;
   profileId: string;
-  kind: 'alarm' | 'info' | 'error';
+  kind: 'alarm' | 'info' | 'error' | 'team';
+  event?: 'online' | 'offline' | 'death';
+  steamId?: string;
+  position?: { x: number; y: number; approximate: boolean };
   text: string;
 }
 export interface DiscordConfig {
@@ -69,6 +96,7 @@ export interface DiscordConfig {
   roleIds: string[];
 }
 export interface LiveSnapshot {
+  teamChat?: TeamChatLine[];
   connectionAttempts?: number;
   retryExhausted?: boolean;
   timers?: LiveTimer[];

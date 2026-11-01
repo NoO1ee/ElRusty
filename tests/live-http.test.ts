@@ -248,3 +248,15 @@ it('Discord-behörighets-API kräver CSRF och bevarar token, guild och aktiverad
     guildId: '123456789012345678',
   });
 });
+
+it('lagchatt kräver CSRF och avvisar utskick när Rust är frånkopplat', async () => {
+  const { s, call } = await setup();
+  const send = vi.spyOn(s.chat, 'send');
+  const payload = { clientId: 'browser-message', text: 'Hej' };
+  expect((await call('teamchat/send', 'POST', payload)).status).toBe(403);
+  expect(send).not.toHaveBeenCalled();
+  const { data } = await call('state');
+  expect(
+    (await call('teamchat/send', 'POST', payload, { 'X-ElRusty-CSRF': data.csrf })).status,
+  ).not.toBe(200);
+});

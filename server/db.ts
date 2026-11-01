@@ -7,6 +7,7 @@ export interface PrivateProfile extends Profile {
   playerToken: number;
 }
 export interface Config {
+  teamObservations?: Record<string, import('../shared/live.ts').SavedTeamObservations>;
   timeCalibrations?: Record<string, import('../shared/time.ts').SavedTimeCalibration>;
   deathLocations?: Record<string, import('../shared/team-map.ts').LastDeath>;
   profiles: PrivateProfile[];

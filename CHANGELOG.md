@@ -185,3 +185,9 @@ Fortsatta begränsningar: seriell smältkö, gemensam lagerbudget, tre crafter-r
 - Serverval och status i sidhuvudet, tre anslutningsförsök per omgång och manuell återstart.
 - Inställningsflikar för servrar, parning, Discord och separata Rust-/Discord-behörigheter.
 - Klickbara översiktskort, villkorad introduktion och tyst individuell switchstyrning.
+
+## 0.15.0 — 2026-11-01
+
+- Lagchatt på Översikt med serverhistorik, live-meddelanden, köad sändning och ekodeduplicering. Ingen chattext lagras på disk.
+- Teamledare, Steam-bilder och observerad online-/dödsinformation samt observerad onlinetid per wipe.
+- Strukturerade teamhändelser i webbens historik, med klickbara dödsplatser och tydlig osäkerhetsmarkering. Inga nya automatiska Discord-notiser.

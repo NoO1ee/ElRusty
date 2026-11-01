@@ -691,3 +691,61 @@ test('Discord-behörigheter visar rollnamn och förhandsvisar användare utan St
   await page.getByRole('button', { name: 'Spara Discord-behörigheter' }).click();
   expect(saved).toEqual({ userIds: ['123456789012345680'], roleIds: ['123456789012345679'] });
 });
+
+test('lagchatt visar historik och sändningsstatus samt spärrar sändning efter avbrott', async ({
+  page,
+}) => {
+  const state = initial();
+  state.teamChat = [
+    {
+      id: 'history',
+      steamId: state.team[0].steamId,
+      name: 'Spelare',
+      text: 'Hej från laget',
+      at: Date.now(),
+      origin: 'history',
+      status: 'received',
+    },
+  ];
+  state.team[0] = {
+    ...state.team[0],
+    isLeader: true,
+    observedOnlineMs: 7200000,
+    lastSeenOnlineAt: Date.now(),
+    lastDeathAt: Date.now() - 60000,
+  };
+  let sent: any;
+  await page.route('**/api/live/**', async (route) => {
+    if (route.request().method() === 'POST') {
+      const path = new URL(route.request().url()).pathname;
+      if (path.endsWith('/send')) {
+        sent = route.request().postDataJSON();
+        state.teamChat!.push({
+          id: sent.clientId,
+          steamId: state.team[0].steamId,
+          name: 'Spelare',
+          text: '[Webb] ' + sent.text,
+          at: Date.now(),
+          origin: 'web',
+          status: 'sent',
+        });
+      }
+      if (path.endsWith('/disconnect')) state.connection = 'disconnected';
+      await route.fulfill({ json: { ok: true } });
+    } else await route.fulfill({ json: state });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Live', exact: true }).click();
+  await expect(page.getByRole('log', { name: 'Lagmeddelanden' })).toContainText('Hej från laget');
+  await page.getByLabel('Meddelande till laget', { exact: true }).fill('Hej från webben');
+  await page.getByRole('button', { name: 'Skicka till laget' }).click();
+  expect(sent.text).toBe('Hej från webben');
+  await expect(page.getByRole('log')).toContainText('[Webb] Hej från webben');
+  await expect(page.getByRole('log')).toContainText('Skickat');
+  await page.getByRole('button', { name: 'Team', exact: true }).click();
+  await expect(page.getByText(/Teamledare/)).toBeVisible();
+  await expect(page.getByText('Observerad tid denna wipe: 2 h 0 min')).toBeVisible();
+  await page.getByRole('button', { name: 'Översikt', exact: true }).click();
+  await page.getByRole('button', { name: 'Koppla från', exact: true }).click();
+  await expect(page.getByLabel('Meddelande till laget', { exact: true })).toBeDisabled();
+});

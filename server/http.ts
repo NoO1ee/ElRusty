@@ -1,3 +1,4 @@
+import { Avatars } from './avatars.ts';
 import type { PairingManager } from './pairing.ts';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
@@ -23,6 +24,7 @@ export function createLiveHttp(
     >,
   options: { port: number; dist?: string; dev?: boolean; pairing?: PairingManager },
 ) {
+  const avatars = new Avatars();
   const csrf = randomBytes(32).toString('hex'),
     streams = new Set<ServerResponse>();
   const hosts = new Set([`127.0.0.1:${options.port}`, `localhost:${options.port}`]);
@@ -74,6 +76,25 @@ export function createLiveHttp(
       const url = new URL(req.url || '/', 'http://127.0.0.1'),
         path = url.pathname;
       if (path.startsWith('/api/live')) {
+        if (req.method === 'GET' && path.startsWith('/api/live/team/avatar/')) {
+          const steamId = path.slice('/api/live/team/avatar/'.length);
+          if (!/^\d{17}$/.test(steamId) || !service.team.some((m) => m.steamId === steamId)) {
+            json(res, 404, { error: 'Profilbild saknas.' });
+            return;
+          }
+          try {
+            const image = await avatars.get(steamId);
+            res.writeHead(200, {
+              'Content-Type': image.type,
+              'Cache-Control': 'private, max-age=86400',
+              'X-Content-Type-Options': 'nosniff',
+            });
+            res.end(image.bytes);
+          } catch {
+            json(res, 404, { error: 'Profilbild saknas.' });
+          }
+          return;
+        }
         if (req.method === 'GET' && path === '/api/live/map/image') {
           const bytes = service.world?.bytes(url.searchParams.get('revision') || '');
           if (!bytes) {
@@ -234,6 +255,9 @@ export function createLiveHttp(
             break;
           case '/api/live/mode/delete':
             service.deleteMode(text(b.id));
+            break;
+          case '/api/live/teamchat/send':
+            result = service.chat.send(b);
             break;
           case '/api/live/switch':
             insist(typeof b.value === 'boolean', 'Ange på eller av.');

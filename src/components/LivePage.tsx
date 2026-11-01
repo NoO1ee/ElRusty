@@ -1,3 +1,5 @@
+import { TeamChat } from './TeamChat';
+import { SteamAvatar } from './SteamAvatar';
 import { LiveTimers } from './LiveTimers';
 import { DiscordAccess } from './DiscordAccess';
 import { ChatControls } from './ChatControls';
@@ -51,6 +53,18 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 export function LivePage() {
+  const [mapFocus, setMapFocus] = useState<
+    | {
+        id: string;
+        profileId: string;
+        x: number;
+        y: number;
+        name: string;
+        at: number;
+        approximate: boolean;
+      }
+    | undefined
+  >();
   const [tab, setTab] = useState('Översikt'),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
@@ -280,7 +294,13 @@ export function LivePage() {
         {data && (
           <>
             {tab === 'Timers' && <LiveTimers data={data} offline={offline} />}
-            {tab === 'Karta' && <LiveMap data={data} offline={offline} />}
+            {tab === 'Karta' && (
+              <LiveMap
+                data={data}
+                offline={offline}
+                focus={mapFocus?.profileId === data.activeProfileId ? mapFocus : undefined}
+              />
+            )}
             {tab === 'Översikt' && (
               <>
                 <div className="live-stats">
@@ -330,6 +350,7 @@ export function LivePage() {
                   </button>
                 </div>
                 <div className="live-columns">
+                  {!!data.profiles.length && <TeamChat data={data} offline={offline} />}
                   {!data.profiles.length && (
                     <section className="live-panel">
                       <h2>Allt börjar med en anslutning</h2>
@@ -350,7 +371,7 @@ export function LivePage() {
                   <section className="live-panel" id="live-history">
                     <h2>Senaste händelser</h2>
                     <div className="live-actions">
-                      {['Alla', 'Larm'].map((f) => (
+                      {['Alla', 'Larm', 'Team'].map((f) => (
                         <button
                           key={f}
                           aria-pressed={activityFilter === f}
@@ -365,7 +386,11 @@ export function LivePage() {
                     ) : (
                       <ol className="live-activity">
                         {data.activity
-                          .filter((a) => activityFilter !== 'Larm' || a.kind === 'alarm')
+                          .filter(
+                            (a) =>
+                              activityFilter === 'Alla' ||
+                              a.kind === (activityFilter === 'Larm' ? 'alarm' : 'team'),
+                          )
                           .slice(0, 30)
                           .map((a) => (
                             <li key={a.id}>
@@ -373,7 +398,27 @@ export function LivePage() {
                                 {a.kind === 'alarm' ? <Bell size={15} /> : <Radio size={15} />}
                               </span>
                               <div>
-                                {a.text}
+                                {a.position ? (
+                                  <button
+                                    className="subtle"
+                                    onClick={() => {
+                                      setMapFocus({
+                                        id: a.id,
+                                        profileId: a.profileId,
+                                        x: a.position!.x,
+                                        y: a.position!.y,
+                                        name: a.text,
+                                        at: a.at,
+                                        approximate: a.position!.approximate,
+                                      });
+                                      setTab('Karta');
+                                    }}
+                                  >
+                                    {a.text} · Visa på kartan
+                                  </button>
+                                ) : (
+                                  a.text
+                                )}
                                 <small>{new Date(a.at).toLocaleString('sv-SE')}</small>
                               </div>
                             </li>
@@ -581,12 +626,50 @@ export function LivePage() {
                 </div>
                 {data.team.map((m) => (
                   <div className="live-member" key={m.steamId}>
-                    <span className={'live-avatar ' + (m.isOnline ? 'success' : '')}>
-                      {m.name.slice(0, 1).toUpperCase()}
-                    </span>
+                    <SteamAvatar steamId={m.steamId} name={m.name} online={m.isOnline} />
                     <div>
-                      <strong>{m.name}</strong>
+                      <strong>
+                        {m.name} {m.isLeader && <span className="team-leader">♛ Teamledare</span>}
+                      </strong>
                       <small>{m.steamId}</small>
+                      <small>
+                        Senast observerad online:{' '}
+                        {m.lastSeenOnlineAt
+                          ? new Date(m.lastSeenOnlineAt).toLocaleString('sv-SE')
+                          : 'Okänt'}
+                      </small>
+                      <small>
+                        Senast kända död:{' '}
+                        {m.lastDeathAt ? new Date(m.lastDeathAt).toLocaleString('sv-SE') : 'Okänt'}
+                      </small>
+                      <small>
+                        Observerad tid denna wipe:{' '}
+                        {m.observedOnlineMs === undefined
+                          ? 'Okänd'
+                          : Math.floor(m.observedOnlineMs / 3600000) +
+                            ' h ' +
+                            Math.floor((m.observedOnlineMs % 3600000) / 60000) +
+                            ' min'}
+                      </small>
+                      {m.lastDeath && (
+                        <button
+                          className="subtle"
+                          onClick={() => {
+                            setMapFocus({
+                              id: 'death-' + m.steamId,
+                              profileId: data.activeProfileId!,
+                              x: m.lastDeath!.x,
+                              y: m.lastDeath!.y,
+                              name: m.name + ' · senaste dödsplats',
+                              at: m.lastDeath!.at || m.lastDeath!.observedAt,
+                              approximate: m.lastDeath!.approximate,
+                            });
+                            setTab('Karta');
+                          }}
+                        >
+                          Visa dödsplats{m.lastDeath.approximate ? ' (ungefärlig)' : ''}
+                        </button>
+                      )}
                     </div>
                     <span>{m.isOnline ? 'Online' : 'Offline'}</span>
                     <span className={m.isAlive ? 'success' : 'live-dead'}>

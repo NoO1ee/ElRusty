@@ -13,13 +13,15 @@ export function DiscordAccess({ data, onSetup }: { data: LiveSnapshot; onSetup: 
   useEffect(() => {
     setUsers(data.discord.userIds);
     setRoles(data.discord.roleIds);
-    setOptions([]);
-    setNames({});
   }, [
     data.discord.guildId,
     JSON.stringify(data.discord.userIds),
     JSON.stringify(data.discord.roleIds),
   ]);
+  useEffect(() => {
+    setNames({});
+    setOptions([]);
+  }, [data.discord.guildId]);
   async function run(fn: () => Promise<void>) {
     setBusy(true);
     setError('');
