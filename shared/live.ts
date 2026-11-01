@@ -1,3 +1,4 @@
+import type { TeamMapNote, LastDeath } from './team-map';
 import type { WorldSnapshot } from './world';
 export type DeviceType = 'switch' | 'alarm' | 'storage';
 export interface Profile {
@@ -24,6 +25,8 @@ export interface Mode {
   values: { deviceId: string; value: boolean }[];
 }
 export interface Member {
+  deathTime?: number;
+  spawnTime?: number;
   x?: number;
   y?: number;
   isLeader?: boolean;
@@ -64,6 +67,8 @@ export interface DiscordConfig {
   roleIds: string[];
 }
 export interface LiveSnapshot {
+  mapNotes?: TeamMapNote[];
+  lastDeath?: LastDeath | null;
   world?: WorldSnapshot;
   pairing?: PairingStatus;
   profiles: Profile[];

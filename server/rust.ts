@@ -1,3 +1,5 @@
+import { normalizeTeamInfo } from './team-info.ts';
+import type { TeamMapNote } from '../shared/team-map.ts';
 import type { ServerInfo, MapData, MapMarker } from '../shared/world.ts';
 import RustPlus from '@liamcottle/rustplus.js';
 import { EventEmitter } from 'node:events';
@@ -17,6 +19,7 @@ export interface RustAdapter extends EventEmitter {
   markers?(): Promise<MapMarker[]>;
   promote?(steamId: string): Promise<void>;
   team(): Promise<Member[]>;
+  teamNotes?(): TeamMapNote[];
   entity(id: number): Promise<Entity>;
   set(id: number, value: boolean): Promise<void>;
   time(): Promise<number>;
@@ -34,10 +37,16 @@ export function normalizeEntity(raw: any): Entity {
 }
 export class RustConnection extends EventEmitter implements RustAdapter {
   private client: any;
+  private notes: TeamMapNote[] = [];
+  private playerId: string;
+  teamNotes() {
+    return this.notes;
+  }
   private stopped = false;
   private waiting = new Set<(reason: Error) => void>();
   constructor(profile: PrivateProfile) {
     super();
+    this.playerId = profile.playerId;
     this.client = new RustPlus(
       profile.host,
       profile.port,
@@ -69,12 +78,18 @@ export class RustConnection extends EventEmitter implements RustAdapter {
         }
         resolve();
       });
-      this.client.on('error', (error: { code?: string }) => {
+      this.client.on('error', (error: { code?: string; field?: string }) => {
         if (this.stopped) return;
         complete();
         reject(new Error('Kunde inte ansluta.'));
         this.close();
-        this.emit('lost', error?.code === 'ELRUSTY_PROTOCOL' ? 'protocol' : undefined);
+        if (
+          error?.code === 'ELRUSTY_PROTOCOL' &&
+          typeof error.field === 'string' &&
+          /^rustplus\.[A-Za-z0-9_.]{1,120}$/.test(error.field)
+        )
+          this.emit('lost', 'protocol', error.field);
+        else this.emit('lost', error?.code === 'ELRUSTY_PROTOCOL' ? 'protocol' : undefined);
       });
       this.client.on('disconnected', () => {
         complete();
@@ -159,15 +174,9 @@ export class RustConnection extends EventEmitter implements RustAdapter {
   async team() {
     const r = await this.request({ getTeamInfo: {} });
     if (!r.teamInfo) throw new Error('Team saknas.');
-    return (r.teamInfo.members || []).map((m: any) => ({
-      steamId: String(m.steamId),
-      x: Number.isFinite(m.x) ? Number(m.x) : undefined,
-      y: Number.isFinite(m.y) ? Number(m.y) : undefined,
-      isLeader: String(r.teamInfo.leaderSteamId) === String(m.steamId),
-      name: String(m.name),
-      isOnline: !!m.isOnline,
-      isAlive: !!m.isAlive,
-    }));
+    const normalized = normalizeTeamInfo(r.teamInfo, this.playerId);
+    this.notes = normalized.notes;
+    return normalized.members;
   }
   async map(): Promise<MapData> {
     const r = await this.request({ getMap: {} });

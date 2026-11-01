@@ -1,21 +1,26 @@
 diff --git a/rustplus.js b/rustplus.js
-index 44970966e617ed7e369e251690a714dbd830e5cb..cabf6f3cd418762d8a9d6fe3dd520346121df257 100644
+index 44970966e617ed7e369e251690a714dbd830e5cb..19ae324034d7af4909eff5466348b93a422ca2b1 100644
 --- a/rustplus.js
 +++ b/rustplus.js
-@@ -6,6 +6,12 @@ const protobuf = require("protobufjs");
+@@ -6,6 +6,17 @@ const protobuf = require("protobufjs");
  const { EventEmitter } = require('events');
  const Camera = require('./camera');
  
-+function protocolError() {
++function protocolError(cause) {
 +    const error = new Error('Rust+ protocol error');
 +    error.code = 'ELRUSTY_PROTOCOL';
++    const missing = /^missing required '([A-Za-z][A-Za-z0-9_]*)'$/.exec(cause?.message || '');
++    const type = cause?.instance?.$type;
++    if (missing && type?.fields?.[missing[1]] && /^\.rustplus\.[A-Za-z0-9_.]+$/.test(type.fullName || '')) {
++        error.field = type.fullName.slice(1) + '.' + missing[1];
++    }
 +    return error;
 +}
 +
  class RustPlus extends EventEmitter {
  
      /**
-@@ -75,7 +81,13 @@ class RustPlus extends EventEmitter {
+@@ -75,7 +86,13 @@ class RustPlus extends EventEmitter {
              this.websocket.on('message', (data) => {
  
                  // decode received message
@@ -23,14 +28,14 @@ index 44970966e617ed7e369e251690a714dbd830e5cb..cabf6f3cd418762d8a9d6fe3dd520346
 +                let message;
 +                try {
 +                    message = this.AppMessage.decode(data);
-+                } catch {
-+                    this.emit('error', protocolError());
++                } catch (cause) {
++                    this.emit('error', protocolError(cause));
 +                    return;
 +                }
  
                  // check if received message is a response and if we have a callback registered for it
                  if(message.response && message.response.seq && this.seqCallbacks[message.response.seq]){
-@@ -97,7 +109,7 @@ class RustPlus extends EventEmitter {
+@@ -97,7 +114,7 @@ class RustPlus extends EventEmitter {
                  }
  
                  // fire message event for received messages that aren't handled by callback
@@ -39,7 +44,7 @@ index 44970966e617ed7e369e251690a714dbd830e5cb..cabf6f3cd418762d8a9d6fe3dd520346
  
              });
  
-@@ -106,6 +118,8 @@ class RustPlus extends EventEmitter {
+@@ -106,6 +123,8 @@ class RustPlus extends EventEmitter {
                  this.emit('disconnected');
              });
  
@@ -49,7 +54,7 @@ index 44970966e617ed7e369e251690a714dbd830e5cb..cabf6f3cd418762d8a9d6fe3dd520346
  
      }
 diff --git a/rustplus.proto b/rustplus.proto
-index d89386502022a2c429f2391ff74711ff4a82364a..fbc26db13b7c31f1378c418ade7b51411e964b0d 100644
+index d89386502022a2c429f2391ff74711ff4a82364a..8252ef5591f0e146b2c925114b3b717cb9017a31 100644
 --- a/rustplus.proto
 +++ b/rustplus.proto
 @@ -229,7 +229,7 @@ message AppInfo {
@@ -70,7 +75,22 @@ index d89386502022a2c429f2391ff74711ff4a82364a..fbc26db13b7c31f1378c418ade7b5141
  	repeated AppTeamInfo.Member members = 2;
  	repeated AppTeamInfo.Note mapNotes = 3;
  	repeated AppTeamInfo.Note leaderMapNotes = 4;
-@@ -298,7 +298,7 @@ message AppTeamInfo {
+@@ -289,18 +289,21 @@ message AppTeamInfo {
+ 	message Member {
+ 		required uint64 steamId = 1;
+ 		required string name = 2;
+-		required float x = 3;
+-		required float y = 4;
+-		required bool isOnline = 5;
+-		required uint32 spawnTime = 6;
+-		required bool isAlive = 7;
+-		required uint32 deathTime = 8;
++		optional float x = 3;
++		optional float y = 4;
++		optional bool isOnline = 5;
++		optional uint32 spawnTime = 6;
++		optional bool isAlive = 7;
++		optional uint32 deathTime = 8;
  	}
  
  	message Note {
@@ -78,4 +98,9 @@ index d89386502022a2c429f2391ff74711ff4a82364a..fbc26db13b7c31f1378c418ade7b5141
 +		optional int32 type = 2;
  		required float x = 3;
  		required float y = 4;
++		optional int32 icon = 5;
++		optional int32 colourIndex = 6;
++		optional string label = 7;
  	}
+ }
+ 

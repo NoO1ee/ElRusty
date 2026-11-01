@@ -1,3 +1,4 @@
+import { nextLastDeath, type LastDeath, type TeamMapNote } from '../shared/team-map.ts';
 import { commandReply, isKnownCommand, plainText, publicChatError, TextQueue } from './chat.ts';
 import type { LiveWorld } from './world.ts';
 import type { PairingStatus } from '../shared/live.ts';
@@ -29,6 +30,9 @@ export class LiveService extends EventEmitter {
   verified = new Set<string>();
   team: LiveSnapshot['team'] = [];
   teamUpdatedAt: number | null = null;
+  mapNotes: TeamMapNote[] = [];
+  lastDeath: LastDeath | null = null;
+  private deathKey = '';
   discordStatus = 'Avstängd';
   relayError = '';
   private relayQueue = new TextQueue();
@@ -55,6 +59,8 @@ export class LiveService extends EventEmitter {
     const { discord, profiles, activeProfileId } = this.config;
     return structuredClone({
       world: this.world?.snapshot(),
+      mapNotes: this.mapNotes,
+      lastDeath: this.lastDeath,
       pairing: this.pairing,
       profiles: profiles.map(({ playerToken, ...p }) => p),
       activeProfileId,
@@ -117,6 +123,8 @@ export class LiveService extends EventEmitter {
   deleteProfile(id: string) {
     if (id === this.config.activeProfileId) this.disconnect();
     this.config.profiles = this.config.profiles.filter((p) => p.id !== id);
+    for (const key of Object.keys(this.config.deathLocations || {}))
+      if (key.startsWith(id + ':')) delete this.config.deathLocations![key];
     this.config.devices = this.config.devices.filter((d) => d.profileId !== id);
     this.config.modes = this.config.modes.filter((m) => m.profileId !== id);
     this.save();
@@ -158,6 +166,9 @@ export class LiveService extends EventEmitter {
     this.config.activeProfileId = id;
     this.world?.select(id);
     this.retries = 0;
+    this.mapNotes = [];
+    this.lastDeath = null;
+    this.deathKey = '';
     this.timeLast = -Infinity;
     this.seenChat.clear();
     this.states = {};
@@ -178,7 +189,7 @@ export class LiveService extends EventEmitter {
     this.connectionError = '';
     this.changed();
     let lost = false;
-    const fail = (reason?: string) => {
+    const fail = (reason?: string, field?: string) => {
       if (gen !== this.generation || lost) return;
       lost = true;
       this.generation++;
@@ -197,6 +208,8 @@ export class LiveService extends EventEmitter {
         reason === 'protocol'
           ? 'Rust+-servern skickade ett meddelande som inte kunde tolkas. Anslutningen återupprättas; din parning finns kvar.'
           : 'Kunde inte nå eller autentisera mot Rust+. Kontrollera server, app.port och parning.';
+      if (reason === 'protocol' && field && /^rustplus\.[A-Za-z0-9_.]{1,120}$/.test(field))
+        this.connectionError += ' Saknat fält: ' + field + '.';
       this.changed();
       this.retry = setTimeout(
         () => void this.establish(true),
@@ -230,6 +243,17 @@ export class LiveService extends EventEmitter {
       const information = await adapter.info();
       if (gen !== this.generation) return;
       this.connection = 'connected';
+      this.deathKey =
+        p.id +
+        ':' +
+        (information
+          ? [information.wipeTime, information.seed ?? '', information.mapSize].join(':')
+          : 'unknown');
+      this.config.deathLocations ??= {};
+      for (const key of Object.keys(this.config.deathLocations))
+        if (key.startsWith(p.id + ':') && key !== this.deathKey)
+          delete this.config.deathLocations[key];
+      this.lastDeath = this.config.deathLocations[this.deathKey] || null;
       this.world?.connected(information);
       this.log('info', `Ansluten till ${p.name}.`);
       await this.refreshTeam(gen);
@@ -265,7 +289,7 @@ export class LiveService extends EventEmitter {
     try {
       const team = await adapter.team();
       if (gen === this.generation) {
-        this.team = team;
+        this.acceptTeam(team, adapter.teamNotes?.() || []);
         this.teamUpdatedAt = this.now();
         this.changed();
       }
@@ -276,6 +300,24 @@ export class LiveService extends EventEmitter {
       }
     } finally {
       if (this.refreshingGeneration === gen) this.refreshingGeneration = null;
+    }
+  }
+  private acceptTeam(team: LiveSnapshot['team'], notes: TeamMapNote[]) {
+    const owner = this.config.profiles.find((p) => p.id === this.config.activeProfileId)?.playerId;
+    const next = nextLastDeath(
+      this.lastDeath,
+      this.team.find((m) => m.steamId === owner),
+      team.find((m) => m.steamId === owner),
+      notes,
+      this.now(),
+    );
+    this.team = team;
+    this.mapNotes = notes;
+    if (next !== this.lastDeath && next && this.deathKey) {
+      this.lastDeath = next;
+      this.config.deathLocations ??= {};
+      this.config.deathLocations[this.deathKey] = next;
+      this.db.save(this.config);
     }
   }
   liveSession() {
@@ -467,7 +509,7 @@ export class LiveService extends EventEmitter {
       this.current(gen);
       const confirmed = await adapter.team();
       this.current(gen);
-      this.team = confirmed;
+      this.acceptTeam(confirmed, adapter.teamNotes?.() || []);
       this.teamUpdatedAt = this.now();
       this.changed();
       insist(

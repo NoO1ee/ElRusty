@@ -1,5 +1,14 @@
 # Ändringslogg
 
+## 0.9.2 — 2026-11-01
+
+- Accepterar utelämnade standardvärden i teammedlemmars tillstånd (inklusive isAlive=false vid död) och behåller okända positioner som okända.
+- Visar egna och teamledarens waypoints med etiketter samt separat lager för din senaste dödsplats. Dödsplats sparas per serverprofil/wipe; observerad reservposition märks ungefärlig.
+- Moderniserade kartnoteringars protobuf-fält: icon, colourIndex och label. Fortsatt strikt identitet och skydd mot trasiga meddelanden.
+- Protokollfel kan ange ett verifierat schemafältnamn utan råa payloads, token eller partiella objekt.
+- Testat dödsbroadcast, återspawn, waypoints och wipe-/serverisolering. Nästa verkliga dödsfall behöver slutverifieras i spelet.
+
+
 ## 0.9.1 — 2026-11-01
 
 - Kartvyn efterliknar Rust+-appens presentation: större kartyta, flytande lager och navigeringsknappar, utökat läge och nordindikator.

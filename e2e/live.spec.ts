@@ -228,6 +228,25 @@ test('kartan har lager, markeringsdetaljer och statusprick även i kretsbyggaren
 }) => {
   const state = initial();
   state.team[0] = { ...state.team[0], x: 250, y: 500, isLeader: true };
+  state.mapNotes = [
+    { id: 'self:0', source: 'self', type: 0, x: 150, y: 800, label: 'Farm', icon: 0 },
+    {
+      id: 'leader:0',
+      source: 'leader',
+      type: 1,
+      x: 850,
+      y: 800,
+      label: 'Teamets waypoint',
+      icon: 1,
+    },
+  ];
+  state.lastDeath = {
+    x: 750,
+    y: 200,
+    at: Date.now() - 60000,
+    observedAt: Date.now(),
+    approximate: true,
+  };
   state.world = {
     profileId: 'p1',
     info: { name: 'Test', mapSize: 1000, wipeTime: 1, players: 2, maxPlayers: 100 },
@@ -261,6 +280,12 @@ test('kartan har lager, markeringsdetaljer och statusprick även i kretsbyggaren
   await expect(page.locator('.rustplus-map')).not.toHaveClass(/expanded/);
   await expect(page.getByLabel('Event', { exact: true })).toHaveCount(0);
   await page.screenshot({ path: 'test-results/rustplus-map.png' });
+  await page.getByRole('button', { name: 'Farm', exact: true }).click();
+  await expect(page.locator('.live-map-detail')).toContainText('DIN WAYPOINT');
+  await page.getByRole('button', { name: 'Teamets waypoint', exact: true }).click();
+  await expect(page.locator('.live-map-detail')).toContainText('TEAMLEDARENS WAYPOINT');
+  await page.getByRole('button', { name: 'Din senaste dödsplats', exact: true }).click();
+  await expect(page.locator('.live-map-detail')).toContainText('Ungefärlig position');
   const marker = page.getByRole('button', { name: 'Cargo Ship', exact: true });
   await expect
     .poll(() => marker.locator('circle').evaluate((el) => el.getBoundingClientRect().width))
@@ -268,6 +293,12 @@ test('kartan har lager, markeringsdetaljer och statusprick även i kretsbyggaren
   await marker.click();
   await expect(page.locator('.live-map-detail')).toContainText('Cargo Ship');
   await page.getByRole('button', { name: 'Kartlager', exact: true }).click();
+  await page.getByLabel('Waypoints', { exact: true }).uncheck();
+  await expect(page.getByRole('button', { name: 'Farm', exact: true })).toHaveCount(0);
+  await page.getByLabel('Senaste dödsplats', { exact: true }).uncheck();
+  await expect(
+    page.getByRole('button', { name: 'Din senaste dödsplats', exact: true }),
+  ).toHaveCount(0);
   await page.getByLabel('Event', { exact: true }).uncheck();
   await expect(page.getByRole('button', { name: 'Cargo Ship', exact: true })).toHaveCount(0);
   const before = await page.getByLabel('Rust-serverns livekarta').getAttribute('viewBox');

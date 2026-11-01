@@ -7,6 +7,8 @@ import { monumentLabels } from '../../shared/map-presentation';
 
 function MarkerSymbol({ type }: { type: number }) {
   // Independently drawn symbols; no assets or application code copied from Rust+.
+  if (type === 100) return <path d="M0 9S-6 1-6-3a6 6 0 0 1 12 0C6 1 0 9 0 9zM-2-3h4" />;
+  if (type === 101) return <path d="M-5 2a7 7 0 1 1 10 0v5H-5zM-3-3h1M2-3h1M-2 3v4M2 3v4" />;
   if (type === 3)
     return (
       <g>
@@ -38,7 +40,9 @@ type Marker = {
   x: number;
   y: number;
   name: string;
-  kind: 'monument' | 'team' | 'shop' | 'event';
+  kind: 'monument' | 'team' | 'shop' | 'event' | 'waypoint' | 'death';
+  approximate?: boolean;
+  noteSource?: 'self' | 'leader';
   color: string;
   type?: number;
   online?: boolean;
@@ -61,6 +65,8 @@ export function LiveMap({ data, offline }: { data: LiveSnapshot; offline: boolea
       team: true,
       shops: true,
       events: true,
+      notes: true,
+      death: true,
     });
   const svg = useRef<SVGSVGElement>(null),
     drag = useRef<{ x: number; y: number; vx: number; vy: number; scale: number } | null>(null);
@@ -152,6 +158,36 @@ export function LiveMap({ data, offline }: { data: LiveSnapshot; offline: boolea
                 color: m.type === 3 ? (m.outOfStock ? '#a9aca1' : '#b7d789') : '#f2c477',
                 at: world?.updatedAt ?? null,
               }))
+          : []),
+        ...(layers.notes
+          ? (data.mapNotes || [])
+              .filter((n) => n.type !== 2)
+              .map((n) => ({
+                id: 'note:' + n.id,
+                x: n.x,
+                y: n.y,
+                name: n.label || (n.source === 'self' ? 'Din waypoint' : 'Teamledarens waypoint'),
+                kind: 'waypoint' as const,
+                type: n.icon === 6 ? 101 : 100,
+                color: n.source === 'self' ? '#f2d57b' : '#85c7ed',
+                noteSource: n.source,
+                at: data.teamUpdatedAt,
+              }))
+          : []),
+        ...(layers.death && data.lastDeath
+          ? [
+              {
+                id: 'last-death',
+                x: data.lastDeath.x,
+                y: data.lastDeath.y,
+                name: 'Din senaste dödsplats',
+                kind: 'death' as const,
+                type: 101,
+                color: '#ff9e9d',
+                at: data.lastDeath.at || data.lastDeath.observedAt,
+                approximate: data.lastDeath.approximate,
+              },
+            ]
           : []),
         ...(layers.team
           ? data.team
@@ -371,6 +407,8 @@ export function LiveMap({ data, offline }: { data: LiveSnapshot; offline: boolea
                       team: 'Team',
                       shops: 'Vending machines',
                       events: 'Event',
+                      notes: 'Waypoints',
+                      death: 'Senaste dödsplats',
                     }[key]
                   }
                 </label>
@@ -429,7 +467,13 @@ export function LiveMap({ data, offline }: { data: LiveSnapshot; offline: boolea
                   ? 'TEAM'
                   : chosen.kind === 'shop'
                     ? 'BUTIK'
-                    : 'EVENT'}
+                    : chosen.kind === 'waypoint'
+                      ? chosen.noteSource === 'self'
+                        ? 'DIN WAYPOINT'
+                        : 'TEAMLEDARENS WAYPOINT'
+                      : chosen.kind === 'death'
+                        ? 'SENASTE DÖDSPLATS'
+                        : 'EVENT'}
             </span>
             <strong>{chosen.name}</strong>
             <p>
@@ -441,8 +485,14 @@ export function LiveMap({ data, offline }: { data: LiveSnapshot; offline: boolea
                   (chosen.alive ? 'Alive' : 'Dead')
                 : ''}
             </p>
+            {chosen.approximate && (
+              <p className="map-location-note">
+                Ungefärlig position från senaste teamuppdateringen.
+              </p>
+            )}
             <small>
-              Uppdaterad {chosen.at ? new Date(chosen.at).toLocaleTimeString('sv-SE') : '—'}
+              {chosen.kind === 'death' ? 'Registrerad' : 'Uppdaterad'}{' '}
+              {chosen.at ? new Date(chosen.at).toLocaleTimeString('sv-SE') : '—'}
             </small>
           </aside>
         )}

@@ -824,7 +824,7 @@ export default function App() {
             ? 'Live-tjänsten behöver köras även när webbläsaren är stängd.'
             : message}
         </span>
-        <span className="version-label">ElRusty 0.9.1 · lokalt</span>
+        <span className="version-label">ElRusty 0.9.2 · lokalt</span>
       </footer>
       <input
         ref={fileInput}

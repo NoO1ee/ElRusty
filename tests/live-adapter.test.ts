@@ -214,6 +214,7 @@ it('bibliotekets protokollfel exponerar inte partiella protobuf-objekt', async (
     const error = await errorPromise;
     expect(error).toMatchObject({ message: 'Rust+ protocol error', code: 'ELRUSTY_PROTOCOL' });
     expect(error).not.toHaveProperty('instance');
+    expect(error).toHaveProperty('field', 'rustplus.AppInfo.headerImage');
     expect(JSON.stringify(error)).not.toContain('private-marker');
   } finally {
     raw.disconnect();
@@ -245,4 +246,70 @@ it('en spelare utan team får tom teamlista utan protokollfel', async () => {
     );
   }
   expect(await client.team()).toEqual([]);
+});
+
+it('dödsbroadcast med utelämnade standardvärden behåller anslutningen och läser kartnålar', async () => {
+  const { client, server, Message, schema } = await setup();
+  const Member = schema.lookupType('rustplus.AppTeamInfo.Member');
+  expect(Member.fields.isAlive.required).toBe(false);
+  expect(Member.fields.isOnline.required).toBe(false);
+  expect(Member.fields.x.required).toBe(false);
+  expect(Member.fields.spawnTime.required).toBe(false);
+  expect(Member.fields.steamId.required).toBe(true);
+  expect(Member.fields.name.required).toBe(true);
+  const teamInfo = {
+    leaderSteamId: '76561198000000001',
+    members: [{ steamId: '76561198000000000', name: 'Owner', deathTime: 123 }],
+    mapNotes: [
+      { x: 12, y: 34, icon: 3, colourIndex: 2, label: 'Min bas' },
+      { type: 2, x: 20, y: 40 },
+    ],
+    leaderMapNotes: [{ type: 1, x: 50, y: 60, label: 'Teamets bas' }],
+  };
+  const lost = vi.fn();
+  client.on('lost', lost);
+  const changed = new Promise<void>((resolve) => client.once('teamChanged', resolve));
+  const Request = schema.lookupType('rustplus.AppRequest');
+  for (const socket of server.clients) {
+    socket.removeAllListeners('message');
+    socket.on('message', (data) => {
+      const q: any = Request.decode(new Uint8Array(data as Buffer));
+      socket.send(
+        Message.encode(
+          Message.fromObject({
+            response: {
+              seq: q.seq,
+              ...(q.getTeamInfo
+                ? { teamInfo }
+                : {
+                    time: { dayLengthMinutes: 60, timeScale: 1, sunrise: 8, sunset: 18, time: 12 },
+                  }),
+            },
+          }),
+        ).finish(),
+      );
+    });
+    socket.send(
+      Message.encode(
+        Message.fromObject({
+          broadcast: { teamChanged: { playerId: '76561198000000000', teamInfo } },
+        }),
+      ).finish(),
+    );
+  }
+  await changed;
+  const team = await client.team();
+  expect(team[0]).toMatchObject({ isAlive: false, isOnline: false, deathTime: 123 });
+  expect(team[0].x).toBeUndefined();
+  expect(client.teamNotes()).toHaveLength(3);
+  expect(client.teamNotes()[0]).toMatchObject({
+    type: 0,
+    label: 'Min bas',
+    icon: 3,
+    colourIndex: 2,
+    source: 'self',
+  });
+  expect(client.teamNotes()[2].source).toBe('leader');
+  expect(await client.time()).toBe(12);
+  expect(lost).not.toHaveBeenCalled();
 });

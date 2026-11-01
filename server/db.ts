@@ -6,6 +6,7 @@ export interface PrivateProfile extends Profile {
   playerToken: number;
 }
 export interface Config {
+  deathLocations?: Record<string, import('../shared/team-map.ts').LastDeath>;
   profiles: PrivateProfile[];
   devices: Device[];
   modes: Mode[];

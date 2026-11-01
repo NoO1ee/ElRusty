@@ -134,3 +134,14 @@ Spel-/kontokontroll återstår: jämför kartrutor med Rust, skapa kanaler i val
 ### Rust+-liknande kartvy 0.9.1
 
 Kartan har flytande lager- och zoomreglage, nordindikator och utökat läge (Esc stänger). Monument visas med engelska namn; överlappande namn glesas ut och fler får plats när du zoomar. Teamnamn visas ovanför gröna/grå markörer, butiker har butikssymbol och event har separata symboler. Symbolerna är ritade i ElRusty; ingen kod eller grafik från Rust+-appen har kopierats. Kartbilden och positionerna kommer fortfarande från den parade servern. Referens: [Facepunchs officiella Rust+-kartvy](https://rust.facepunch.com/companion).
+
+
+### Dödsfall och spelmarkörer 0.9.2
+
+Teammedlemmars tillståndsfält x/y, isOnline, spawnTime, isAlive och deathTime är valfria i kompatibilitetspatchen. Nyare proto3-meddelanden kan utelämna noll/falskvärden; det äldre bibliotekets required-fält kunde därför utlösa protokollfel vid död. Identitetsfälten steamId/name förblir obligatoriska. Saknade koordinater blir okända, aldrig en påhittad punkt vid 0,0. Trasiga protobuf-meddelanden stänger fortfarande berörd anslutning. Protokollfel får enbart kompletteras med ett verifierat schemafältnamn, utan meddelandets innehåll.
+
+Kartan har lager för **Waypoints** och **Senaste dödsplats**. Personliga mapNotes och ledarens leaderMapNotes läses med teaminformationen; när ditt konto är ledare undviks dubbletter. Noteringarnas icon (5), colourIndex (6) och label (7) stöds i protokollet. En egen nål med dödskalleikon räknas inte automatiskt som dödsplats. Bara de noteringar Rust+ skickar kan visas; övriga lagkamraters privata nålar och tillfälliga pingar garanteras inte.
+
+Egen dödsnotering (typ 2) används i första hand. Saknas den används position från ett observerat dödsfall eller den föregående teamuppdateringen, märkt **ungefärlig**. En redan återspawnad spelares nuvarande position används aldrig som historisk dödsplats. Ingen historisk plats gissas vid första anslutning. Senaste observerade platsen sparas i den privata lokala konfigurationen, isolerad per profil och wipe. Den försvinner inte när du återspawnar. Ny server/wipe visar inte den gamla platsen.
+
+Källor för protokollfakta: [aktuell proto3-definition](https://github.com/olijeffers0n/rustplus/blob/master/rustplus.proto) och [SDK-fält för kartnoteringar](https://github.com/HandyS11/RustPlusApi/blob/develop/src/RustPlusApi/Protobuf/RustPlusContracts.proto). Funktionerna är självständigt implementerade. Läsande kontroll mot användarens server bekräftar en personlig waypoint; det exakta meddelandet vid nästa dödsfall återstår att verifiera på den riktiga servern. Regressionstester skickar utelämnade medlemsfält i både svar och dödsbroadcast och kontrollerar fortsatt anslutning.
