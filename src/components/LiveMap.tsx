@@ -1,8 +1,10 @@
+import { GameMapGrid } from './GameMapGrid';
+import { GameMapPin } from './GameMapPin';
 import { useEffect, useRef, useState } from 'react';
 import { Expand, Shrink, Layers, Plus, Minus, LocateFixed, RefreshCw, X } from 'lucide-react';
 import { liveAction } from '../live-store';
 import type { LiveSnapshot } from '../../shared/live';
-import { eventNames, gridCount, GRID_SIZE, gridLocation, imagePosition } from '../../shared/world';
+import { eventNames, gridLocation, imagePosition } from '../../shared/world';
 import { monumentLabels } from '../../shared/map-presentation';
 
 function MarkerSymbol({ type }: { type: number }) {
@@ -197,6 +199,27 @@ export function LiveMap({
               },
             ]
           : []),
+        ...(layers.death
+          ? data.team
+              .filter(
+                (m) =>
+                  m.lastDeath &&
+                  (m.steamId !==
+                    data.profiles.find((p) => p.id === data.activeProfileId)?.playerId ||
+                    !data.lastDeath),
+              )
+              .map((m) => ({
+                id: 'team-death:' + m.steamId,
+                x: m.lastDeath!.x,
+                y: m.lastDeath!.y,
+                name: m.name + ' · senaste dödsplats',
+                kind: 'death' as const,
+                type: 101,
+                color: '#d9483f',
+                at: m.lastDeath!.at || m.lastDeath!.observedAt,
+                approximate: m.lastDeath!.approximate,
+              }))
+          : []),
         ...(layers.team
           ? data.team
               .filter((m) => Number.isFinite(m.x) && Number.isFinite(m.y))
@@ -236,7 +259,7 @@ export function LiveMap({
   const chosen = markers.find((m) => m.id === selected);
   return (
     <section
-      className={'live-map-panel rustplus-map' + (expanded ? ' expanded' : '')}
+      className={'live-map-panel rustplus-map rust-game-map' + (expanded ? ' expanded' : '')}
       aria-label="Livekarta"
     >
       <div className="live-map-caption">
@@ -304,34 +327,7 @@ export function LiveMap({
               width={map.width}
               height={map.height}
             />
-            {layers.grid &&
-              Array.from({ length: gridCount(map.mapSize) }, (_, i) => {
-                const a = imagePosition(i * GRID_SIZE, 0, map),
-                  b = imagePosition(0, i * GRID_SIZE, map);
-                const col = gridLocation(
-                  i * GRID_SIZE + 1,
-                  gridCount(map.mapSize) * GRID_SIZE - 1,
-                  map.mapSize,
-                ).replace(/\d+$/, '');
-                const row = gridLocation(1, i * GRID_SIZE + 1, map.mapSize).replace(/^[A-Z]+/, '');
-                return (
-                  <g key={i} className="map-grid" pointerEvents="none">
-                    <path
-                      d={`M ${a.x} ${map.oceanMargin} V ${map.height - map.oceanMargin} M ${map.oceanMargin} ${b.y} H ${map.width - map.oceanMargin}`}
-                      stroke="white"
-                      strokeOpacity=".24"
-                      strokeWidth=".6"
-                      vectorEffect="non-scaling-stroke"
-                    />
-                    <text x={a.x + 3 * u} y={map.oceanMargin + 12 * u} fontSize={10 * u}>
-                      {col}
-                    </text>
-                    <text x={map.oceanMargin + 3 * u} y={b.y - 3 * u} fontSize={10 * u}>
-                      {row}
-                    </text>
-                  </g>
-                );
-              })}
+            {layers.grid && <GameMapGrid map={map} unit={u} />}
             {markers.map((m) => {
               const p = imagePosition(m.x, m.y, map);
               return (
@@ -373,8 +369,18 @@ export function LiveMap({
                         {m.name.toUpperCase()}
                       </text>
                     </>
+                  ) : m.kind === 'waypoint' || m.kind === 'death' ? (
+                    <GameMapPin
+                      death={m.kind === 'death'}
+                      skull={m.kind === 'death' || m.type === 101}
+                      leader={m.noteSource === 'leader'}
+                      selected={m.id === selected}
+                      approximate={m.approximate}
+                      label={m.name}
+                    />
                   ) : (
                     <>
+                      <circle r="19" fill="transparent" data-marker-hit="true" />
                       <circle
                         r={m.kind === 'team' ? 7 : 11}
                         fill={m.kind === 'team' ? m.color : '#1c302be8'}

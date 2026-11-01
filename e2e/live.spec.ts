@@ -233,6 +233,19 @@ test('kartan har lager, markeringsdetaljer och statusprick även i kretsbyggaren
 }) => {
   const state = initial();
   state.team[0] = { ...state.team[0], x: 250, y: 500, isLeader: true };
+  state.team.push({
+    ...state.team[0],
+    steamId: '76561198000000002',
+    name: 'Kartvän',
+    isLeader: false,
+    lastDeath: {
+      x: 400,
+      y: 350,
+      at: Date.now() - 30000,
+      observedAt: Date.now(),
+      approximate: true,
+    },
+  });
   state.mapNotes = [
     { id: 'self:0', source: 'self', type: 0, x: 150, y: 800, label: 'Farm', icon: 0 },
     {
@@ -279,6 +292,13 @@ test('kartan har lager, markeringsdetaljer och statusprick även i kretsbyggaren
   await page.getByRole('button', { name: 'Karta', exact: true }).click();
   await expect(page.getByLabel('Rust-serverns livekarta')).toBeVisible();
   await expect(page.locator('.map-monument-name')).toHaveText('HARBOR');
+  await expect(page.locator('[data-grid-cell="A0"]')).toBeVisible();
+  await expect(page.locator('.waypoint-pin')).toHaveCount(2);
+  await expect(page.locator('.death-pin')).toHaveCount(2);
+  await expect(page.locator('.death-pin [data-marker-hit]').first()).toHaveAttribute('r', '20');
+  await expect(page.locator('.waypoint-pin path').first()).toHaveAttribute('fill', '#f0e647');
+  await expect(page.locator('.death-pin path').first()).toHaveAttribute('fill', '#d9483f');
+
   await page.getByRole('button', { name: 'Utöka kartan' }).click();
   await expect(page.locator('.rustplus-map')).toHaveClass(/expanded/);
   await page.getByRole('button', { name: 'Minimera kartan' }).press('Escape');
@@ -293,7 +313,7 @@ test('kartan har lager, markeringsdetaljer och statusprick även i kretsbyggaren
   await expect(page.locator('.live-map-detail')).toContainText('Ungefärlig position');
   const marker = page.getByRole('button', { name: 'Cargo Ship', exact: true });
   await expect
-    .poll(() => marker.locator('circle').evaluate((el) => el.getBoundingClientRect().width))
+    .poll(() => marker.locator('circle').first().evaluate((el) => el.getBoundingClientRect().width))
     .toBeGreaterThan(12);
   await marker.click();
   await expect(page.locator('.live-map-detail')).toContainText('Cargo Ship');

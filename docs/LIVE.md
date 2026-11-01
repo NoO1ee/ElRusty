@@ -264,3 +264,9 @@ Team visar ledarstatus från Rust+, senast observerad online, senast kända död
 Första teamavläsningen är baslinje utan nya online-/offline-/dödsnotiser. Följande observerade skiften visas som strukturerade teamhändelser i webbens historik. Egna dödsnoteringar används när tillgängliga; övriga observerade dödsplatser baseras på sista kända levande position och märks ungefärliga. Saknade platser visas som okända. Klicka på en tillgänglig plats för att öppna kartan. Teamhändelser ger inga nya automatiska Discord-notiser. K/D och händelser som Cargo/Oil Rig lämnas utanför när data saknas.
 
 Steam-bilder hämtas via Rust+-tjänstens avatar-endpoint med fem sekunders timeout, högst fyra samtidiga hämtningar, begränsad bildstorlek, HTTPS/CDN-kontroll och lokal minnescache. Initialer visas om bilden inte kan hämtas. Ingen Steam API-nyckel behövs. Live-status/SSE innehåller teamChat och teamets observationsfält; avatarbilder serveras separat genom /api/live/team/avatar/<SteamID64>, endast för aktuella teammedlemmar. Ingen ny SQLite-tabell behövs.
+
+## Spelinspirerad karta 0.16
+
+Kartans rutnamn ligger i respektive ruta och glesas ut när texten blir för liten. Samma koordinatomvandling, havsmarginal och rutnamn används fortfarande för markörer och chattkommandon; kartbilden flyttas inte. Waypoints visas med gula nålar och senaste dödsplatser med röda dödskallar. Ledarens waypoint har blå kant och L, ungefärliga dödsplatser har streckad kant och ≈. Klickytorna är större än symbolerna.
+
+Egna och observerade teamdödsplatser visas i dödslaget. Klicka på markören för etikett, kartruta, tid och eventuell osäkerhet. Zoom, fokus och lager behåller appens mörka reglage. Automatiska tester täcker rutcentrum, texttäthet, symboler, lager och oförändrad kartnavigering. Slutlig jämförelse av samma servers kartrutor, waypoint och dödsplats mot spelet samt verklig lagchatt återstår tills spelkontrollen kan göras.

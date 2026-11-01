@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { monumentName, monumentLabels } from '../shared/map-presentation';
+import { monumentName, monumentLabels, mapGridLabels } from '../shared/map-presentation';
 const map = { width: 1000, height: 1000, oceanMargin: 50, mapSize: 1000 };
 it('visar begripliga namn och bevarar okända monument', () => {
   expect(monumentName('launchsite')).toBe('Launch Site');
@@ -28,4 +28,21 @@ it('döljer interna etiketter och tunnelingångar i översikten', () => {
   expect(monumentLabels(items, map, { x: 400, y: 400, z: 4 }, 1).map((m) => m.name)).toEqual([
     'Train Tunnel',
   ]);
+});
+
+it('placerar rutnamn i samma cellcentrum som gemensamma kartrutor', () => {
+  const world = { width: 1800, height: 1600, oceanMargin: 100, mapSize: 4500 };
+  const cells = mapGridLabels(world, 1);
+  expect(cells).toHaveLength(900);
+  expect(cells[0]).toEqual({ label: 'A0', x: 73.125, y: 4314.375 });
+  expect(cells[27].label).toBe('AB0');
+  expect(cells.at(-1)?.label).toBe('AD29');
+  expect(new Set(cells.map((c) => c.label)).size).toBe(cells.length);
+});
+it('glesar ut text vid utzoomning och döljer oläsbara rutnamn', () => {
+  const world = { width: 1800, height: 1800, oceanMargin: 100, mapSize: 4500 };
+  expect(mapGridLabels(world, 2)).toHaveLength(225);
+  expect(mapGridLabels(world, 4)).toEqual([]);
+  expect(mapGridLabels(world, 0)).toEqual([]);
+  expect(mapGridLabels(world, NaN)).toEqual([]);
 });

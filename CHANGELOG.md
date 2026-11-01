@@ -191,3 +191,10 @@ Fortsatta begränsningar: seriell smältkö, gemensam lagerbudget, tre crafter-r
 - Lagchatt på Översikt med serverhistorik, live-meddelanden, köad sändning och ekodeduplicering. Ingen chattext lagras på disk.
 - Teamledare, Steam-bilder och observerad online-/dödsinformation samt observerad onlinetid per wipe.
 - Strukturerade teamhändelser i webbens historik, med klickbara dödsplatser och tydlig osäkerhetsmarkering. Inga nya automatiska Discord-notiser.
+
+## 0.16.0 — 2026-11-01
+
+- Dämpat kartrutnät med namn inne i rutorna och zoomanpassad texttäthet.
+- Gula waypointnålar, röda dödskallar och större klickytor; ledarens noteringar och uppskattade positioner särskiljs.
+- Observerade teamdödsplatser visas tillsammans med egen senaste dödsplats utan ändring av kartkoordinater.
+- Verklig lagchatt och jämförelse med samma serverkarta i spelet återstår som manuella spelkontroller.

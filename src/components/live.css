@@ -1183,3 +1183,45 @@
 .live-event.team {
   color: #8dceff;
 }
+
+.rust-game-map .map-grid text {
+  fill: #102029;
+  stroke: #e1ebdd55;
+  stroke-width: 1px;
+  font-weight: 650;
+  opacity: 0.72;
+  paint-order: stroke;
+}
+.map-pin-label {
+  font:
+    700 10px 'DM Sans',
+    sans-serif;
+  fill: #f6f4d9;
+  paint-order: stroke;
+  stroke: #162021;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+.game-map-pin {
+  filter: drop-shadow(0 1px 1px #0008);
+}
+.rust-game-map .map-floating button {
+  background: #151d29f2;
+  color: #e8ecf5;
+  border-color: #51617c66;
+}
+.rust-game-map .map-floating button:hover {
+  background: #30202a;
+  border-color: var(--accent);
+}
+.rust-game-map .map-layer-control .live-map-tools {
+  background: #151d29f5;
+  border-color: #51617c66;
+}
+.rust-game-map .map-layer-control input {
+  accent-color: var(--accent);
+}
+.rust-game-map .live-map-detail {
+  background: #151d29f5;
+  border-color: #51617c66;
+}

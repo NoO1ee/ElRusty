@@ -1,4 +1,4 @@
-import { imagePosition } from './world';
+import { gridCount, gridLocation, GRID_SIZE, imagePosition } from './world';
 const names: Record<string, string> = {
   launchsite: 'Launch Site',
   airfield: 'Airfield',
@@ -93,4 +93,23 @@ export function monumentLabels<T extends { token: string; x: number; y: number }
       boxes.push(box);
       return true;
     });
+}
+
+/** Cell centers share the same coordinates and names as !where and death events. */
+export function mapGridLabels(
+  map: { width: number; height: number; oceanMargin: number; mapSize: number },
+  unit: number,
+) {
+  const count = gridCount(map.mapSize),
+    pixels = (GRID_SIZE * (map.width - 2 * map.oceanMargin)) / map.mapSize / unit;
+  if (!Number.isFinite(pixels) || unit <= 0 || count < 1 || count > 128 || pixels < 18) return [];
+  const step = pixels >= 32 ? 1 : 2,
+    cells: { label: string; x: number; y: number }[] = [];
+  for (let row = 0; row < count; row += step)
+    for (let col = 0; col < count; col += step) {
+      const x = (col + 0.5) * GRID_SIZE,
+        y = (count - row - 0.5) * GRID_SIZE;
+      cells.push({ label: gridLocation(x, y, map.mapSize), x, y });
+    }
+  return cells;
 }
