@@ -86,6 +86,7 @@ test('Live styr en bekräftad switch, visar team och kör ett sparat läge', asy
   await expect(card.getByText('○ Av / inaktiv')).toBeVisible();
   await card.getByRole('button', { name: 'På', exact: true }).click();
   await expect(card.getByText('● På / aktiv')).toBeVisible();
+  await expect(page.getByLabel('Kommandoresultat')).toHaveCount(0);
   await page.getByRole('button', { name: 'Team', exact: true }).click();
   await expect(page.getByText('Spelare', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Lägen', exact: true }).click();
@@ -208,6 +209,7 @@ test('guidad Rust+-parning visar steg, avbrott och mottagna serverförslag', asy
   await page.goto('/');
   await page.getByRole('button', { name: 'Live', exact: true }).click();
   await page.getByRole('button', { name: 'Inställningar', exact: true }).click();
+  await page.getByRole('button', { name: 'Rust+-parning', exact: true }).click();
   await expect(page.getByLabel('SteamID64', { exact: true })).not.toBeVisible();
   await expect(page.getByRole('button', { name: 'Vänta på server', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: 'Registrera Rust+', exact: true }).click();
@@ -342,6 +344,7 @@ test('Discord-guiden förhandsvisar innan kanaler skapas', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Live', exact: true }).click();
   await page.getByRole('button', { name: 'Inställningar', exact: true }).click();
+  await page.getByRole('button', { name: 'Discord', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Skapa ElRusty-kanaler' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Hämta Discord-servrar' }).click();
   await page.getByRole('button', { name: 'Förhandsvisa kanalsetup' }).click();
@@ -377,6 +380,7 @@ test('chattbehörigheter sparas per server och tvåvägschatt är ett uttrycklig
   await page.goto('/');
   await page.getByRole('button', { name: 'Live', exact: true }).click();
   await page.getByRole('button', { name: 'Inställningar', exact: true }).click();
+  await page.getByRole('button', { name: 'Behörigheter och kommandon', exact: true }).click();
   await page.getByText('Alla teamkommandon', { exact: true }).click();
   await expect(page.locator('.live-command-list')).toContainText('!wipe');
   await expect(page.locator('.live-command-list')).toContainText(
@@ -385,12 +389,14 @@ test('chattbehörigheter sparas per server och tvåvägschatt är ett uttrycklig
   await expect(page.locator('.live-command-list')).toContainText('!prox');
   await expect(page.locator('.live-command-list')).toContainText('!alive');
   await expect(page.locator('.live-command-list')).not.toContainText('!team');
+  await page.getByText('Avancerat: SteamID64', { exact: true }).click();
   await page.getByLabel('Tillåtna SteamID:n för styrkommandon').fill('76561198000000001');
   await page.getByRole('button', { name: 'Spara chattbehörigheter' }).click();
   await expect(page.getByText('Chattbehörigheterna är sparade.')).toBeVisible();
   expect(calls.find((c) => c.path.endsWith('/controls'))?.body.steamIds).toEqual([
     '76561198000000001',
   ]);
+  await page.getByRole('button', { name: 'Discord', exact: true }).click();
   const relay = page.getByLabel('Aktivera tvåvägschatt');
   await expect(relay).not.toBeChecked();
   await relay.check();
@@ -485,6 +491,7 @@ test('timers skapas, räknar ned, överlever omladdning och visar kanalvis histo
   await expect(completed).toContainText('Rust: Bekräftat');
   await expect(completed).toContainText('Discord: Missat');
   await page.getByRole('button', { name: 'Inställningar', exact: true }).click();
+  await page.getByRole('button', { name: 'Behörigheter och kommandon', exact: true }).click();
   await page.getByText('Alla teamkommandon', { exact: true }).click();
   await expect(page.locator('.live-command-list')).toContainText('!timer add');
 });
@@ -613,4 +620,74 @@ test('enhetsförslag visar namn och Entity-ID och sparas först vid Lägg till',
     '/api/live/pairing/device/accept',
     '/api/live/device/delete',
   ]);
+});
+
+test('Live har server i sidhuvudet, manuell återstart och genvägar till rätt underflik', async ({
+  page,
+}) => {
+  const state = initial();
+  state.connection = 'disconnected';
+  state.retryExhausted = true;
+  state.connectionAttempts = 3;
+  state.connectionError = 'Kunde inte ansluta efter tre försök.';
+  const calls: string[] = [];
+  await page.route('**/api/live/**', async (route) => {
+    if (route.request().method() === 'POST') {
+      calls.push(new URL(route.request().url()).pathname);
+      state.connection = 'connected';
+      state.retryExhausted = false;
+      await route.fulfill({ json: { ok: true } });
+    } else await route.fulfill({ json: state });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Live', exact: true }).click();
+  await expect(page.locator('.live-header-server')).toContainText('Vanilla · EU');
+  await expect(page.getByText('Allt börjar med en anslutning', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Försök igen', exact: true }).click();
+  expect(calls).toEqual(['/api/live/connect']);
+  await page.getByRole('button', { name: /Teammedlemmar online/ }).click();
+  await expect(page.getByRole('heading', { name: 'Ditt Rust-team' })).toBeVisible();
+  await page.getByRole('button', { name: 'Översikt', exact: true }).click();
+  await page.getByRole('button', { name: /Smarta switches/ }).click();
+  await expect(page.getByRole('region', { name: 'Enhetsparning' })).toBeVisible();
+  await page.getByRole('button', { name: 'Översikt', exact: true }).click();
+  await page.getByRole('button', { name: /Discord/ }).click();
+  await expect(page.getByRole('heading', { name: 'Discord-bot', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Hantera servrar', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Dina serverprofiler' })).toBeVisible();
+});
+test('Discord-behörigheter visar rollnamn och förhandsvisar användare utan SteamID', async ({
+  page,
+}) => {
+  const state = initial();
+  state.discord.guildId = '123456789012345678';
+  state.discord.hasToken = true;
+  let saved: any;
+  await page.route('**/api/live/**', async (route) => {
+    if (route.request().method() === 'POST') {
+      const path = new URL(route.request().url()).pathname;
+      if (path.endsWith('/options'))
+        return route.fulfill({ json: [{ id: '123456789012345679', name: 'Rustlaget' }] });
+      if (path.endsWith('/user'))
+        return route.fulfill({ json: { id: '123456789012345680', name: 'Kompisen' } });
+      saved = route.request().postDataJSON();
+      state.discord.userIds = saved.userIds;
+      state.discord.roleIds = saved.roleIds;
+      return route.fulfill({ json: { ok: true } });
+    }
+    await route.fulfill({ json: state });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Live', exact: true }).click();
+  await page.getByRole('button', { name: 'Inställningar', exact: true }).click();
+  await page.getByRole('button', { name: 'Behörigheter och kommandon', exact: true }).click();
+  await page.getByRole('button', { name: 'Hämta Discord-roller' }).click();
+  await page.getByLabel('Rustlaget', { exact: true }).check();
+  await page
+    .getByLabel('Discord-person: omnämnande eller användar-ID')
+    .fill('<@123456789012345680>');
+  await page.getByRole('button', { name: 'Hitta och lägg till person' }).click();
+  await expect(page.getByText(/Kompisen ·/)).toBeVisible();
+  await page.getByRole('button', { name: 'Spara Discord-behörigheter' }).click();
+  expect(saved).toEqual({ userIds: ['123456789012345680'], roleIds: ['123456789012345679'] });
 });

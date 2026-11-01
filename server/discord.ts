@@ -408,6 +408,20 @@ export class DiscordBot {
   get isSettingUp() {
     return this.setupBusy;
   }
+  async accessOptions() {
+    insist(this.client?.isReady(), 'Starta Discord-boten först för att hämta namn och roller.');
+    const guild = await this.client.guilds.fetch(this.service.config.discord.guildId);
+    return [...(await guild.roles.fetch()).values()]
+      .filter((r) => r.id !== guild.id)
+      .map((r) => ({ id: r.id, name: r.name }));
+  }
+  async accessUser(id: string) {
+    insist(/^\d{17,20}$/.test(id), 'Ogiltigt Discord-användar-ID.');
+    insist(this.client?.isReady(), 'Starta Discord-boten först för att hämta personen.');
+    const guild = await this.client.guilds.fetch(this.service.config.discord.guildId);
+    const member = await guild.members.fetch({ user: id, force: true });
+    return { id: member.id, name: member.displayName };
+  }
   async guildList() {
     if (!this.client?.isReady()) await this.start(true);
     return [...this.client!.guilds.cache.values()]

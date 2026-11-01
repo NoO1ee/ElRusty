@@ -1057,3 +1057,62 @@
     flex-basis: 100%;
   }
 }
+
+.live-header-server {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.live-header-server select {
+  max-width: 290px;
+}
+.live-header-server label {
+  display: grid;
+  gap: 5px;
+}
+.live-settings-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+.live-settings-tabs [aria-pressed='true'] {
+  border-color: var(--accent);
+  color: #ff7077;
+  background: #32151e;
+}
+.live-settings-content {
+  max-width: 1200px;
+}
+.live-stats > button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 20px;
+  text-align: left;
+  background: #101722;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.live-stats > button strong {
+  font-size: 26px;
+}
+.live-stats > button:hover {
+  border-color: var(--accent);
+}
+.access-choices {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0;
+}
+.access-choices label,
+.access-choices > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.access-choices input {
+  width: auto;
+}

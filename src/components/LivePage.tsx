@@ -1,4 +1,5 @@
 import { LiveTimers } from './LiveTimers';
+import { DiscordAccess } from './DiscordAccess';
 import { ChatControls } from './ChatControls';
 import { DiscordSetup } from './DiscordSetup';
 import { LiveMap } from './LiveMap';
@@ -63,15 +64,29 @@ export function LivePage() {
     setResults([]);
     try {
       const value = await liveAction(path, body);
-      if (Array.isArray(value)) setResults(value);
+      if (Array.isArray(value)) {
+        if (path === 'switch')
+          setDeviceErrors((v) => ({
+            ...v,
+            [(body as { id: string }).id]: value[0]?.ok
+              ? ''
+              : value[0]?.error || 'Styrning kunde inte bekräftas.',
+          }));
+        else setResults(value);
+      }
       after?.();
       await refresh();
     } catch (e) {
-      setError((e as Error).message);
+      if (path === 'switch')
+        setDeviceErrors((v) => ({ ...v, [(body as { id: string }).id]: (e as Error).message }));
+      else setError((e as Error).message);
     } finally {
       setBusy(false);
     }
   }
+  const [settingsTab, setSettingsTab] = useState('Servrar'),
+    [activityFilter, setActivityFilter] = useState('Alla'),
+    [deviceErrors, setDeviceErrors] = useState<Record<string, string>>({});
   const [manualOpen, setManualOpen] = useState(false);
   const [profile, setProfile] = useState(emptyProfile),
     [editingProfile, setEditingProfile] = useState<string | undefined>(),
@@ -116,6 +131,7 @@ export function LivePage() {
     setEditingProfile(p.id);
     setManualOpen(true);
     setTab('Inställningar');
+    setSettingsTab('Servrar');
   }
   function editDevice(d: Device) {
     setDeviceName(d.name);
@@ -154,10 +170,58 @@ export function LivePage() {
             </h1>
             <p>Håll koll på teamet och styr dina smarta enheter — här eller via Discord.</p>
           </div>
-          <div className={'live-connection ' + (connected ? 'online' : '')}>
-            <span />
-            {offline ? 'Tjänsten saknas' : data ? connectionNames[data.connection] : 'Läser…'}
-          </div>
+          {data && (
+            <div className="live-header-server">
+              <label>
+                <span className="eyebrow">SERVER</span>
+                <select
+                  aria-label="Välj Rust-server"
+                  value={data.activeProfileId || ''}
+                  disabled={disabled}
+                  onChange={(e) =>
+                    e.target.value
+                      ? void act('connect', { id: e.target.value })
+                      : void act('disconnect')
+                  }
+                >
+                  <option value="">Välj server</option>
+                  {data.profiles.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <span className={'live-connection ' + (connected ? 'online' : '')}>
+                <span />
+                {offline ? 'Tjänsten saknas' : connectionNames[data.connection]}
+                {!connected && !data.retryExhausted && data.connectionAttempts
+                  ? ' ' + data.connectionAttempts + '/3'
+                  : ''}
+              </span>
+              {selected && !connected && (
+                <button
+                  disabled={disabled}
+                  onClick={() => void act('connect', { id: selected.id })}
+                >
+                  <RefreshCw size={15} /> Försök igen
+                </button>
+              )}
+              {selected && connected && (
+                <button disabled={disabled} onClick={() => void act('disconnect')}>
+                  Koppla från
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setTab('Inställningar');
+                  setSettingsTab('Servrar');
+                }}
+              >
+                Hantera servrar
+              </button>
+            </div>
+          )}
         </header>
         <nav className="live-tabs" aria-label="Live-menyer">
           {[
@@ -198,7 +262,11 @@ export function LivePage() {
             {error}
           </div>
         )}
-        {data?.connectionError && <p className="live-error">{data.connectionError}</p>}
+        {data?.retryExhausted && (
+          <p className="live-muted-banner" role="status">
+            {data.connectionError}
+          </p>
+        )}
         {!!results.length && (
           <section className="live-results" aria-label="Kommandoresultat">
             {results.map((r) => (
@@ -211,107 +279,105 @@ export function LivePage() {
         )}
         {data && (
           <>
-            <section className="live-serverbar">
-              <div>
-                <span className="eyebrow">AKTIV SERVER</span>
-                <strong>{selected?.name || 'Ingen server ansluten'}</strong>
-              </div>
-              <select
-                aria-label="Välj Rust-server"
-                value={data.activeProfileId || ''}
-                disabled={disabled}
-                onChange={(e) =>
-                  e.target.value
-                    ? void act('connect', { id: e.target.value })
-                    : void act('disconnect')
-                }
-              >
-                <option value="">Frånkopplad</option>
-                {data.profiles.map((p) => (
-                  <option value={p.id} key={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-              {selected && (
-                <button disabled={disabled} onClick={() => void act('disconnect')}>
-                  Koppla från
-                </button>
-              )}
-              <button onClick={() => setTab('Inställningar')}>
-                <Plus size={14} /> Hantera servrar
-              </button>
-            </section>
             {tab === 'Timers' && <LiveTimers data={data} offline={offline} />}
             {tab === 'Karta' && <LiveMap data={data} offline={offline} />}
             {tab === 'Översikt' && (
               <>
                 <div className="live-stats">
-                  <article>
+                  <button
+                    onClick={() => {
+                      setTab('Enheter');
+                    }}
+                  >
                     <Power />
                     <strong>{switches.length}</strong>
                     <span>Smarta switches</span>
-                  </article>
-                  <article>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTab('Team');
+                    }}
+                  >
                     <Users />
                     <strong>
                       {data.team.filter((m) => m.isOnline).length} / {data.team.length}
                     </strong>
                     <span>Teammedlemmar online</span>
-                  </article>
-                  <article>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActivityFilter('Larm');
+                      document
+                        .getElementById('live-history')
+                        ?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                  >
                     <Bell />
                     <strong>{data.activity.filter((a) => a.kind === 'alarm').length}</strong>
                     <span>Larm i senaste historiken</span>
-                  </article>
-                  <article>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTab('Inställningar');
+                      setSettingsTab('Discord');
+                    }}
+                  >
                     <Shield />
                     <strong className="live-small-status">
                       {offline ? 'Inaktuell' : data.discord.status}
                     </strong>
                     <span>Discord</span>
-                  </article>
+                  </button>
                 </div>
                 <div className="live-columns">
-                  <section className="live-panel">
-                    <h2>Allt börjar med en anslutning</h2>
-                    <p>
-                      Para din server med Rust+ och lägg till dina switches och larm. Du kan styra
-                      en enhet i taget eller skapa lägen för hela basen.
-                    </p>
-                    <button
-                      className="primary"
-                      onClick={() => setTab(data.profiles.length ? 'Enheter' : 'Inställningar')}
-                    >
-                      {data.profiles.length ? 'Hantera enheter' : 'Anslut din första server'}
-                      <ArrowRight size={15} />
-                    </button>
-                    <div className="live-chat-example">
-                      <span>RUST TEAMCHAT</span>
-                      <code>!time</code>
-                      <p>[ElRusty] Speltid: 18:42</p>
-                      <small>
-                        Exempelsvar. Alla i teamet kan fråga efter serverns aktuella speltid.
-                      </small>
-                    </div>
-                  </section>
-                  <section className="live-panel">
+                  {!data.profiles.length && (
+                    <section className="live-panel">
+                      <h2>Allt börjar med en anslutning</h2>
+                      <p>
+                        Para din server med Rust+ och lägg till dina switches och larm. Du kan styra
+                        en enhet i taget eller skapa lägen för hela basen.
+                      </p>
+                      <button
+                        className="primary"
+                        onClick={() => setTab(data.profiles.length ? 'Enheter' : 'Inställningar')}
+                      >
+                        {data.profiles.length ? 'Hantera enheter' : 'Anslut din första server'}
+                        <ArrowRight size={15} />
+                      </button>
+                    </section>
+                  )}
+
+                  <section className="live-panel" id="live-history">
                     <h2>Senaste händelser</h2>
+                    <div className="live-actions">
+                      {['Alla', 'Larm'].map((f) => (
+                        <button
+                          key={f}
+                          aria-pressed={activityFilter === f}
+                          onClick={() => setActivityFilter(f)}
+                        >
+                          {f}
+                        </button>
+                      ))}
+                    </div>
                     {!data.activity.length ? (
                       <p className="muted">Anslutningar och Smart Alarm-händelser visas här.</p>
                     ) : (
                       <ol className="live-activity">
-                        {data.activity.slice(0, 30).map((a) => (
-                          <li key={a.id}>
-                            <span className={'live-event ' + a.kind}>
-                              {a.kind === 'alarm' ? <Bell size={15} /> : <Radio size={15} />}
-                            </span>
-                            <div>
-                              {a.text}
-                              <small>{new Date(a.at).toLocaleString('sv-SE')}</small>
-                            </div>
-                          </li>
-                        ))}
+                        {data.activity
+                          .filter((a) => activityFilter !== 'Larm' || a.kind === 'alarm')
+                          .slice(0, 30)
+                          .map((a) => (
+                            <li key={a.id}>
+                              <span className={'live-event ' + a.kind}>
+                                {a.kind === 'alarm' ? <Bell size={15} /> : <Radio size={15} />}
+                              </span>
+                              <div>
+                                {a.text}
+                                <small>{new Date(a.at).toLocaleString('sv-SE')}</small>
+                              </div>
+                            </li>
+                          ))}
                       </ol>
                     )}
                   </section>
@@ -447,6 +513,11 @@ export function LivePage() {
                           </button>
                         </div>
                         <div className="live-device-status">
+                          {deviceErrors[d.id] && (
+                            <p role="alert" className="live-error">
+                              {deviceErrors[d.id]}
+                            </p>
+                          )}
                           <span className={fresh ? 'success' : ''}>
                             {pending
                               ? 'Väntar på bekräftelse…'
@@ -652,300 +723,321 @@ export function LivePage() {
               </div>
             )}
             {tab === 'Inställningar' && (
-              <div className="live-columns">
-                <div>
-                  <RustPairing status={data.pairing} disabled={disabled} act={act} />
-                  <section className="live-panel">
-                    <h2>Dina serverprofiler</h2>
-                    {data.profiles.map((p) => (
-                      <div className="live-profile" key={p.id}>
-                        <div>
-                          <strong>{p.name}</strong>
-                          <small>
-                            {p.connectionHost || p.host}:{p.port}
-                            {p.connectionHost && ` · Parningsadress: ${p.host}`}
-                          </small>
-                        </div>
-                        <button
-                          disabled={disabled}
-                          onClick={() => void act('connect', { id: p.id })}
-                        >
-                          Anslut
-                        </button>
-                        <button
-                          aria-label={'Redigera server ' + p.name}
-                          onClick={() => editProfile(p)}
-                        >
-                          <Pencil size={14} />
-                        </button>
-                        <button
-                          disabled={disabled}
-                          aria-label={'Radera server ' + p.name}
-                          onClick={() => {
-                            if (
-                              window.confirm(
-                                'Ta bort serverprofilen samt dess enheter och lägen från ElRusty?',
-                              )
-                            )
-                              void act('profile/delete', { id: p.id });
-                          }}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    ))}
-                    {!data.profiles.length && <p>Inga sparade servrar.</p>}
-                  </section>
-                </div>
-                <div>
-                  <form
-                    className="live-panel"
-                    onSubmit={submit(
-                      () =>
-                        void act(
-                          'discord',
-                          {
-                            ...discord,
-                            userIds: discord.userIds.split(/[\s,]+/).filter(Boolean),
-                            roleIds: discord.roleIds.split(/[\s,]+/).filter(Boolean),
-                          },
-                          () => setDiscord((v) => ({ ...v, token: '' })),
-                        ),
-                    )}
-                  >
-                    <h2>Discord-bot</h2>
-                    <p>
-                      Skapa en bot i Discord Developer Portal. Bjud in med <code>bot</code> och{' '}
-                      <code>applications.commands</code> samt View Channel och Send Messages i
-                      larmkanalen.
-                    </p>
-                    <Field label="Discord-server-ID (eller välj i guiden)">
-                      <input
-                        value={discord.guildId}
-                        onChange={(e) => setDiscord({ ...discord, guildId: e.target.value })}
-                      />
-                    </Field>
-                    <Field label="Larmkanal-ID (valfritt)">
-                      <input
-                        value={discord.channelId}
-                        onChange={(e) => setDiscord({ ...discord, channelId: e.target.value })}
-                      />
-                    </Field>
-                    <Field label="Tillåtna användar-ID:n">
-                      <input
-                        value={discord.userIds}
-                        onChange={(e) => setDiscord({ ...discord, userIds: e.target.value })}
-                        placeholder="Separera med komma"
-                      />
-                    </Field>
-                    <Field label="Tillåtna roll-ID:n">
-                      <input
-                        value={discord.roleIds}
-                        onChange={(e) => setDiscord({ ...discord, roleIds: e.target.value })}
-                        placeholder="Separera med komma"
-                      />
-                    </Field>
-                    <Field
-                      label={
-                        data.discord.hasToken ? 'Bottoken (tomt behåller sparat värde)' : 'Bottoken'
-                      }
-                    >
-                      <input
-                        type="password"
-                        autoComplete="off"
-                        required={!data.discord.hasToken}
-                        value={discord.token}
-                        onChange={(e) => setDiscord({ ...discord, token: e.target.value })}
-                      />
-                    </Field>
-                    <small>
-                      Endast angivna användare eller roller får använda boten. Ditt eget ID behöver
-                      också läggas till.
-                    </small>
-                    <div className="live-actions">
-                      <button disabled={disabled} className="primary">
-                        Spara Discord
-                      </button>
+              <div>
+                <nav className="live-settings-tabs" aria-label="Live-inställningar">
+                  {['Servrar', 'Rust+-parning', 'Discord', 'Behörigheter och kommandon'].map(
+                    (t) => (
                       <button
-                        type="button"
-                        disabled={disabled || !data.discord.hasToken}
-                        onClick={() => void act('discord/start')}
+                        key={t}
+                        aria-pressed={settingsTab === t}
+                        onClick={() => setSettingsTab(t)}
                       >
-                        Starta bot
+                        {t}
                       </button>
-                      <button
-                        type="button"
-                        disabled={disabled}
-                        onClick={() => void act('discord/stop')}
-                      >
-                        Stoppa bot
-                      </button>
+                    ),
+                  )}
+                </nav>
+                <div className="live-settings-content">
+                  {settingsTab === 'Rust+-parning' && (
+                    <RustPairing status={data.pairing} disabled={disabled} act={act} />
+                  )}
+                  {settingsTab === 'Servrar' && (
+                    <div>
+                      <section className="live-panel">
+                        <h2>Dina serverprofiler</h2>
+                        {data.profiles.map((p) => (
+                          <div className="live-profile" key={p.id}>
+                            <div>
+                              <strong>{p.name}</strong>
+                              <small>
+                                {p.connectionHost || p.host}:{p.port}
+                                {p.connectionHost && ` · Parningsadress: ${p.host}`}
+                              </small>
+                            </div>
+                            <button
+                              disabled={disabled}
+                              onClick={() => void act('connect', { id: p.id })}
+                            >
+                              Anslut
+                            </button>
+                            <button
+                              aria-label={'Redigera server ' + p.name}
+                              onClick={() => editProfile(p)}
+                            >
+                              <Pencil size={14} />
+                            </button>
+                            <button
+                              disabled={disabled}
+                              aria-label={'Radera server ' + p.name}
+                              onClick={() => {
+                                if (
+                                  window.confirm(
+                                    'Ta bort serverprofilen samt dess enheter och lägen från ElRusty?',
+                                  )
+                                )
+                                  void act('profile/delete', { id: p.id });
+                              }}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        ))}
+                        {!data.profiles.length && <p>Inga sparade servrar.</p>}
+                      </section>
                     </div>
-                    <p className="muted">
-                      {data.discord.status} · /status · /team · /switch · /group · /mode
-                    </p>
-                  </form>
-                </div>
-                <ChatControls data={data} />
-                <DiscordSetup data={data} />
-                <details
-                  className="pairing-manual"
-                  open={manualOpen}
-                  onToggle={(e) => setManualOpen(e.currentTarget.open)}
-                >
-                  <summary>Lägg in manuellt</summary>
-                  <p className="muted">
-                    Använd befintliga Rust+-uppgifter om den guidade parningen inte passar din
-                    miljö.
-                  </p>
-                  <div className="live-columns">
-                    {' '}
-                    <form
-                      className="live-panel"
-                      onSubmit={submit(
-                        () =>
-                          void act(
-                            'profile',
-                            {
-                              ...profile,
-                              playerToken:
-                                profile.playerToken === '' ? '' : Number(profile.playerToken),
-                              id: editingProfile,
-                            },
-                            () => {
-                              setProfile(emptyProfile);
-                              setEditingProfile(undefined);
-                              setPairing('');
-                            },
-                          ),
-                      )}
-                    >
-                      <h2>{editingProfile ? 'Redigera server' : 'Lägg till Rust-server'}</h2>
-                      <p>
-                        Uppgifterna kommer från Rust+-parningen. app.port är inte serverns vanliga
-                        spelport.
-                      </p>
-                      <Field label="Servernamn">
-                        <input
-                          required
-                          value={profile.name}
-                          onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                        />
-                      </Field>
-                      <div className="live-form-pair">
-                        <Field label="IP eller värdnamn">
-                          <input
-                            required
-                            value={profile.host}
-                            onChange={(e) => setProfile({ ...profile, host: e.target.value })}
-                          />
-                        </Field>
-                        <Field label="app.port">
-                          <input
-                            required
-                            type="number"
-                            min={1}
-                            max={65535}
-                            value={profile.port}
-                            onChange={(e) =>
-                              setProfile({ ...profile, port: Number(e.target.value) })
-                            }
-                          />
-                        </Field>
-                      </div>
-                      <Field label="Anslutningsadress (valfri)">
-                        <input
-                          aria-label="Anslutningsadress (valfri)"
-                          value={profile.connectionHost}
-                          placeholder="Till exempel 127.0.0.1"
-                          onChange={(e) =>
-                            setProfile({ ...profile, connectionHost: e.target.value })
-                          }
-                          aria-describedby="connection-host-help"
-                        />
-                        <small id="connection-host-help">
-                          För lokal anslutning eller LAN. Lämna tomt för parningsadressen. Bevaras
-                          vid omparning; kräver avstängd Facepunch-proxy.
-                        </small>
-                      </Field>
-                      <Field label="SteamID64">
-                        <input
-                          required
-                          inputMode="numeric"
-                          value={profile.playerId}
-                          onChange={(e) => setProfile({ ...profile, playerId: e.target.value })}
-                        />
-                      </Field>
-                      <Field
-                        label={
-                          editingProfile
-                            ? 'PlayerToken (tomt behåller sparat värde)'
-                            : 'PlayerToken'
-                        }
+                  )}
+                  {settingsTab === 'Discord' && (
+                    <div>
+                      <form
+                        className="live-panel"
+                        onSubmit={submit(
+                          () =>
+                            void act(
+                              'discord',
+                              {
+                                ...discord,
+                                userIds: data.discord.userIds,
+                                roleIds: data.discord.roleIds,
+                              },
+                              () => setDiscord((v) => ({ ...v, token: '' })),
+                            ),
+                        )}
                       >
-                        <input
-                          required={!editingProfile}
-                          type="password"
-                          autoComplete="off"
-                          value={profile.playerToken}
-                          onChange={(e) => setProfile({ ...profile, playerToken: e.target.value })}
-                        />
-                      </Field>
-                      <label className="live-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={profile.useProxy}
-                          onChange={(e) => setProfile({ ...profile, useProxy: e.target.checked })}
-                        />{' '}
-                        Använd Facepunch-proxy
-                      </label>
-                      <div className="live-actions">
-                        <button disabled={disabled} className="primary">
-                          Spara server
-                        </button>
-                        {editingProfile && (
+                        <h2>Discord-bot</h2>
+                        <p>
+                          Skapa en bot i Discord Developer Portal. Bjud in med <code>bot</code> och{' '}
+                          <code>applications.commands</code> samt View Channel och Send Messages i
+                          larmkanalen.
+                        </p>
+                        <Field label="Discord-server-ID (eller välj i guiden)">
+                          <input
+                            value={discord.guildId}
+                            onChange={(e) => setDiscord({ ...discord, guildId: e.target.value })}
+                          />
+                        </Field>
+                        <Field label="Larmkanal-ID (valfritt)">
+                          <input
+                            value={discord.channelId}
+                            onChange={(e) => setDiscord({ ...discord, channelId: e.target.value })}
+                          />
+                        </Field>
+
+                        <Field
+                          label={
+                            data.discord.hasToken
+                              ? 'Bottoken (tomt behåller sparat värde)'
+                              : 'Bottoken'
+                          }
+                        >
+                          <input
+                            type="password"
+                            autoComplete="off"
+                            required={!data.discord.hasToken}
+                            value={discord.token}
+                            onChange={(e) => setDiscord({ ...discord, token: e.target.value })}
+                          />
+                        </Field>
+                        <small>
+                          Endast angivna användare eller roller får använda boten. Ditt eget ID
+                          behöver också läggas till.
+                        </small>
+                        <div className="live-actions">
+                          <button disabled={disabled} className="primary">
+                            Spara Discord
+                          </button>
                           <button
                             type="button"
+                            disabled={disabled || !data.discord.hasToken}
+                            onClick={() => void act('discord/start')}
+                          >
+                            Starta bot
+                          </button>
+                          <button
+                            type="button"
+                            disabled={disabled}
+                            onClick={() => void act('discord/stop')}
+                          >
+                            Stoppa bot
+                          </button>
+                        </div>
+                        <p className="muted">
+                          {data.discord.status} · /status · /team · /switch · /group · /mode
+                        </p>
+                      </form>
+                      <DiscordSetup data={data} />
+                    </div>
+                  )}
+                  {settingsTab === 'Behörigheter och kommandon' && (
+                    <div className="live-columns">
+                      <ChatControls data={data} />
+                      <DiscordAccess data={data} onSetup={() => setSettingsTab('Discord')} />
+                    </div>
+                  )}
+                  {settingsTab === 'Servrar' && (
+                    <details
+                      className="pairing-manual"
+                      open={manualOpen}
+                      onToggle={(e) => setManualOpen(e.currentTarget.open)}
+                    >
+                      <summary>Lägg in manuellt</summary>
+                      <p className="muted">
+                        Använd befintliga Rust+-uppgifter om den guidade parningen inte passar din
+                        miljö.
+                      </p>
+                      <div className="live-columns">
+                        {' '}
+                        <form
+                          className="live-panel"
+                          onSubmit={submit(
+                            () =>
+                              void act(
+                                'profile',
+                                {
+                                  ...profile,
+                                  playerToken:
+                                    profile.playerToken === '' ? '' : Number(profile.playerToken),
+                                  id: editingProfile,
+                                },
+                                () => {
+                                  setProfile(emptyProfile);
+                                  setEditingProfile(undefined);
+                                  setPairing('');
+                                },
+                              ),
+                          )}
+                        >
+                          <h2>{editingProfile ? 'Redigera server' : 'Lägg till Rust-server'}</h2>
+                          <p>
+                            Uppgifterna kommer från Rust+-parningen. app.port är inte serverns
+                            vanliga spelport.
+                          </p>
+                          <Field label="Servernamn">
+                            <input
+                              required
+                              value={profile.name}
+                              onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                            />
+                          </Field>
+                          <div className="live-form-pair">
+                            <Field label="IP eller värdnamn">
+                              <input
+                                required
+                                value={profile.host}
+                                onChange={(e) => setProfile({ ...profile, host: e.target.value })}
+                              />
+                            </Field>
+                            <Field label="app.port">
+                              <input
+                                required
+                                type="number"
+                                min={1}
+                                max={65535}
+                                value={profile.port}
+                                onChange={(e) =>
+                                  setProfile({ ...profile, port: Number(e.target.value) })
+                                }
+                              />
+                            </Field>
+                          </div>
+                          <Field label="Anslutningsadress (valfri)">
+                            <input
+                              aria-label="Anslutningsadress (valfri)"
+                              value={profile.connectionHost}
+                              placeholder="Till exempel 127.0.0.1"
+                              onChange={(e) =>
+                                setProfile({ ...profile, connectionHost: e.target.value })
+                              }
+                              aria-describedby="connection-host-help"
+                            />
+                            <small id="connection-host-help">
+                              För lokal anslutning eller LAN. Lämna tomt för parningsadressen.
+                              Bevaras vid omparning; kräver avstängd Facepunch-proxy.
+                            </small>
+                          </Field>
+                          <Field label="SteamID64">
+                            <input
+                              required
+                              inputMode="numeric"
+                              value={profile.playerId}
+                              onChange={(e) => setProfile({ ...profile, playerId: e.target.value })}
+                            />
+                          </Field>
+                          <Field
+                            label={
+                              editingProfile
+                                ? 'PlayerToken (tomt behåller sparat värde)'
+                                : 'PlayerToken'
+                            }
+                          >
+                            <input
+                              required={!editingProfile}
+                              type="password"
+                              autoComplete="off"
+                              value={profile.playerToken}
+                              onChange={(e) =>
+                                setProfile({ ...profile, playerToken: e.target.value })
+                              }
+                            />
+                          </Field>
+                          <label className="live-checkbox">
+                            <input
+                              type="checkbox"
+                              checked={profile.useProxy}
+                              onChange={(e) =>
+                                setProfile({ ...profile, useProxy: e.target.checked })
+                              }
+                            />{' '}
+                            Använd Facepunch-proxy
+                          </label>
+                          <div className="live-actions">
+                            <button disabled={disabled} className="primary">
+                              Spara server
+                            </button>
+                            {editingProfile && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingProfile(undefined);
+                                  setProfile(emptyProfile);
+                                }}
+                              >
+                                Avbryt
+                              </button>
+                            )}
+                          </div>
+                        </form>
+                        <section className="live-panel">
+                          <h2>Importera parningsuppgifter</h2>
+                          <p>
+                            Klistra in JSON med <code>ip</code>, <code>port</code>,{' '}
+                            <code>playerId</code> och <code>playerToken</code>. Uppgifterna fyller i
+                            serverformuläret.
+                          </p>
+                          <textarea
+                            aria-label="Parnings-JSON"
+                            rows={4}
+                            value={pairing}
+                            onChange={(e) => setPairing(e.target.value)}
+                          />
+                          <button
                             onClick={() => {
-                              setEditingProfile(undefined);
-                              setProfile(emptyProfile);
+                              try {
+                                setProfile({ ...parsePairing(pairing), connectionHost: '' });
+                                setEditingProfile(undefined);
+                                setPairing('');
+                                setError('');
+                              } catch (e) {
+                                setError((e as Error).message);
+                              }
                             }}
                           >
-                            Avbryt
+                            Läs parning
                           </button>
-                        )}
+                        </section>
                       </div>
-                    </form>
-                    <section className="live-panel">
-                      <h2>Importera parningsuppgifter</h2>
-                      <p>
-                        Klistra in JSON med <code>ip</code>, <code>port</code>,{' '}
-                        <code>playerId</code> och <code>playerToken</code>. Uppgifterna fyller i
-                        serverformuläret.
-                      </p>
-                      <textarea
-                        aria-label="Parnings-JSON"
-                        rows={4}
-                        value={pairing}
-                        onChange={(e) => setPairing(e.target.value)}
-                      />
-                      <button
-                        onClick={() => {
-                          try {
-                            setProfile({ ...parsePairing(pairing), connectionHost: '' });
-                            setEditingProfile(undefined);
-                            setPairing('');
-                            setError('');
-                          } catch (e) {
-                            setError((e as Error).message);
-                          }
-                        }}
-                      >
-                        Läs parning
-                      </button>
-                    </section>
-                  </div>
-                </details>
+                    </details>
+                  )}
+                </div>
               </div>
             )}
           </>

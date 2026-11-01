@@ -179,3 +179,9 @@ Receptbiblioteket omfattar fortfarande tre crafter-recept. Smältfördelning, cr
 - Backup avvisar okända crafter-recept och ogiltig workbench.
 
 Fortsatta begränsningar: seriell smältkö, gemensam lagerbudget, tre crafter-recept, manuellt blueprint och ingen spelverifiering. Se [simuleringsmodellen](docs/SIMULATION.md).
+
+## 0.14.0 — 2026-11-01
+
+- Serverval och status i sidhuvudet, tre anslutningsförsök per omgång och manuell återstart.
+- Inställningsflikar för servrar, parning, Discord och separata Rust-/Discord-behörigheter.
+- Klickbara översiktskort, villkorad introduktion och tyst individuell switchstyrning.

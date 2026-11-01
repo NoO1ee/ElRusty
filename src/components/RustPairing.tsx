@@ -16,6 +16,54 @@ export function RustPairing({
     message: 'Registrera Rust+ för att ta emot serverparningar.',
     candidates: [],
   };
+  if (pair.hasRegistration)
+    return (
+      <section className="live-panel pairing-guide" aria-label="Guidad Rust+-parning">
+        <h2>Para en ny server</h2>
+        <p>
+          Öppna Rust → Esc → Rust+ → Pair with Server. Serverförslaget visas här; enhetsförslag
+          finns under Enheter.
+        </p>
+        <p role="status">{pair.message}</p>
+        {pair.warning && <p className="live-muted-banner">{pair.warning}</p>}
+        <div className="live-actions">
+          <button disabled={disabled || pair.running} onClick={() => void act('pairing/listen')}>
+            Vänta på server
+          </button>
+          {pair.running && (
+            <button disabled={disabled} onClick={() => void act('pairing/cancel')}>
+              Avbryt parning
+            </button>
+          )}
+        </div>
+        {pair.candidates.map((c) => (
+          <article className="live-profile" key={c.id}>
+            <div>
+              <strong>{c.name}</strong>
+              <small>
+                {c.host}:{c.port}
+              </small>
+            </div>
+            <button disabled={disabled} onClick={() => void act('pairing/accept', { id: c.id })}>
+              Lägg till och anslut
+            </button>
+          </article>
+        ))}
+        <details>
+          <summary>Registrering och felsökning</summary>
+          <p>
+            Registreringen är sparad. Registrera på nytt endast om kontot eller
+            anslutningsuppgifterna behöver förnyas.
+          </p>
+          <button
+            disabled={disabled || pair.status === 'registering'}
+            onClick={() => void act('pairing/register')}
+          >
+            Registrera på nytt
+          </button>
+        </details>
+      </section>
+    );
   return (
     <section className="live-panel pairing-guide" aria-label="Guidad Rust+-parning">
       <div className="pairing-title">

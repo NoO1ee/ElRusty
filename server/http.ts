@@ -9,7 +9,18 @@ import { UserError, insist, object, text, discord } from './validation.ts';
 export function createLiveHttp(
   service: LiveService,
   bot: Pick<DiscordBot, 'start' | 'stop'> &
-    Partial<Pick<DiscordBot, 'guildList' | 'preview' | 'setup' | 'isSettingUp' | 'setRelay'>>,
+    Partial<
+      Pick<
+        DiscordBot,
+        | 'guildList'
+        | 'preview'
+        | 'setup'
+        | 'isSettingUp'
+        | 'setRelay'
+        | 'accessOptions'
+        | 'accessUser'
+      >
+    >,
   options: { port: number; dist?: string; dev?: boolean; pairing?: PairingManager },
 ) {
   const csrf = randomBytes(32).toString('hex'),
@@ -128,6 +139,27 @@ export function createLiveHttp(
             insist(typeof b.enabled === 'boolean', 'Ogiltigt chattval.');
             await bot.setRelay(b.enabled);
             break;
+          case '/api/live/discord/access/options':
+            insist(bot.accessOptions, 'Discord-namn stöds inte.');
+            result = await bot.accessOptions();
+            break;
+          case '/api/live/discord/access/user':
+            insist(bot.accessUser, 'Discord-namn stöds inte.');
+            result = await bot.accessUser(text(b.id));
+            break;
+          case '/api/live/discord/access': {
+            insist(!bot.isSettingUp, 'Vänta tills kanalsetupen är klar.');
+            const enabled = service.config.discord.enabled;
+            service.saveDiscord({
+              ...service.config.discord,
+              userIds: b.userIds,
+              roleIds: b.roleIds,
+            });
+            service.config.discord.enabled = enabled;
+            service.db.save(service.config);
+            service.changed();
+            break;
+          }
           case '/api/live/discord/guilds':
             insist(bot.guildList, 'Setup stöds inte.');
             result = await bot.guildList();

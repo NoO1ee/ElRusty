@@ -48,6 +48,7 @@ export class LiveService extends EventEmitter {
   private retry: ReturnType<typeof setTimeout> | undefined;
   private poll: ReturnType<typeof setInterval> | undefined;
   private retries = 0;
+  retryExhausted = false;
   private stable: ReturnType<typeof setTimeout> | undefined;
   private queue: Promise<unknown> = Promise.resolve();
   private timeBusy = false;
@@ -78,6 +79,8 @@ export class LiveService extends EventEmitter {
       devices: this.config.devices.filter((d) => d.profileId === activeProfileId),
       modes: this.config.modes.filter((m) => m.profileId === activeProfileId),
       connection: this.connection,
+      connectionAttempts: this.retries,
+      retryExhausted: this.retryExhausted,
       connectionError: this.connectionError,
       team: this.team,
       teamUpdatedAt: this.teamUpdatedAt,
@@ -173,6 +176,7 @@ export class LiveService extends EventEmitter {
     this.stop();
     this.config.activeProfileId = null;
     this.connection = 'disconnected';
+    this.retryExhausted = false;
     this.connectionError = '';
     this.team = [];
     this.teamUpdatedAt = null;
@@ -189,6 +193,7 @@ export class LiveService extends EventEmitter {
     this.config.activeProfileId = id;
     this.world?.select(id);
     this.retries = 0;
+    this.retryExhausted = false;
     this.mapNotes = [];
     this.lastDeath = null;
     this.deathKey = '';
@@ -203,6 +208,7 @@ export class LiveService extends EventEmitter {
   private async establish(reconnecting: boolean) {
     const p = this.config.profiles.find((p) => p.id === this.config.activeProfileId);
     if (!p) return;
+    this.retries++;
     const gen = ++this.generation,
       adapter = this.factory(p);
     this.adapter = adapter;
@@ -235,11 +241,15 @@ export class LiveService extends EventEmitter {
           : 'Kunde inte nå eller autentisera mot Rust+. Kontrollera server, app.port och parning.';
       if (reason === 'protocol' && field && /^rustplus\.[A-Za-z0-9_.]{1,120}$/.test(field))
         this.connectionError += ' Saknat fält: ' + field + '.';
+      if (this.retries >= 3) {
+        this.retryExhausted = true;
+        this.connection = 'disconnected';
+        this.connectionError =
+          'Kunde inte ansluta efter tre försök. Din parning finns kvar. Klicka Försök igen när servern är igång.';
+      }
       this.changed();
-      this.retry = setTimeout(
-        () => void this.establish(true),
-        Math.min(30000, 1000 * 2 ** Math.min(this.retries++, 5)),
-      );
+      if (!this.retryExhausted)
+        this.retry = setTimeout(() => void this.establish(true), Math.max(1, this.retries) * 1000);
     };
     adapter.on('lost', fail);
     adapter.on('entity', (entityId: number, payload: any) => {

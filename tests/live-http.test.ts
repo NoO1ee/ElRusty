@@ -224,3 +224,27 @@ it('timer-API kräver CSRF, validerar och ignorerar falsk skapare/profil från k
   ).toBe('cancelled');
   expect((await call('state')).data.timers[0].state).toBe('cancelled');
 });
+
+it('Discord-behörighets-API kräver CSRF och bevarar token, guild och aktiverad bot', async () => {
+  const { s, call } = await setup();
+  s.config.discord = {
+    guildId: '123456789012345678',
+    channelId: '',
+    token: 'secret',
+    userIds: [],
+    roleIds: [],
+    enabled: true,
+  };
+  const body = { userIds: ['123456789012345679'], roleIds: [] };
+  expect((await call('discord/access', 'POST', body)).status).toBe(403);
+  const { data } = await call('state');
+  expect((await call('discord/access', 'POST', body, { 'X-ElRusty-CSRF': data.csrf })).status).toBe(
+    200,
+  );
+  expect(s.config.discord).toMatchObject({
+    ...body,
+    enabled: true,
+    token: 'secret',
+    guildId: '123456789012345678',
+  });
+});

@@ -15,7 +15,7 @@ export function ChatControls({ data }: { data: LiveSnapshot }) {
   return (
     <section className="live-panel">
       <div className="eyebrow">RUST TEAMCHATT</div>
-      <h2>Kommandon och behörigheter</h2>
+      <h2>Rust — SteamID64 per serverprofil</h2>
       <p>
         Alla i teamet kan använda läskommandona. Skriv !help för listan eller !help team för
         teamkommandon. Styrning kräver det parade kontot eller ett tillåtet SteamID för vald server.
@@ -31,6 +31,31 @@ export function ChatControls({ data }: { data: LiveSnapshot }) {
           ))}
         </select>
       </label>
+      <div className="access-choices">
+        {id === data.activeProfileId &&
+          data.team.map((m) => {
+            const allowed = ids.split(/[,\s]+/).filter(Boolean);
+            return (
+              <label key={m.steamId}>
+                <input
+                  type="checkbox"
+                  disabled={m.steamId === profile?.playerId}
+                  checked={m.steamId === profile?.playerId || allowed.includes(m.steamId)}
+                  onChange={(e) =>
+                    setIds(
+                      (e.target.checked
+                        ? [...allowed, m.steamId]
+                        : allowed.filter((x) => x !== m.steamId)
+                      ).join(', '),
+                    )
+                  }
+                />
+                {m.name}
+                {m.steamId === profile?.playerId ? ' · Parat konto' : ''}
+              </label>
+            );
+          })}
+      </div>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -42,14 +67,17 @@ export function ChatControls({ data }: { data: LiveSnapshot }) {
             .finally(() => setBusy(false));
         }}
       >
-        <label className="live-field">
-          <span>Tillåtna SteamID:n för styrkommandon</span>
-          <textarea
-            value={ids}
-            onChange={(e) => setIds(e.target.value)}
-            placeholder="SteamID64, separerade med komma"
-          />
-        </label>
+        <details>
+          <summary>Avancerat: SteamID64</summary>
+          <label className="live-field">
+            <span>Tillåtna SteamID:n för styrkommandon</span>
+            <textarea
+              value={ids}
+              onChange={(e) => setIds(e.target.value)}
+              placeholder="SteamID64, separerade med komma"
+            />
+          </label>
+        </details>
         <button disabled={busy || !profile}>Spara chattbehörigheter</button>
       </form>
       <p>

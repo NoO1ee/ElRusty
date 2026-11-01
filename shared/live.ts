@@ -69,6 +69,8 @@ export interface DiscordConfig {
   roleIds: string[];
 }
 export interface LiveSnapshot {
+  connectionAttempts?: number;
+  retryExhausted?: boolean;
   timers?: LiveTimer[];
   timerError?: string;
   mapNotes?: TeamMapNote[];

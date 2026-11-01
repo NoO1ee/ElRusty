@@ -353,27 +353,62 @@ it('protokollfel visas tydligt och återansluter med bibehållen profil', async 
   expect(s.snapshot().devices[0].id).toBe(device.id);
 });
 
-it('upprepade protokollfel efter serverinfo ökar retry-väntan tills anslutningen är stabil', async () => {
+it('tre misslyckade försök stoppar automatiken och manuell anslutning startar en ny omgång', async () => {
   vi.useFakeTimers();
-  const { s, a, adapters } = await setup();
-  a.emit('lost', 'protocol');
+  const db = new LiveDB(':memory:'),
+    adapters: FakeRust[] = [];
+  const service = new LiveService(db, () => {
+    const a = new FakeRust();
+    a.open.mockRejectedValue(Error('private'));
+    adapters.push(a);
+    return a;
+  });
+  all.push({ s: service, db });
+  const id = service.saveProfile(input);
+  service.pairing.running = true;
+  service.connect(id);
+  await flush();
+  expect(adapters).toHaveLength(1);
   await vi.advanceTimersByTimeAsync(1000);
   expect(adapters).toHaveLength(2);
-  adapters[1].emit('lost', 'protocol');
-  await vi.advanceTimersByTimeAsync(1000);
+  await vi.advanceTimersByTimeAsync(1999);
   expect(adapters).toHaveLength(2);
-  await vi.advanceTimersByTimeAsync(1000);
-  expect(adapters).toHaveLength(3);
-  adapters[2].emit('lost', 'protocol');
-  await vi.advanceTimersByTimeAsync(3999);
-  expect(adapters).toHaveLength(3);
   await vi.advanceTimersByTimeAsync(1);
+  expect(adapters).toHaveLength(3);
+  expect(service.snapshot()).toMatchObject({
+    connection: 'disconnected',
+    retryExhausted: true,
+    activeProfileId: id,
+    connectionAttempts: 3,
+  });
+  expect(service.config.profiles[0].playerToken).toBe(input.playerToken);
+  expect(service.pairing.running).toBe(true);
+  await vi.advanceTimersByTimeAsync(120000);
+  expect(adapters).toHaveLength(3);
+  service.connect(id);
+  await flush();
   expect(adapters).toHaveLength(4);
+  expect(service.snapshot().connectionAttempts).toBe(1);
+});
+it('tre instabila anslutningar kräver nytt försök och 30 stabila sekunder återställer omgången', async () => {
+  vi.useFakeTimers();
+  const { s, a, id, adapters } = await setup();
+  a.emit('lost');
+  await vi.advanceTimersByTimeAsync(1000);
+  adapters[1].emit('lost');
+  await vi.advanceTimersByTimeAsync(2000);
+  adapters[2].emit('lost');
+  expect(s.snapshot().retryExhausted).toBe(true);
+  await vi.advanceTimersByTimeAsync(60000);
+  expect(adapters).toHaveLength(3);
+  s.connect(id);
+  await flush();
   await vi.advanceTimersByTimeAsync(30000);
-  expect(s.snapshot().connection).toBe('connected');
-  adapters[3].emit('lost', 'protocol');
+  expect(s.snapshot().connectionAttempts).toBe(0);
+  adapters[3].emit('lost');
   await vi.advanceTimersByTimeAsync(1000);
   expect(adapters).toHaveLength(5);
+  expect(s.snapshot().connection).toBe('connected');
 });
 
 it('validerar, bevarar och tar bort separat anslutningsadress', () => {

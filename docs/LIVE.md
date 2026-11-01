@@ -246,3 +246,9 @@ Automatiska tester täcker start, paus, processavbrott, förfall, dubbletter, fe
 ### Ta bort eller avvisa 0.13.1
 
 Papperskorgen bredvid namnet på ett sparat enhetskort tar bort enheten från ElRusty, inklusive dess referenser i sparade lägen. Det skickar inget kommando till switchen och tar inte bort objektet i Rust. X vid ett enhetsförslag avvisar bara förslaget. Mottagningen fortsätter, och en ny parning kan skapa ett nytt förslag. Avvisning fungerar även när Rust+ återansluter, förutsatt att lokal tjänst och vald profil finns. Pågående verifiering måste slutföras innan förslaget kan avvisas. POST /api/live/pairing/device/dismiss tar förslagets id och använder befintligt CSRF-skydd.
+
+## Navigation och anslutning 0.14
+
+Vald server och anslutningsstatus finns i Live-sidhuvudet. Hantera servrar öppnar Inställningar → Servrar. Övriga underflikar är Rust+-parning, Discord och Behörigheter och kommandon. Rust använder SteamID64 per profil; välj en teammedlem med namn eller ange ID under Avancerat. Discord använder separata Discord-personer/roller. Hämta namn när boten är igång; annars finns sparade ID:n kvar. Ändrad Discord-åtkomst kräver uppdaterad kanalsetup innan nya utskick till privata kanaler tillåts.
+
+En anslutningsomgång gör tre försök totalt med en och två sekunders väntan. Därefter behålls vald profil men styrning spärras tills Försök igen startar en ny omgång. Efter 30 stabila sekunder återställs försöksräknaren. En tjänsteomstart startar en ny omgång; parningsmottagningen påverkas inte av att Rust-servern är offline. Individuell switchstyrning visar väntan och tillstånd på kortet samt lokala fel. Grupper och lägen behåller sammanställning per enhet.
