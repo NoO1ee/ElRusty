@@ -185,9 +185,20 @@ export function LivePage() {
             <p>Håll koll på teamet och styr dina smarta enheter — här eller via Discord.</p>
           </div>
           {data && (
-            <div className="live-header-server">
+            <section className="live-header-server" aria-label="Serveranslutning">
+              <div className="live-server-card-heading">
+                <span className="live-server-card-title">
+                  <Radio size={15} /> Aktiv server
+                </span>
+                <span className={'live-connection ' + (connected ? 'online' : '')}>
+                  <span />
+                  {offline ? 'Tjänsten saknas' : connectionNames[data.connection]}
+                  {!connected && !data.retryExhausted && data.connectionAttempts
+                    ? ' ' + data.connectionAttempts + '/3'
+                    : ''}
+                </span>
+              </div>
               <label>
-                <span className="eyebrow">SERVER</span>
                 <select
                   aria-label="Välj Rust-server"
                   value={data.activeProfileId || ''}
@@ -206,35 +217,31 @@ export function LivePage() {
                   ))}
                 </select>
               </label>
-              <span className={'live-connection ' + (connected ? 'online' : '')}>
-                <span />
-                {offline ? 'Tjänsten saknas' : connectionNames[data.connection]}
-                {!connected && !data.retryExhausted && data.connectionAttempts
-                  ? ' ' + data.connectionAttempts + '/3'
-                  : ''}
-              </span>
-              {selected && !connected && (
+
+              <div className="live-server-card-actions">
+                {selected && !connected && (
+                  <button
+                    disabled={disabled}
+                    onClick={() => void act('connect', { id: selected.id })}
+                  >
+                    <RefreshCw size={15} /> Försök igen
+                  </button>
+                )}
+                {selected && connected && (
+                  <button disabled={disabled} onClick={() => void act('disconnect')}>
+                    Koppla från
+                  </button>
+                )}
                 <button
-                  disabled={disabled}
-                  onClick={() => void act('connect', { id: selected.id })}
+                  onClick={() => {
+                    setTab('Inställningar');
+                    setSettingsTab('Servrar');
+                  }}
                 >
-                  <RefreshCw size={15} /> Försök igen
+                  Hantera servrar
                 </button>
-              )}
-              {selected && connected && (
-                <button disabled={disabled} onClick={() => void act('disconnect')}>
-                  Koppla från
-                </button>
-              )}
-              <button
-                onClick={() => {
-                  setTab('Inställningar');
-                  setSettingsTab('Servrar');
-                }}
-              >
-                Hantera servrar
-              </button>
-            </div>
+              </div>
+            </section>
           )}
         </header>
         <nav className="live-tabs" aria-label="Live-menyer">

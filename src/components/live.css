@@ -1067,17 +1067,62 @@
 }
 
 .live-header-server {
+  display: grid;
+  gap: 12px;
+  width: 360px;
+  max-width: 100%;
+  flex-shrink: 0;
+  padding: 16px;
+  border: 1px solid #344155;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #172334, #101722);
+  box-shadow: 0 8px 24px #0002;
+}
+.live-server-card-heading {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
 }
-.live-header-server select {
-  max-width: 290px;
+.live-server-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #b3c0d3;
+  font-size: 12px;
+  font-weight: 600;
+}
+.live-server-card-title svg {
+  color: #ff7985;
+}
+.live-header-server .live-connection {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  font-size: 12px;
 }
 .live-header-server label {
-  display: grid;
-  gap: 5px;
+  display: block;
+  min-width: 0;
+}
+.live-header-server select {
+  width: 100%;
+  max-width: none;
+}
+.live-server-card-actions {
+  display: flex;
+  gap: 8px;
+}
+.live-server-card-actions button {
+  flex: 1;
+  justify-content: center;
+  font-size: 12px;
+}
+@media (max-width: 700px) {
+  .live-header-server {
+    width: 100%;
+    flex-shrink: 1;
+  }
 }
 .live-settings-tabs {
   display: flex;
