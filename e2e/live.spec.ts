@@ -313,7 +313,12 @@ test('kartan har lager, markeringsdetaljer och statusprick även i kretsbyggaren
   await expect(page.locator('.live-map-detail')).toContainText('Ungefärlig position');
   const marker = page.getByRole('button', { name: 'Cargo Ship', exact: true });
   await expect
-    .poll(() => marker.locator('circle').first().evaluate((el) => el.getBoundingClientRect().width))
+    .poll(() =>
+      marker
+        .locator('circle')
+        .first()
+        .evaluate((el) => el.getBoundingClientRect().width),
+    )
     .toBeGreaterThan(12);
   await marker.click();
   await expect(page.locator('.live-map-detail')).toContainText('Cargo Ship');
@@ -774,4 +779,57 @@ test('lagchatt visar historik och sändningsstatus samt spärrar sändning efter
   await page.getByRole('button', { name: 'Översikt', exact: true }).click();
   await page.getByRole('button', { name: 'Koppla från', exact: true }).click();
   await expect(page.getByLabel('Meddelande till laget', { exact: true })).toBeDisabled();
+});
+
+test('Team visar uppskattad AFK, senaste online och inaktuell information', async ({ page }) => {
+  const state = initial();
+  const seen = Date.now() - 7200000;
+  state.teamUpdatedAt = Date.now();
+  state.team[0] = {
+    ...state.team[0],
+    isOnline: true,
+    isAfk: true,
+    observedOnlineMs: 10800000,
+    observedAfkMs: 5400000,
+    lastSeenOnlineAt: Date.now(),
+  };
+  state.team.push({
+    ...state.team[0],
+    steamId: '76561198000000002',
+    name: 'Offlinevän',
+    isOnline: false,
+    isAfk: false,
+    lastSeenOnlineAt: seen,
+  });
+  state.team.push({
+    ...state.team[1],
+    steamId: '76561198000000003',
+    name: 'Okänd',
+    lastSeenOnlineAt: undefined,
+  });
+  await page.route('**/api/live/**', async (route) => {
+    if (route.request().method() === 'POST') {
+      state.connection = 'disconnected';
+      await route.fulfill({ json: { ok: true } });
+    } else await route.fulfill({ json: state });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Live', exact: true }).click();
+  const teamNav = page
+    .getByRole('navigation', { name: 'Live-menyer' })
+    .getByRole('button', { name: 'Team', exact: true });
+  await teamNav.click();
+  await expect(page.getByText('AFK nu · uppskattat', { exact: true })).toBeVisible();
+  await page.screenshot({ path: 'test-results/afk-team.png' });
+  await expect(page.getByText('Uppskattad AFK-tid denna wipe: 1 h 30 min')).toHaveCount(3);
+  const friend = page.locator('.live-member').filter({ hasText: 'Offlinevän' });
+  await expect(friend).toContainText('för 2 timmar sedan');
+  await expect(friend.locator('time')).toHaveAttribute('datetime', new Date(seen).toISOString());
+  await expect(page.locator('.live-member').filter({ hasText: 'Okänd' })).toContainText(
+    'Senast sedd online: Okänt',
+  );
+  await page.getByRole('button', { name: 'Koppla från', exact: true }).click();
+  await expect(page.getByText('AFK nu · uppskattat', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Online nu', { exact: true })).toHaveCount(0);
+  await expect(page.locator('.live-member').first()).toContainText('Inaktuell information');
 });

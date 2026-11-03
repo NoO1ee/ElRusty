@@ -198,3 +198,9 @@ Fortsatta begränsningar: seriell smältkö, gemensam lagerbudget, tre crafter-r
 - Gula waypointnålar, röda dödskallar och större klickytor; ledarens noteringar och uppskattade positioner särskiljs.
 - Observerade teamdödsplatser visas tillsammans med egen senaste dödsplats utan ändring av kartkoordinater.
 - Verklig lagchatt och jämförelse med samma serverkarta i spelet återstår som manuella spelkontroller.
+
+## 0.17.0 — 2026-11-03
+
+- Uppskattad AFK-tid per teammedlem och wipe med tiominutersgräns och retroaktiv periodräkning.
+- Tydligare senaste onlinetid, exakt datum och inaktuell status efter avbrott.
+- AFK-perioder avbryts vid rörelse, död/respawn, saknade observationer och återanslutning; sparade totaler bevaras.

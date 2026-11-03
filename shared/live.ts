@@ -29,6 +29,7 @@ export interface Mode {
 export interface TeamObservation {
   name: string;
   onlineMs: number;
+  afkMs?: number;
   lastSeenOnlineAt?: number;
   lastDeathAt?: number;
   lastDeath?: LastDeath;
@@ -48,6 +49,8 @@ export interface TeamChatLine {
 }
 export interface Member {
   observedOnlineMs?: number;
+  observedAfkMs?: number;
+  isAfk?: boolean;
   lastSeenOnlineAt?: number;
   lastDeathAt?: number;
   lastDeath?: LastDeath;

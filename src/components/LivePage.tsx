@@ -1,3 +1,4 @@
+import { TeamPresence, observedDuration } from './TeamPresence';
 import { TeamChat } from './TeamChat';
 import { SteamAvatar } from './SteamAvatar';
 import { LiveTimers } from './LiveTimers';
@@ -53,6 +54,11 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 export function LivePage() {
+  const [teamNow, setTeamNow] = useState(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setTeamNow(Date.now()), 5000);
+    return () => clearInterval(timer);
+  }, []);
   const [mapFocus, setMapFocus] = useState<
     | {
         id: string;
@@ -631,20 +637,33 @@ export function LivePage() {
                       : 'Inaktuell information'}
                   </span>
                 </div>
+                <p className="muted">
+                  AFK är uppskattat efter 10 minuter inom två meter och räknar då hela perioden.
+                  Stillastående byggande, crafting och sortering kan räknas som AFK. Mätningen
+                  börjar med version 0.17; tidigare AFK-tid är okänd.
+                </p>
                 {data.team.map((m) => (
                   <div className="live-member" key={m.steamId}>
-                    <SteamAvatar steamId={m.steamId} name={m.name} online={m.isOnline} />
+                    <SteamAvatar
+                      steamId={m.steamId}
+                      name={m.name}
+                      online={
+                        connected &&
+                        !!data.teamUpdatedAt &&
+                        teamNow - data.teamUpdatedAt <= 15000 &&
+                        m.isOnline
+                      }
+                    />
                     <div>
                       <strong>
                         {m.name} {m.isLeader && <span className="team-leader">♛ Teamledare</span>}
                       </strong>
                       <small>{m.steamId}</small>
-                      <small>
-                        Senast observerad online:{' '}
-                        {m.lastSeenOnlineAt
-                          ? new Date(m.lastSeenOnlineAt).toLocaleString('sv-SE')
-                          : 'Okänt'}
-                      </small>
+                      <TeamPresence
+                        member={m}
+                        connected={connected}
+                        updatedAt={data.teamUpdatedAt}
+                      />
                       <small>
                         Senast kända död:{' '}
                         {m.lastDeathAt ? new Date(m.lastDeathAt).toLocaleString('sv-SE') : 'Okänt'}
@@ -657,6 +676,9 @@ export function LivePage() {
                             ' h ' +
                             Math.floor((m.observedOnlineMs % 3600000) / 60000) +
                             ' min'}
+                      </small>
+                      <small>
+                        Uppskattad AFK-tid denna wipe: {observedDuration(m.observedAfkMs || 0)}
                       </small>
                       {m.lastDeath && (
                         <button
@@ -678,7 +700,13 @@ export function LivePage() {
                         </button>
                       )}
                     </div>
-                    <span>{m.isOnline ? 'Online' : 'Offline'}</span>
+                    <span>
+                      {connected && data.teamUpdatedAt && teamNow - data.teamUpdatedAt <= 15000
+                        ? m.isOnline
+                          ? 'Online'
+                          : 'Offline'
+                        : 'Inaktuell'}
+                    </span>
                     <span className={m.isAlive ? 'success' : 'live-dead'}>
                       {m.isAlive ? 'Alive' : 'Dead'}
                     </span>

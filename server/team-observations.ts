@@ -8,6 +8,10 @@ export class TeamObservations {
   private data: SavedTeamObservations | undefined;
   private previous: Map<string, Member> | undefined;
   private previousAt: number | undefined;
+  private stationary = new Map<
+    string,
+    { x: number; y: number; duration: number; credited: boolean }
+  >();
   private dirty = false;
   private savedAt = 0;
   constructor(
@@ -27,6 +31,7 @@ export class TeamObservations {
     }
   }
   interrupt() {
+    this.stationary.clear();
     this.previous = undefined;
     this.previousAt = undefined;
   }
@@ -37,6 +42,14 @@ export class TeamObservations {
   }
   snapshot(id: string): TeamObservation | undefined {
     return this.data?.members[id];
+  }
+  isAfk(id: string) {
+    return (
+      !!this.profileId &&
+      this.previousAt !== undefined &&
+      this.monotonic() - this.previousAt <= 15000 &&
+      !!this.stationary.get(id)?.credited
+    );
   }
   private flush(force = false) {
     if (
@@ -58,6 +71,7 @@ export class TeamObservations {
       mono = this.monotonic(),
       elapsed = this.previousAt === undefined ? 0 : mono - this.previousAt;
     const continuous = !!this.previous && elapsed >= 0 && elapsed <= 15000;
+    if (!continuous) this.stationary.clear();
     const owner = this.service.config.profiles.find((p) => p.id === this.profileId)?.playerId;
     let changed = false;
     for (const m of team) {
@@ -72,6 +86,38 @@ export class TeamObservations {
         if (previous?.isOnline) o.onlineMs += elapsed;
         this.dirty = true;
       }
+      const wasAfk = !!this.stationary.get(m.steamId)?.credited;
+      const valid = (member: Member | undefined): member is Member & { x: number; y: number } =>
+        !!member &&
+        member.isOnline &&
+        member.isAlive &&
+        Number.isFinite(member.x) &&
+        Number.isFinite(member.y);
+      if (!valid(m)) this.stationary.delete(m.steamId);
+      else {
+        let period = this.stationary.get(m.steamId);
+        if (
+          !valid(previous) ||
+          previous.spawnTime !== m.spawnTime ||
+          previous.deathTime !== m.deathTime ||
+          !period ||
+          Math.hypot(m.x - period.x, m.y - period.y) > 2
+        ) {
+          period = { x: m.x, y: m.y, duration: 0, credited: false };
+          this.stationary.set(m.steamId, period);
+        } else {
+          period.duration += elapsed;
+          if (period.credited || period.duration >= 600000) {
+            o.afkMs = Math.min(
+              o.onlineMs,
+              (o.afkMs || 0) + (period.credited ? elapsed : period.duration),
+            );
+            period.credited = true;
+            this.dirty = true;
+          }
+        }
+      }
+      if (wasAfk !== !!this.stationary.get(m.steamId)?.credited) changed = true;
       const deathAt =
         m.deathTime && Number.isFinite(m.deathTime) && m.deathTime * 1000 <= at + 60000
           ? m.deathTime * 1000
@@ -123,6 +169,7 @@ export class TeamObservations {
     }
     // Bound former members while retaining everybody in the current team.
     const current = new Set(team.map((m) => m.steamId));
+    for (const id of this.stationary.keys()) if (!current.has(id)) this.stationary.delete(id);
     const former = Object.entries(this.data.members)
       .filter(([id]) => !current.has(id))
       .sort((a, b) => (b[1].lastSeenOnlineAt || 0) - (a[1].lastSeenOnlineAt || 0));

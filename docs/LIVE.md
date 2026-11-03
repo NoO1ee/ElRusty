@@ -270,3 +270,11 @@ Steam-bilder hämtas via Rust+-tjänstens avatar-endpoint med fem sekunders time
 Kartans rutnamn ligger i respektive ruta och glesas ut när texten blir för liten. Samma koordinatomvandling, havsmarginal och rutnamn används fortfarande för markörer och chattkommandon; kartbilden flyttas inte. Waypoints visas med gula nålar och senaste dödsplatser med röda dödskallar. Ledarens waypoint har blå kant och L, ungefärliga dödsplatser har streckad kant och ≈. Klickytorna är större än symbolerna.
 
 Egna och observerade teamdödsplatser visas i dödslaget. Klicka på markören för etikett, kartruta, tid och eventuell osäkerhet. Zoom, fokus och lager behåller appens mörka reglage. Automatiska tester täcker rutcentrum, texttäthet, symboler, lager och oförändrad kartnavigering. Slutlig jämförelse av samma servers kartrutor, waypoint och dödsplats mot spelet samt verklig lagchatt återstår tills spelkontrollen kan göras.
+
+## Uppskattad AFK-tid 0.17
+
+Team visar uppskattad AFK-tid per profil och wipe, som en del av observerad onlinetid. Efter tio minuter inom två meter från periodens första position räknas hela den observerade perioden retroaktivt, sedan tillkommer nya giltiga intervall. Spelaren måste vara online, levande och ha giltig position vid båda avläsningarna. Stillastående byggande, crafting och sortering kan räknas som AFK; Rust+ ger ingen säker aktivitetsstatus.
+
+Rörelse över två meter, offline, död, ändrad spawn, saknad position eller medlem samt intervall över 15 sekunder avbryter perioden. Omstart och återanslutning börjar en ny period utan att räkna nedtid. Färdig AFK-total sparas i befintliga teamobservationer, högst en gång per minut samt vid statusbyte och ordnat avslut. Inga nya tabeller eller migreringar behövs. Äldre data får noll observerad AFK-tid; tidigare AFK är okänd.
+
+Team visar Online nu eller relativ senaste onlinetid med exakt lokal tid vid datumet. Frånkoppling eller mer än 15 sekunder gammal teamdata märks inaktuell och visar ingen säker aktuell online-/AFK-status. Ingen chatt eller styrning ändras.

@@ -226,3 +226,12 @@ it('saknade dödskoordinater skapar ingen påhittad plats', async () => {
   expect(event?.text).toContain('plats okänd');
   expect(event?.position).toBeUndefined();
 });
+
+it('Live-status exponerar AFK-total och spärrar aktuell AFK-status efter frånkoppling', async () => {
+  vi.useFakeTimers();
+  const { s } = await setup();
+  await vi.advanceTimersByTimeAsync(600000);
+  expect(s.snapshot().team[0]).toMatchObject({ observedAfkMs: 600000, isAfk: true });
+  s.disconnect();
+  expect(s.snapshot().team.every((m) => !m.isAfk)).toBe(true);
+});
