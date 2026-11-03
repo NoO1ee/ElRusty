@@ -31,6 +31,7 @@ export class TeamObservations {
     }
   }
   interrupt() {
+    this.flush(true);
     this.stationary.clear();
     this.previous = undefined;
     this.previousAt = undefined;
@@ -71,9 +72,10 @@ export class TeamObservations {
       mono = this.monotonic(),
       elapsed = this.previousAt === undefined ? 0 : mono - this.previousAt;
     const continuous = !!this.previous && elapsed >= 0 && elapsed <= 15000;
+    const interruptedAfk = !continuous && [...this.stationary.values()].some((p) => p.credited);
     if (!continuous) this.stationary.clear();
     const owner = this.service.config.profiles.find((p) => p.id === this.profileId)?.playerId;
-    let changed = false;
+    let changed = interruptedAfk;
     for (const m of team) {
       const previous = continuous ? this.previous?.get(m.steamId) : undefined;
       const old = this.data.members[m.steamId];
@@ -169,7 +171,11 @@ export class TeamObservations {
     }
     // Bound former members while retaining everybody in the current team.
     const current = new Set(team.map((m) => m.steamId));
-    for (const id of this.stationary.keys()) if (!current.has(id)) this.stationary.delete(id);
+    for (const [id, period] of this.stationary)
+      if (!current.has(id)) {
+        if (period.credited) changed = true;
+        this.stationary.delete(id);
+      }
     const former = Object.entries(this.data.members)
       .filter(([id]) => !current.has(id))
       .sort((a, b) => (b[1].lastSeenOnlineAt || 0) - (a[1].lastSeenOnlineAt || 0));

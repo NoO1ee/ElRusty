@@ -138,3 +138,16 @@ it('avbrott och gamla observationer tar bort aktuell AFK-status men behåller to
   expect(f.observations.isAfk('owner')).toBe(false);
   expect(f.total()).toBe(1200000);
 });
+
+it('sparar senaste AFK-total vid avbrott och när medlemmen försvinner', () => {
+  for (const missing of [false, true]) {
+    const f = fixture();
+    f.run(605000);
+    const saves = f.service.db.save.mock.calls.length;
+    if (missing) f.tick(5000, []);
+    else f.observations.interrupt();
+    expect(f.service.db.save).toHaveBeenCalledTimes(saves + 1);
+    expect(f.total()).toBe(605000);
+    expect(f.observations.isAfk('owner')).toBe(false);
+  }
+});
