@@ -88,6 +88,10 @@ export class TeamObservations {
         if (previous?.isOnline) o.onlineMs += elapsed;
         this.dirty = true;
       }
+      if (m.isOnline && m.isAlive && Number.isFinite(m.x) && Number.isFinite(m.y)) {
+        o.lastKnownPosition = { x: m.x!, y: m.y!, at };
+        this.dirty = true;
+      }
       const wasAfk = !!this.stationary.get(m.steamId)?.credited;
       const valid = (member: Member | undefined): member is Member & { x: number; y: number } =>
         !!member &&

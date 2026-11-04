@@ -160,3 +160,22 @@ it('sparar senaste egna dödsplats per profil/wipe och återställer den vid oms
   expect(s.snapshot().mapNotes).toEqual([]);
   expect(s.snapshot().lastDeath).toBeNull();
 });
+
+it('offline-kartposition använder historik och aldrig serverns reservkoordinater', async () => {
+  const { teamMapPosition } = await import('../shared/team-map');
+  const cached = { x: 100, y: 200, at: 123 };
+  expect(
+    teamMapPosition(
+      { ...alive, isOnline: false, x: 2250, y: 2250, lastKnownPosition: cached },
+      999,
+    ),
+  ).toEqual({ ...cached, lastKnown: true });
+  expect(teamMapPosition({ ...alive, isOnline: false, x: 0, y: 0 }, 999)).toBeNull();
+  expect(teamMapPosition({ ...alive, x: 0, y: 0 }, 999)).toEqual({
+    x: 0,
+    y: 0,
+    at: 999,
+    lastKnown: false,
+  });
+  expect(teamMapPosition({ ...alive, isAlive: false, x: 2250, y: 2250 }, 999)).toBeNull();
+});

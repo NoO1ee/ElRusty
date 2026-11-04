@@ -933,3 +933,53 @@ test('Pi-parning förklarar varför en Windows-webbläsare inte öppnas', async 
   await expect(page.getByRole('button', { name: 'Registrera Rust+', exact: true })).toBeDisabled();
   await expect(page.getByText(/Brave på din Windows-dator kan inte öppnas/)).toBeVisible();
 });
+
+test('offline-medlem stannar på senaste kända kartposition och okänd position döljs', async ({
+  page,
+}) => {
+  const state = initial();
+  state.team[0] = {
+    ...state.team[0],
+    x: 100,
+    y: 200,
+    lastKnownPosition: { x: 100, y: 200, at: Date.now() - 5000 },
+  };
+  state.world = {
+    profileId: 'p1',
+    info: { name: 'Test', mapSize: 4500, wipeTime: 1, players: 1, maxPlayers: 10 },
+    map: {
+      revision: 'offline-map',
+      width: 1000,
+      height: 1000,
+      oceanMargin: 50,
+      mapSize: 4500,
+      monuments: [],
+    },
+    markers: [],
+    updatedAt: Date.now(),
+    error: '',
+  };
+  await page.route('**/api/live/**', async (route) => route.fulfill({ json: state }));
+  const openMap = async () => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Live', exact: true }).click();
+    await page.getByRole('button', { name: 'Karta', exact: true }).click();
+  };
+  await openMap();
+  const before = await page.locator('.map-marker.team').first().getAttribute('transform');
+  state.team[0] = { ...state.team[0], isOnline: false, x: 2250, y: 2250 };
+  state.team.push({
+    ...state.team[0],
+    steamId: '76561198000000004',
+    name: 'Okänd offline',
+    lastKnownPosition: undefined,
+  });
+  await openMap();
+  await expect(page.locator('.map-marker.team')).toHaveCount(1);
+  const marker = page.getByRole('button', { name: 'Spelare · Senast kända position', exact: true });
+  await expect(marker).toHaveAttribute('transform', before!);
+  await marker.click();
+  await expect(page.locator('.live-map-detail')).toContainText(
+    'Senast kända position från när spelaren var online',
+  );
+});

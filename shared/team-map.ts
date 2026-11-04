@@ -53,3 +53,13 @@ export function nextLastDeath(
     return old;
   return candidate;
 }
+
+/** Offline coordinates may be a server placeholder, even when they are finite. */
+export function teamMapPosition(member: Member, updatedAt: number | null) {
+  if (member.isOnline)
+    return member.isAlive && position(member)
+      ? { x: member.x, y: member.y, at: updatedAt, lastKnown: false }
+      : null;
+  const old = member.lastKnownPosition;
+  return old && position(old) && Number.isFinite(old.at) ? { ...old, lastKnown: true } : null;
+}

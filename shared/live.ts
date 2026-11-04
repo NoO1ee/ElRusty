@@ -27,6 +27,7 @@ export interface Mode {
   values: { deviceId: string; value: boolean }[];
 }
 export interface TeamObservation {
+  lastKnownPosition?: { x: number; y: number; at: number };
   name: string;
   onlineMs: number;
   afkMs?: number;
@@ -48,6 +49,7 @@ export interface TeamChatLine {
   status: 'pending' | 'sent' | 'received' | 'unconfirmed' | 'failed';
 }
 export interface Member {
+  lastKnownPosition?: { x: number; y: number; at: number };
   observedOnlineMs?: number;
   observedAfkMs?: number;
   isAfk?: boolean;

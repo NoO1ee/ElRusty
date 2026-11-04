@@ -221,3 +221,8 @@ Fortsatta begränsningar: seriell smältkö, gemensam lagerbudget, tre crafter-r
 
 - Rust+-guiden skiljer lokal skrivbordsregistrering från parningsmottagning på Pi. Registreringsknappar spärras med förklaring när tjänsten saknar skrivbord.
 - Brave väljs fortsatt på Windows; en befintlig privat registrering kan återanvändas på Pi utan ny inloggning.
+
+## 0.19.2 — 2026-11-04
+
+- Offline-medlemmar visas på senast observerad online-position med tidstämpel och grå streckad markering. Saknad position döljer spelarmarkören.
+- Offline-koordinater från Rust+ används inte som aktuell kartposition. Senaste position sparas per profil och wipe med befintliga teamobservationer.

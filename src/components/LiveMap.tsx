@@ -1,3 +1,4 @@
+import { teamMapPosition } from '../../shared/team-map';
 import { eventFresh, gameEventNames, eventStatusNames } from '../../shared/events';
 import { GRID_SIZE } from '../../shared/world';
 import { GameMapGrid } from './GameMapGrid';
@@ -47,6 +48,7 @@ type Marker = {
   kind: 'monument' | 'team' | 'shop' | 'event' | 'waypoint' | 'death';
   approximate?: boolean;
   area?: boolean;
+  lastKnown?: boolean;
   noteSource?: 'self' | 'leader';
   color: string;
   type?: number;
@@ -252,19 +254,28 @@ export function LiveMap({
               }))
           : []),
         ...(layers.team
-          ? data.team
-              .filter((m) => Number.isFinite(m.x) && Number.isFinite(m.y))
-              .map((m) => ({
-                id: m.steamId,
-                x: m.x!,
-                y: m.y!,
-                name: m.name + (m.isLeader ? ' · Leader' : ''),
-                kind: 'team' as const,
-                color: m.isOnline ? '#bded72' : '#a2aea5',
-                online: m.isOnline,
-                alive: m.isAlive,
-                at: data.teamUpdatedAt,
-              }))
+          ? data.team.flatMap((m) => {
+              const p = teamMapPosition(m, data.teamUpdatedAt);
+              return p
+                ? [
+                    {
+                      id: m.steamId,
+                      x: p.x,
+                      y: p.y,
+                      lastKnown: p.lastKnown,
+                      name:
+                        m.name +
+                        (m.isLeader ? ' · Leader' : '') +
+                        (p.lastKnown ? ' · Senast kända position' : ''),
+                      kind: 'team' as const,
+                      color: m.isOnline ? '#bded72' : '#a2aea5',
+                      online: m.isOnline,
+                      alive: m.isAlive,
+                      at: p.at,
+                    },
+                  ]
+                : [];
+            })
           : []),
       ]
     : [];
@@ -432,6 +443,7 @@ export function LiveMap({
                         fill={m.kind === 'team' ? m.color : '#1c302be8'}
                         stroke={m.id === selected ? 'white' : m.color}
                         strokeWidth="1.5"
+                        strokeDasharray={m.lastKnown ? '3 2' : undefined}
                       />
                       {m.kind === 'team' ? (
                         <>
@@ -565,6 +577,12 @@ export function LiveMap({
                   (chosen.alive ? 'Alive' : 'Dead')
                 : ''}
             </p>
+            {chosen.lastKnown && (
+              <p className="map-location-note">
+                Senast kända position från när spelaren var online. Tidstämpeln gäller den
+                observationen.
+              </p>
+            )}
             {chosen.approximate && (
               <p className="map-location-note">
                 Ungefärlig position från senaste teamuppdateringen.

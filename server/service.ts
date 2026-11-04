@@ -103,6 +103,7 @@ export class LiveService extends EventEmitter {
                 observedAfkMs: o.afkMs || 0,
                 isAfk: this.connection === 'connected' && this.observations.isAfk(m.steamId),
                 lastSeenOnlineAt: o.lastSeenOnlineAt,
+                lastKnownPosition: o.lastKnownPosition,
                 lastDeathAt: o.lastDeathAt,
                 lastDeath: o.lastDeath,
               }

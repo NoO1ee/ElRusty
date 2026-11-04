@@ -235,3 +235,28 @@ it('Live-status exponerar AFK-total och spärrar aktuell AFK-status efter frånk
   s.disconnect();
   expect(s.snapshot().team.every((m) => !m.isAfk)).toBe(true);
 });
+
+it('sparar senaste online-position över offline och omstart men rensar den vid wipe', async () => {
+  vi.useFakeTimers();
+  const { s, a, id, db } = await setup();
+  await vi.advanceTimersByTimeAsync(5000);
+  const last = s.snapshot().team[0].lastKnownPosition!;
+  expect(last).toMatchObject({ x: 100, y: 200 });
+  a.members[0].isOnline = false;
+  a.members[0].x = 2250;
+  a.members[0].y = 2250;
+  await vi.advanceTimersByTimeAsync(5000);
+  expect(s.snapshot().team[0].lastKnownPosition).toEqual(last);
+  expect(s.snapshot().team[1].lastKnownPosition).toBeUndefined();
+  s.close();
+  const next = new LiveService(db, () => a);
+  all[0].s = next;
+  next.connect(id);
+  await flush();
+  expect(next.snapshot().team[0].lastKnownPosition).toEqual(last);
+  a.info.mockResolvedValue({ ...(await a.info()), wipeTime: 99 });
+  next.disconnect();
+  next.connect(id);
+  await flush();
+  expect(next.snapshot().team[0].lastKnownPosition).toBeUndefined();
+});
