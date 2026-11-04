@@ -1,0 +1,209 @@
+.server-directory .page {
+  max-width: 1440px;
+}
+.server-directory h1 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.directory-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 2fr) repeat(2, minmax(130px, 1fr)) 110px minmax(180px, 1.3fr);
+  gap: 14px;
+  padding: 20px;
+  background: linear-gradient(135deg, #152133, #101722);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.directory-filters label {
+  display: grid;
+  gap: 8px;
+  color: #a7b6cb;
+  font-size: 12px;
+  min-width: 0;
+}
+.directory-filters input,
+.directory-filters select {
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+}
+.directory-search > div {
+  position: relative;
+}
+.directory-search svg {
+  position: absolute;
+  top: 12px;
+  left: 11px;
+  color: #90a1ba;
+}
+.directory-search input {
+  padding-left: 35px;
+}
+.directory-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 22px 0 14px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.directory-summary > span:first-child {
+  color: #edf2fb;
+  font-weight: 600;
+}
+.directory-results {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #0e1620;
+  overflow: hidden;
+}
+.directory-row {
+  display: grid;
+  grid-template-columns: minmax(210px, 2fr) minmax(115px, 0.7fr) minmax(200px, 1.5fr) auto;
+  align-items: center;
+  gap: 20px;
+  padding: 21px 22px;
+  border-bottom: 1px solid #27334388;
+}
+.directory-row:last-child {
+  border-bottom: 0;
+}
+.directory-row:hover {
+  background: #16213299;
+}
+.directory-server-name,
+.directory-pop,
+.directory-wipe {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+.directory-server-name strong {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.directory-row small {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.directory-pop > span,
+.directory-wipe > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.directory-pop strong {
+  color: #8be3bb;
+  font-size: 17px;
+}
+.directory-pop > span > span {
+  color: var(--muted);
+}
+.directory-row svg {
+  flex-shrink: 0;
+  color: #8ca4c4;
+}
+.directory-wipe time {
+  color: #f3c6ca;
+}
+.directory-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.directory-actions a {
+  display: inline-flex;
+  padding: 8px;
+  border: 1px solid #344155;
+  border-radius: 7px;
+}
+.directory-actions a:hover {
+  border-color: var(--accent);
+}
+.directory-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 22px;
+  margin: 24px 0;
+}
+.directory-pagination span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.directory-attribution {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 24px 0 40px;
+}
+.directory-attribution a {
+  color: #c1cfdf;
+}
+.directory-error,
+.directory-warning {
+  padding: 14px 18px;
+  border-radius: 10px;
+  background: #41202a66;
+  color: #ffc0c6;
+  border: 1px solid #713646;
+}
+.directory-warning {
+  background: #332b1b;
+  color: #efd59d;
+  border-color: #594a2c;
+}
+.directory-empty {
+  text-align: center;
+  padding: 44px 25px;
+  color: var(--muted);
+}
+.directory-empty svg {
+  color: var(--accent);
+}
+@media (max-width: 1100px) {
+  .directory-filters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .directory-search {
+    grid-column: span 2;
+  }
+  .directory-row {
+    grid-template-columns: minmax(160px, 1.5fr) 120px minmax(180px, 1.4fr);
+  }
+  .directory-actions {
+    grid-column: 1/-1;
+    justify-content: flex-end;
+  }
+}
+@media (max-width: 650px) {
+  .directory-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 15px;
+  }
+  .directory-search {
+    grid-column: 1/-1;
+  }
+  .directory-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding: 18px;
+  }
+  .directory-server-name {
+    grid-column: 1/-1;
+  }
+  .directory-wipe {
+    font-size: 12px;
+  }
+  .directory-summary {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .directory-actions {
+    justify-content: flex-start;
+  }
+}

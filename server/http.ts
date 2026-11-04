@@ -1,3 +1,4 @@
+import { ServerDirectory } from './server-directory.ts';
 import { resolve as resolveEventDirectory } from 'node:path';
 import { Avatars } from './avatars.ts';
 import type { PairingManager } from './pairing.ts';
@@ -26,6 +27,7 @@ export function createLiveHttp(
   options: { port: number; dist?: string; dev?: boolean; pairing?: PairingManager },
 ) {
   const avatars = new Avatars();
+  const directory = new ServerDirectory();
   const csrf = randomBytes(32).toString('hex'),
     streams = new Set<ServerResponse>();
   const hosts = new Set([`127.0.0.1:${options.port}`, `localhost:${options.port}`]);
@@ -76,6 +78,19 @@ export function createLiveHttp(
       }
       const url = new URL(req.url || '/', 'http://127.0.0.1'),
         path = url.pathname;
+      if (path === '/api/servers') {
+        if (req.method !== 'GET') {
+          json(res, 405, { error: 'Metoden stöds inte.' });
+          return;
+        }
+        try {
+          json(res, 200, await directory.list(url.searchParams));
+        } catch (error) {
+          if (error instanceof UserError) throw error;
+          json(res, 503, { error: 'Serverlistan kunde inte hämtas. Försök igen om en stund.' });
+        }
+        return;
+      }
       if (path.startsWith('/api/live')) {
         if (req.method === 'GET' && path.startsWith('/api/live/team/avatar/')) {
           const steamId = path.slice('/api/live/team/avatar/'.length);

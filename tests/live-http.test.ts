@@ -39,7 +39,7 @@ async function setup(pairing?: PairingManager) {
         {
           hostname: '127.0.0.1',
           port,
-          path: '/api/live/' + path,
+          path: path.startsWith('/api/') ? path : '/api/live/' + path,
           method,
           headers: { Host: '127.0.0.1:0', 'Content-Type': 'application/json', ...headers },
         },
@@ -275,4 +275,46 @@ it('lagrapport kräver CSRF och en ansluten profil', async () => {
       )
     ).status,
   ).toBe(400);
+});
+
+it('serverlistan fungerar utan Rust+-anslutning och skyddas av samma Host/Origin-kontroll', async () => {
+  const source = vi.fn(
+    async () =>
+      new Response(
+        JSON.stringify({
+          fetchedAt: new Date().toISOString(),
+          data: [
+            {
+              id: 'public1',
+              n: 'Publik EU-server',
+              ip: '203.0.113.10',
+              pt: 28015,
+              p: 45,
+              mp: 100,
+              q: 0,
+              rg: 'EU',
+              c: 'SE',
+              src: null,
+              path: '/server/public1',
+            },
+          ],
+        }),
+      ),
+  );
+  vi.stubGlobal('fetch', source);
+  try {
+    const { call } = await setup();
+    const result = await call('/api/servers?region=EU');
+    expect(result.status).toBe(200);
+    expect(result.data.servers[0].name).toBe('Publik EU-server');
+    expect(result.data.total).toBe(1);
+    expect(
+      (await call('/api/servers', 'GET', undefined, { Origin: 'http://evil.example' })).status,
+    ).toBe(403);
+    expect((await call('/api/servers', 'POST')).status).toBe(405);
+    expect((await call('/api/servers?day=invalid')).status).toBe(400);
+    expect(source).toHaveBeenCalledOnce();
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });

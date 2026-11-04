@@ -226,3 +226,10 @@ Fortsatta begränsningar: seriell smältkö, gemensam lagerbudget, tre crafter-r
 
 - Offline-medlemmar visas på senast observerad online-position med tidstämpel och grå streckad markering. Saknad position döljer spelarmarkören.
 - Offline-koordinater från Rust+ används inte som aktuell kartposition. Senaste position sparas per profil och wipe med befintliga teamobservationer.
+
+## 0.20.0 — 2026-11-04
+
+- Ny fristående Servrar-flik med EU-standard, namnsökning, population, deklarerade wipedagar och sortering.
+- Wipe Board-data med synlig CC BY 4.0-attribution, svensk tidszon och tydlig hantering av saknade scheman.
+- Gemensam begränsad cache, serverbaserad filtrering/sidindelning, bevarad lista vid källfel och sparade filter.
+- Kopiera spelanslutning och öppna källans informationssida utan att ändra Rust+-parningar.

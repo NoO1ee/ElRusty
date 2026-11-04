@@ -1,3 +1,4 @@
+import { ServerDirectoryPage } from './components/ServerDirectoryPage';
 import { useLive, startLive, liveStatus } from './live-store';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -221,9 +222,9 @@ export default function App() {
   const liveData = useLive((s) => s.data),
     liveOffline = useLive((s) => s.offline);
   useEffect(() => startLive(), []);
-  const [view, setView] = useState<'circuit' | 'filters' | 'saved' | 'examples' | 'live'>(
-      'circuit',
-    ),
+  const [view, setView] = useState<
+      'circuit' | 'filters' | 'saved' | 'examples' | 'live' | 'servers'
+    >('circuit'),
     [records, setRecords] = useState<SavedRecord[]>([]),
     [filter, setFilter] = useState<ConveyorFilter>(emptyFilter),
     [filterId, setFilterId] = useState<string>(() => crypto.randomUUID()),
@@ -508,6 +509,14 @@ export default function App() {
             Sparat <span className="nav-count">{records.length}</span>
           </button>
           <button
+            aria-label="Servrar"
+            className={view === 'servers' ? 'active' : ''}
+            onClick={() => setView('servers')}
+          >
+            <Search size={16} />
+            Servrar
+          </button>
+          <button
             aria-label="Live"
             title={'Rust+: ' + liveStatus(liveData, liveOffline)}
             className={view === 'live' ? 'active' : ''}
@@ -668,6 +677,7 @@ export default function App() {
         </main>
       )}
       {view === 'live' && <LivePage />}
+      {view === 'servers' && <ServerDirectoryPage />}
       {view === 'examples' && (
         <ExampleLibrary
           onOpen={async (id) => {
@@ -824,7 +834,7 @@ export default function App() {
             ? 'Live-tjänsten behöver köras även när webbläsaren är stängd.'
             : message}
         </span>
-        <span className="version-label">ElRusty 0.19.2 · lokalt</span>
+        <span className="version-label">ElRusty 0.20.0 · lokalt</span>
       </footer>
       <input
         ref={fileInput}
