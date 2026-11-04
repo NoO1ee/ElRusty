@@ -1,3 +1,5 @@
+import { eventFresh, gameEventNames, eventStatusNames } from '../../shared/events';
+import { GRID_SIZE } from '../../shared/world';
 import { GameMapGrid } from './GameMapGrid';
 import { GameMapPin } from './GameMapPin';
 import { useEffect, useRef, useState } from 'react';
@@ -44,6 +46,7 @@ type Marker = {
   name: string;
   kind: 'monument' | 'team' | 'shop' | 'event' | 'waypoint' | 'death';
   approximate?: boolean;
+  area?: boolean;
   noteSource?: 'self' | 'leader';
   color: string;
   type?: number;
@@ -146,6 +149,34 @@ export function LiveMap({
   const monuments = map && layers.monuments ? monumentLabels(map.monuments, map, view, unit) : [];
   const markers: Marker[] = map
     ? [
+        ...(layers.events
+          ? (data.gameEvents?.entries || [])
+              .filter(
+                (e) =>
+                  e.status !== 'ended' &&
+                  e.status !== 'destroyed' &&
+                  e.x !== undefined &&
+                  e.y !== undefined &&
+                  eventFresh(e, Date.now(), !!data.gameEvents?.server.fresh),
+              )
+              .map((e) => ({
+                id: 'event:' + e.id,
+                x: e.x!,
+                y: e.y!,
+                name:
+                  gameEventNames[e.type] +
+                  ' · ' +
+                  eventStatusNames[e.status] +
+                  ' · ' +
+                  (e.source === 'team' ? 'lagrapport av ' + e.reporter?.name : 'serverbekräftat'),
+                kind: 'event' as const,
+                color: e.source === 'team' ? '#f4c878' : '#8be3bb',
+                type: e.type === 'cargo' ? 5 : e.type === 'heli' ? 8 : 6,
+                at: e.observedAt,
+                area: e.source === 'team' && !!e.grid,
+                approximate: e.source === 'team',
+              }))
+          : []),
         ...monuments.map((m) => ({
           id: 'monument' + m.index,
           x: m.x,
@@ -351,7 +382,22 @@ export function LiveMap({
                   <title>
                     {m.name} · {gridLocation(m.x, m.y, map.mapSize)}
                   </title>
-                  {m.kind === 'monument' ? (
+                  {m.area ? (
+                    <g>
+                      <rect
+                        x={(-GRID_SIZE * (map.width - 2 * map.oceanMargin)) / map.mapSize / u / 2}
+                        y={(-GRID_SIZE * (map.height - 2 * map.oceanMargin)) / map.mapSize / u / 2}
+                        width={(GRID_SIZE * (map.width - 2 * map.oceanMargin)) / map.mapSize / u}
+                        height={(GRID_SIZE * (map.height - 2 * map.oceanMargin)) / map.mapSize / u}
+                        fill="#f4c87822"
+                        stroke={m.color}
+                        strokeDasharray="4 3"
+                      />
+                      <text textAnchor="middle" fill={m.color}>
+                        ?
+                      </text>
+                    </g>
+                  ) : m.kind === 'monument' ? (
                     <>
                       <rect
                         x={-Math.max(44, m.name.length * 5.9) / 2}

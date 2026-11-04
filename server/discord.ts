@@ -118,6 +118,8 @@ export class DiscordBot {
     service.on('sessionLost', this.clearChat);
     service.on('alarm', this.alarm);
     service.on('worldEvent', this.worldEvent);
+    service.on('gameEvent', this.gameEvent);
+    service.on('sessionLost', this.clearEvents);
     service.on('activity', this.activity);
     service.on('change', this.scheduleStatus);
   }
@@ -494,6 +496,30 @@ export class DiscordBot {
       });
   }
   private alarm = (event: Activity) => this.deliver('larm', event);
+  private eventQueue = new TextQueue();
+  private clearEvents = () => this.eventQueue.clear();
+  private gameEvent = (event: Activity) => {
+    const gen = this.generation,
+      epoch = this.service.profileEpoch,
+      guild = this.service.config.discord.guildId;
+    const valid = () =>
+      gen === this.generation &&
+      epoch === this.service.profileEpoch &&
+      this.service.connection === 'connected' &&
+      this.client?.isReady() === true &&
+      event.profileId === this.service.config.activeProfileId &&
+      guild === this.service.config.discord.guildId;
+    if (!valid()) return;
+    this.eventQueue.push(
+      plainText(event.text, 350),
+      async (text) => {
+        const channel = await this.managedText('events');
+        if (channel && valid())
+          await channel.send({ content: text, allowedMentions: { parse: [] } });
+      },
+      valid,
+    );
+  };
   private worldEvent = (event: Activity) => this.deliver('events', event);
   private activity = (event: Activity) => {
     if (event.kind !== 'team' && !event.text.startsWith('Discord-'))
@@ -594,6 +620,7 @@ export class DiscordBot {
     this.service.db.save(this.service.config);
   }
   async stop() {
+    this.eventQueue.clear();
     this.service.timers.dropDiscord();
     this.relayReady = false;
     this.clearChat();
@@ -617,6 +644,8 @@ export class DiscordBot {
     this.service.off('sessionLost', this.clearChat);
     this.service.off('alarm', this.alarm);
     this.service.off('worldEvent', this.worldEvent);
+    this.service.off('gameEvent', this.gameEvent);
+    this.service.off('sessionLost', this.clearEvents);
     this.service.off('activity', this.activity);
     this.service.off('change', this.scheduleStatus);
     clearTimeout(this.statusTimer);

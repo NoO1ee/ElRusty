@@ -57,6 +57,11 @@ export async function commandReply(service: LiveService, message: ChatMessage, g
       steamId: message.steamId,
       name: service.team.find((m) => m.steamId === message.steamId)!.name,
     });
+  if (['cargo', 'heli', 'smalloil', 'largeoil', 'events', 'report'].includes(command))
+    return service.events.command(command, arg, {
+      steamId: message.steamId,
+      name: service.team.find((m) => m.steamId === message.steamId)!.name,
+    });
   if (readCommands.has(command)) return readReply(service, message, command, arg);
   switch (command) {
     case 'time':
@@ -76,17 +81,6 @@ export async function commandReply(service: LiveService, message: ChatMessage, g
       const size = service.world?.snapshot().info?.mapSize;
       insist(size && member.x !== undefined && member.y !== undefined, 'Position saknas.');
       return `${member.name}: ${gridLocation(member.x, member.y, size)}`;
-    }
-    case 'events': {
-      const world = service.world?.snapshot();
-      insist(world?.updatedAt && !world.error, 'Aktuell eventinformation saknas.');
-      return (
-        world.markers
-          .filter((m) => eventNames[m.type])
-          .map((m) => `${eventNames[m.type]} ${gridLocation(m.x, m.y, world.info!.mapSize)}`)
-          .join(' · ') ||
-        'Inga eventdata från Rust+. Det säger inte om event pågår; vanilla skickar inte längre sådana markörer.'
-      );
     }
     case 'makeleader':
       return service.promoteCaller(message.steamId, gen);

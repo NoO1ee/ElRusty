@@ -115,11 +115,11 @@ it('läskommandon fungerar för teamet men inte för utomstående', async () => 
   await send('!pop', '76561198000000999');
   expect(a.chat).toHaveBeenCalledTimes(calls);
   await send('!events');
-  expect(a.chat.mock.lastCall![0]).toContain('eventinformation saknas');
+  expect(a.chat.mock.lastCall![0]).toContain('Eventinformation saknas');
   s.world!.state.updatedAt = 1;
   s.world!.state.markers = [{ id: 1, type: 5, x: 100, y: 100, name: '' }];
   await send('!events');
-  expect(a.chat.mock.lastCall![0]).toContain('Cargo Ship');
+  expect(a.chat.mock.lastCall![0]).toContain('Eventinformation saknas');
 });
 it('köfältet visas bara när Rust+ faktiskt skickar det', async () => {
   const { a, send } = await setup();

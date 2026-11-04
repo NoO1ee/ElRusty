@@ -1,4 +1,17 @@
 export const teamCommands = [
+  ...['cargo', 'heli', 'smalloil', 'largeoil', 'events'].map((name) => ({
+    name,
+    syntax: '!' + name,
+    description: 'Visa senaste eventinformation med källa och ålder.',
+    group: 'events',
+  })),
+  {
+    name: 'report',
+    syntax: '!report <cargo|heli|smalloil|largeoil> <kartruta|start|end>',
+    description:
+      'Rapportera en observation från laget. Positioner blir inaktuella efter 15 minuter.',
+    group: 'events',
+  },
   {
     name: 'timer',
     syntax: '!timer add <tid> <namn> / !timer cancel <ID>',
@@ -43,13 +56,7 @@ export const teamCommands = [
     description: 'Visa hur länge ElRusty och den aktuella Rust+-anslutningen varit igång.',
     group: 'server',
   },
-  {
-    name: 'events',
-    syntax: '!events',
-    description:
-      'Visa eventmarkörer om servern skickar dem. Vanilla-Rust+ skickar inte längre eventdata.',
-    group: 'server',
-  },
+
   {
     name: 'where',
     syntax: '!where [namn/SteamID]',

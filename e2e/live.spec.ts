@@ -833,3 +833,61 @@ test('Team visar uppskattad AFK, senaste online och inaktuell information', asyn
   await expect(page.getByText('Online nu', { exact: true })).toHaveCount(0);
   await expect(page.locator('.live-member').first()).toContainText('Inaktuell information');
 });
+
+test('lagrapport visar källa och ett kartruteområde på kartan', async ({ page }) => {
+  const state = initial();
+  state.gameEvents = {
+    entries: [],
+    server: { configured: false, fresh: false, lastContact: null },
+  };
+  state.world = {
+    profileId: 'p1',
+    info: { name: 'Test', mapSize: 4500, wipeTime: 1, players: 1, maxPlayers: 10 },
+    map: {
+      revision: 'eventmap',
+      width: 1000,
+      height: 1000,
+      oceanMargin: 50,
+      mapSize: 4500,
+      monuments: [],
+    },
+    markers: [],
+    updatedAt: Date.now(),
+    error: '',
+  };
+  await page.route('**/api/live/**', async (route) => {
+    if (route.request().method() === 'POST') {
+      const body = route.request().postDataJSON();
+      if (route.request().url().endsWith('/events/report'))
+        state.gameEvents!.entries = [
+          {
+            id: 'report1',
+            type: body.type,
+            source: 'team',
+            status: 'active',
+            observedAt: Date.now(),
+            x: 73.125,
+            y: 2851.875,
+            grid: body.value,
+            reporter: { steamId: state.team[0].steamId, name: 'Spelare' },
+          },
+        ];
+      await route.fulfill({ json: { ok: true } });
+    } else await route.fulfill({ json: state });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Live', exact: true }).click();
+  await page.getByLabel('Eventobservation', { exact: true }).fill('A10');
+  await page.getByRole('button', { name: 'Rapportera event', exact: true }).click();
+  await expect(page.getByRole('region', { name: 'Eventinformation' })).toContainText(
+    'Lagrapport · Spelare',
+  );
+  await page.getByRole('button', { name: 'Karta', exact: true }).click();
+  const marker = page.getByRole('button', {
+    name: 'Cargo Ship · observerad · lagrapport av Spelare',
+    exact: true,
+  });
+  await expect(marker.locator('rect')).toBeVisible();
+  await marker.click();
+  await expect(page.locator('.live-map-detail')).toContainText('lagrapport');
+});

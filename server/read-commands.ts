@@ -30,7 +30,7 @@ export function helpReply(query: string) {
   if (!key)
     return (
       teamCommands.map((c) => '!' + c.name).join(' · ') +
-      ' · Hjälp: !help <kommando> eller !help server/team/timers/styrning'
+      ' · Hjälp: !help <kommando> eller !help server/team/events/timers/styrning'
     );
   if (key === 'timers')
     return teamCommands

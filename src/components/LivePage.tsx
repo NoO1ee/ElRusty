@@ -1,3 +1,4 @@
+import { EventPanel } from './EventPanel';
 import { TeamPresence, observedDuration } from './TeamPresence';
 import { TeamChat } from './TeamChat';
 import { SteamAvatar } from './SteamAvatar';
@@ -362,6 +363,7 @@ export function LivePage() {
                     <span>Discord</span>
                   </button>
                 </div>
+                <EventPanel data={data} offline={offline} />
                 <div className="live-columns">
                   {!!data.profiles.length && <TeamChat data={data} offline={offline} />}
                   {!data.profiles.length && (

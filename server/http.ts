@@ -146,6 +146,17 @@ export function createLiveHttp(
           return;
         }
         switch (path) {
+          case '/api/live/events/report': {
+            const profile = service.config.profiles.find(
+              (p) => p.id === service.config.activeProfileId,
+            );
+            insist(profile, 'Välj en serverprofil.');
+            result = service.events.report(text(b.type), text(b.value), {
+              steamId: profile.playerId,
+              name: service.team.find((m) => m.steamId === profile.playerId)?.name || 'Webb',
+            });
+            break;
+          }
           case '/api/live/timers':
             result = service.timers.create(b);
             break;

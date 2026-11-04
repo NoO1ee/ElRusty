@@ -204,3 +204,9 @@ Fortsatta begränsningar: seriell smältkö, gemensam lagerbudget, tre crafter-r
 - Uppskattad AFK-tid per teammedlem och wipe med tiominutersgräns och retroaktiv periodräkning.
 - Tydligare senaste onlinetid, exakt datum och inaktuell status efter avbrott.
 - AFK-perioder avbryts vid rörelse, död/respawn, saknade observationer och återanslutning; sparade totaler bevaras.
+
+## 0.18.0 — 2026-11-04
+
+- Eventkommandon och lagrapporter med källa, ålder och kartområden.
+- Separata eventnotiser till webb, Discord och Rust med begränsade köer utan återspelning.
+- Historik per profil och wipe; Oxide-integration följer i 0.19.

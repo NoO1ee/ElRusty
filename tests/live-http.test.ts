@@ -260,3 +260,19 @@ it('lagchatt kräver CSRF och avvisar utskick när Rust är frånkopplat', async
     (await call('teamchat/send', 'POST', payload, { 'X-ElRusty-CSRF': data.csrf })).status,
   ).not.toBe(200);
 });
+
+it('lagrapport kräver CSRF och en ansluten profil', async () => {
+  const { call } = await setup();
+  const state = await call('state');
+  expect((await call('events/report', 'POST', { type: 'cargo', value: 'A10' })).status).toBe(403);
+  expect(
+    (
+      await call(
+        'events/report',
+        'POST',
+        { type: 'cargo', value: 'A10' },
+        { 'X-ElRusty-CSRF': state.data.csrf },
+      )
+    ).status,
+  ).toBe(400);
+});

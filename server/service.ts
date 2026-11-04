@@ -1,3 +1,4 @@
+import { EventEngine } from './event-engine.ts';
 import { TeamChat } from './team-chat.ts';
 import { TeamObservations } from './team-observations.ts';
 import { LiveClock } from './live-clock.ts';
@@ -20,6 +21,7 @@ export function formatTime(hour: number): string {
 export class LiveService extends EventEmitter {
   config: Config;
   readonly timers: TimerEngine;
+  readonly events: EventEngine;
   readonly clock: LiveClock;
   readonly chat: TeamChat;
   readonly observations: TeamObservations;
@@ -71,11 +73,13 @@ export class LiveService extends EventEmitter {
     this.clock = new LiveClock(this);
     this.chat = new TeamChat(this);
     this.observations = new TeamObservations(this);
+    this.events = new EventEngine(this, this.now);
   }
   snapshot(): LiveSnapshot {
     const { discord, profiles, activeProfileId } = this.config;
     return structuredClone({
       world: this.world?.snapshot(),
+      gameEvents: this.events.snapshot(),
       ...this.timers.snapshot(),
       mapNotes: this.mapNotes,
       lastDeath: this.lastDeath,
@@ -166,6 +170,7 @@ export class LiveService extends EventEmitter {
     this.db.timers.deleteProfile(id);
     this.chat.deleteProfile(id);
     if (this.config.teamObservations) delete this.config.teamObservations[id];
+    if (this.config.gameEvents) delete this.config.gameEvents[id];
     if (this.config.timeCalibrations) delete this.config.timeCalibrations[id];
     this.config.profiles = this.config.profiles.filter((p) => p.id !== id);
     for (const key of Object.keys(this.config.deathLocations || {}))
@@ -678,6 +683,7 @@ export class LiveService extends EventEmitter {
   close() {
     this.stop();
     this.timers.close();
+    this.events.close();
     this.chat.close();
     this.removeAllListeners();
   }

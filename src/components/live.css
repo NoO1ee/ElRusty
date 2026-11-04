@@ -1270,3 +1270,13 @@
   background: #151d29f5;
   border-color: #51617c66;
 }
+
+.event-summary {
+  display: grid;
+  gap: 5px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+.event-summary small {
+  color: var(--muted);
+}

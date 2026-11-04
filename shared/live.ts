@@ -99,6 +99,7 @@ export interface DiscordConfig {
   roleIds: string[];
 }
 export interface LiveSnapshot {
+  gameEvents?: import('./events').EventSnapshot;
   teamChat?: TeamChatLine[];
   connectionAttempts?: number;
   retryExhausted?: boolean;

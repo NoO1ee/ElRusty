@@ -110,7 +110,7 @@ it('hjälpen har grupper och kommandosyntax men lägger inte till !team eller ev
   expect(helpReply('!PrOx')).toContain('tre närmaste');
   expect(() => helpReply('unknown')).toThrow('Okänt');
   expect(isKnownCommand('!team')).toBe(false);
-  expect(isKnownCommand('!cargo')).toBe(false);
+  expect(isKnownCommand('!cargo')).toBe(true);
   expect(isKnownCommand('  !OFFLINE  ')).toBe(true);
   expect(duration(0)).toBe('0 s');
   expect(duration(61000)).toBe('1 min 1 s');
