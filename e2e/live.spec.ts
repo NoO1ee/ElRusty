@@ -891,3 +891,26 @@ test('lagrapport visar källa och ett kartruteområde på kartan', async ({ page
   await marker.click();
   await expect(page.locator('.live-map-detail')).toContainText('lagrapport');
 });
+
+test('serverguiden skapar privat pluginfil utan att visa anslutningsnyckeln', async ({ page }) => {
+  const state = initial();
+  state.gameEvents = {
+    entries: [],
+    server: { configured: false, fresh: false, lastContact: null },
+  };
+  await page.route('**/api/live/**', async (route) => {
+    if (route.request().method() === 'POST') {
+      state.gameEvents!.server.configured = true;
+      await route.fulfill({ json: { filename: 'profile.json' } });
+    } else await route.fulfill({ json: state });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Live', exact: true }).click();
+  await page.getByRole('button', { name: 'Hantera servrar', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Oxide-event från egen server' })).toBeVisible();
+  await page.getByRole('button', { name: 'Skapa privat plugininställning', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Privat fil skapad' })).toContainText(
+    'profile.json',
+  );
+  await expect(page.getByText(/Nyckeln visas inte här/)).toBeVisible();
+});

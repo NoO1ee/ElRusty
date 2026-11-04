@@ -86,8 +86,8 @@ export function EventPanel({ data, offline }: { data: LiveSnapshot; offline: boo
           </strong>
           <small>
             {e.source === 'team' ? 'Lagrapport · ' + e.reporter?.name : 'Serverbekräftat'} ·{' '}
-            {e.grid || 'Exakt position vid val på kartan'} ·{' '}
-            {new Date(e.observedAt).toLocaleString('sv-SE')}
+            {e.grid || (e.x === undefined ? 'Position okänd' : 'Exakt position vid val på kartan')}{' '}
+            · {new Date(e.observedAt).toLocaleString('sv-SE')}
             {!eventFresh(e, Date.now(), !!data.gameEvents?.server.fresh) || offline
               ? ' · Inaktuell'
               : ''}

@@ -1,3 +1,4 @@
+import { resolve as resolveEventDirectory } from 'node:path';
 import { Avatars } from './avatars.ts';
 import type { PairingManager } from './pairing.ts';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
@@ -146,6 +147,11 @@ export function createLiveHttp(
           return;
         }
         switch (path) {
+          case '/api/live/events/configure':
+            result = service.events.source.configure(
+              resolveEventDirectory(process.env.ELRUSTY_DATA_DIR || '.private'),
+            );
+            break;
           case '/api/live/events/report': {
             const profile = service.config.profiles.find(
               (p) => p.id === service.config.activeProfileId,

@@ -210,3 +210,10 @@ Fortsatta begränsningar: seriell smältkö, gemensam lagerbudget, tre crafter-r
 - Eventkommandon och lagrapporter med källa, ålder och kartområden.
 - Separata eventnotiser till webb, Discord och Rust med begränsade köer utan återspelning.
 - Historik per profil och wipe; Oxide-integration följer i 0.19.
+
+## 0.19.0 — 2026-11-04
+
+- ElRustyEvents för Oxide med Cargo, Patrol Helicopter och Oil Rig-hackning från serverhooks.
+- Privat localhost-mottagare, nycklar per profil, baslinjer och sekvenskontroll utan återspelade notiser.
+- Installationsguide och Windows-skript för plugin och separat Pi-tunnel vid inloggning.
+- Lokal kompilering och verklig hook-verifiering genomförda på en isolerad Rust/Oxide-server.

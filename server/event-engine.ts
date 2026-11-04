@@ -1,3 +1,4 @@
+import { EventSource } from './event-source.ts';
 import type { LiveService } from './service.ts';
 import { TextQueue, plainText } from './chat.ts';
 import { insist } from './validation.ts';
@@ -14,6 +15,7 @@ import {
   type EventSnapshot,
 } from '../shared/events.ts';
 export class EventEngine {
+  readonly source: EventSource;
   private queue = new TextQueue();
   private dirty = false;
   private timer: ReturnType<typeof setInterval>;
@@ -21,11 +23,15 @@ export class EventEngine {
     readonly service: LiveService,
     private now = () => Date.now(),
   ) {
+    this.source = new EventSource(service, this, now);
     service.on('sessionLost', this.lost);
     this.timer = setInterval(() => this.flush(), 60000);
     this.timer.unref?.();
   }
-  private lost = () => this.queue.clear();
+  private lost = () => {
+    this.queue.clear();
+    this.source.reset();
+  };
   identity(): EventIdentity | null {
     const world = this.service.world?.snapshot();
     return world?.profileId === this.service.config.activeProfileId && world.info
@@ -47,7 +53,7 @@ export class EventEngine {
   snapshot(): EventSnapshot {
     return {
       entries: this.data()?.entries || [],
-      server: { configured: false, fresh: false, lastContact: null },
+      server: this.source.snapshot(),
     };
   }
   report(type: string, value: string, actor: { steamId: string; name: string }, notifyRust = true) {
@@ -105,10 +111,32 @@ export class EventEngine {
     if (announce) this.announce(entry, gen, notifyRust);
     return this.describe(entry);
   }
+  applyServer(entries: GameEvent[], baseline: boolean, gen: number) {
+    const data = this.data();
+    insist(data, 'Kartinformation saknas.');
+    const announcements: GameEvent[] = [];
+    let stateChanged = false;
+    for (const old of data.entries) if (old.source === 'server') old.current = false;
+    for (const entry of entries) {
+      const index = data.entries.findIndex((e) => e.source === 'server' && e.id === entry.id),
+        old = data.entries[index];
+      const changed = !old || old.status !== entry.status;
+      if (index >= 0) data.entries[index] = entry;
+      else data.entries.unshift(entry);
+      if (changed) {
+        stateChanged = true;
+        if (!baseline) announcements.push(entry);
+      }
+    }
+    data.entries = data.entries.slice(0, 100);
+    this.dirty = true;
+    if (stateChanged) this.flush(true);
+    for (const entry of announcements) this.announce(entry, gen);
+  }
   describe(e: GameEvent) {
     const age = Math.max(0, Math.floor((this.now() - e.observedAt) / 60000));
     return plainText(
-      `${gameEventNames[e.type]} · ${eventStatusNames[e.status]} · ${eventLocation(e, this.identity()?.mapSize || 0)}${e.direction ? ' · från ' + e.direction : ''} · ${e.source === 'team' ? 'lagrapport av ' + e.reporter?.name : 'serverbekräftat'} · ${age} min sedan${e.source === 'team' && age >= 15 ? ' · inaktuell' : ''}${e.startedAt ? ' · start ' + new Date(e.startedAt).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }) : ''}`,
+      `${gameEventNames[e.type]} · ${eventStatusNames[e.status]} · ${eventLocation(e, this.identity()?.mapSize || 0)}${e.direction ? ' · från ' + e.direction : ''} · ${e.source === 'team' ? 'lagrapport av ' + e.reporter?.name : 'serverbekräftat'} · ${age} min sedan${(e.source === 'team' && age >= 15) || (e.source === 'server' && (!this.source.snapshot().fresh || e.current === false)) ? ' · inaktuell' : ''}${e.startedAt ? ' · start ' + new Date(e.startedAt).toLocaleTimeString('sv-SE', { timeZone: 'Europe/Stockholm', hour: '2-digit', minute: '2-digit' }) : ''}`,
       350,
     );
   }
@@ -144,7 +172,18 @@ export class EventEngine {
       this.service.config.activeProfileId === event.profileId;
     if (notifyRust)
       this.queue.push(
-        plainText('[ElRusty] ' + text, 120),
+        plainText(
+          '[ElRusty] ' +
+            gameEventNames[e.type] +
+            ' · ' +
+            (e.source === 'team' ? 'lagrapport' : 'serverbekräftat') +
+            ' · ' +
+            eventStatusNames[e.status] +
+            ' · ' +
+            eventLocation(e, this.identity()?.mapSize || 0) +
+            (e.direction ? ' · från ' + e.direction : ''),
+          120,
+        ),
         async (message) => {
           if (valid()) await session.adapter.chat(message);
         },

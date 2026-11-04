@@ -158,6 +158,7 @@ export class DiscordBot {
     });
     client.on('shardDisconnect', (event) => {
       this.clearChat();
+      this.clearEvents();
       if (gen !== this.generation) return;
       this.service.timers.dropDiscord();
       if (event.code === 4014 && wantsRelay) {
@@ -501,14 +502,20 @@ export class DiscordBot {
   private gameEvent = (event: Activity) => {
     const gen = this.generation,
       epoch = this.service.profileEpoch,
-      guild = this.service.config.discord.guildId;
+      guild = this.service.config.discord.guildId,
+      channelId = this.service.config.discord.channels?.events;
     const valid = () =>
       gen === this.generation &&
       epoch === this.service.profileEpoch &&
       this.service.connection === 'connected' &&
       this.client?.isReady() === true &&
       event.profileId === this.service.config.activeProfileId &&
-      guild === this.service.config.discord.guildId;
+      guild === this.service.config.discord.guildId &&
+      !!this.service.config.discord.enabled &&
+      !!this.service.config.discord.categoryId &&
+      !!channelId &&
+      channelId === this.service.config.discord.channels?.events &&
+      managedAccessValid(this.service.config.discord);
     if (!valid()) return;
     this.eventQueue.push(
       plainText(event.text, 350),

@@ -171,6 +171,7 @@ export class LiveService extends EventEmitter {
     this.chat.deleteProfile(id);
     if (this.config.teamObservations) delete this.config.teamObservations[id];
     if (this.config.gameEvents) delete this.config.gameEvents[id];
+    if (this.config.eventKeys) delete this.config.eventKeys[id];
     if (this.config.timeCalibrations) delete this.config.timeCalibrations[id];
     this.config.profiles = this.config.profiles.filter((p) => p.id !== id);
     for (const key of Object.keys(this.config.deathLocations || {}))

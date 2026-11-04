@@ -1,3 +1,4 @@
+import { EventBridgeGuide } from './EventBridgeGuide';
 import { EventPanel } from './EventPanel';
 import { TeamPresence, observedDuration } from './TeamPresence';
 import { TeamChat } from './TeamChat';
@@ -861,6 +862,7 @@ export function LivePage() {
                   {settingsTab === 'Rust+-parning' && (
                     <RustPairing status={data.pairing} disabled={disabled} act={act} />
                   )}
+                  {settingsTab === 'Servrar' && <EventBridgeGuide data={data} />}
                   {settingsTab === 'Servrar' && (
                     <div>
                       <section className="live-panel">

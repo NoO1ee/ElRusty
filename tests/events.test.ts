@@ -30,7 +30,13 @@ async function fixture() {
       { steamId: '76561198000000000', name: 'Owner', isOnline: true, isAlive: true },
     ],
     time: async () => 12,
-    timeInfo: async () => ({time:12,timeScale:0,sunrise:6,sunset:18,dayLengthMinutes:60}),
+    timeInfo: async () => ({
+      time: 12,
+      timeScale: 0,
+      sunrise: 6,
+      sunset: 18,
+      dayLengthMinutes: 60,
+    }),
     chat: vi.fn(async (_text: string) => {}),
     entity: async () => ({ type: 'switch' as const, value: false }),
     set: async () => {},
@@ -124,4 +130,175 @@ it('släpper köade Rust-notiser vid avbrott', async () => {
   s.disconnect();
   await vi.advanceTimersByTimeAsync(5000);
   expect(a.chat).toHaveBeenCalledTimes(1);
+});
+
+function packet(id: string, sequence = 1, baseline = true) {
+  return {
+    version: 1,
+    profileId: id,
+    sessionId: '11111111-1111-4111-8111-111111111111',
+    sequence,
+    baseline,
+    sentAt: Date.now(),
+    identity: { mapSize: 4500, seed: 1, wipeTime: 1 },
+    events: [
+      {
+        id: 'cargo:1',
+        type: 'cargo',
+        status: 'active',
+        x: 100,
+        y: 4600,
+        spawnX: 100,
+        spawnY: 4600,
+        startedAt: Date.now(),
+      },
+    ],
+  };
+}
+it('validerar baslinje, sekvens, session, profil och wipe före uppdatering', async () => {
+  const { s, id } = await fixture();
+  const source = s.events.source,
+    notice = vi.fn();
+  s.on('gameEvent', notice);
+  const first = packet(id);
+  source.accept(first);
+  expect(notice).not.toHaveBeenCalled();
+  expect(source.snapshot().fresh).toBe(true);
+  expect(s.events.snapshot().entries[0].direction).toBe('NW');
+  expect(() => source.accept(first)).toThrow('redan');
+  expect(() =>
+    source.accept({ ...first, sequence: 2, identity: { ...first.identity, wipeTime: 2 } }),
+  ).toThrow('wipe');
+  expect(() => source.accept({ ...first, sequence: 2, profileId: 'other' })).toThrow('profil');
+  expect(() =>
+    source.accept({ ...first, sequence: 2, events: [{ ...first.events[0], x: NaN }] }),
+  ).toThrow('position');
+  source.accept({
+    ...first,
+    sequence: 2,
+    baseline: false,
+    events: [{ ...first.events[0], status: 'ended' }],
+  });
+  expect(notice).toHaveBeenCalledOnce();
+  const next = { ...packet(id, 1), sessionId: '22222222-2222-4222-8222-222222222222' };
+  source.accept(next);
+  expect(() => source.accept({ ...first, sequence: 3 })).toThrow('session');
+});
+it('återansluter samma pluginsession med ny baslinje utan gamla notiser', async () => {
+  const { s, id } = await fixture();
+  const source = s.events.source,
+    notice = vi.fn();
+  s.on('gameEvent', notice);
+  source.accept(packet(id));
+  source.reset();
+  expect(source.snapshot().fresh).toBe(false);
+  expect(() => source.accept(packet(id, 2, false))).toThrow('baslinje');
+  source.accept(packet(id, 2, true));
+  expect(notice).not.toHaveBeenCalled();
+  expect(source.snapshot().fresh).toBe(true);
+});
+it('håller serverdata och lagrapporter separata och döljer inte okänd spawn bakom antaganden', async () => {
+  const { s, id, actor } = await fixture();
+  s.events.report('cargo', 'A1', actor, false);
+  const p = packet(id);
+  delete (p.events[0] as any).startedAt;
+  delete (p.events[0] as any).spawnX;
+  delete (p.events[0] as any).spawnY;
+  s.events.source.accept(p);
+  expect(s.events.snapshot().entries).toHaveLength(2);
+  const server = s.events.snapshot().entries.find((e) => e.source === 'server')!;
+  expect(server.direction).toBeUndefined();
+  expect(server.startedAt).toBeUndefined();
+  s.events.source.accept({ ...p, sequence: 2, baseline: false, events: [] });
+  expect(
+    eventFresh(
+      s.events.snapshot().entries.find((e) => e.source === 'server')!,
+      Date.now(),
+      true,
+    ),
+  ).toBe(false);
+});
+it('maskerar anslutningsnycklar i Live-status och accepterar bara rätt nyckel', async () => {
+  const { s, id } = await fixture();
+  const secret = 'abcdef0123456789'.repeat(4);
+  s.config.eventKeys = { [id]: secret };
+  expect(s.events.source.authenticate(id, secret)).toBe(true);
+  expect(s.events.source.authenticate(id, '0'.repeat(64))).toBe(false);
+  expect(s.events.source.authenticate(id, 'x')).toBe(false);
+  expect(JSON.stringify(s.snapshot())).not.toContain(secret);
+  expect(s.snapshot().gameEvents?.server.configured).toBe(true);
+});
+
+it('mottagaren kräver nyckel, avvisar webbläsarursprung och returnerar bara säkra fel', async () => {
+  const { s, id } = await fixture();
+  const { createEventReceiver } = await import('../server/event-source');
+  const { request } = await import('node:http');
+  const secret = 'abcdef0123456789'.repeat(4);
+  s.config.eventKeys = { [id]: secret };
+  const server = createEventReceiver(s);
+  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+  const port = (server.address() as any).port;
+  const call = (body: unknown, headers: Record<string, string> = {}) =>
+    new Promise<{ status: number; body: string }>((resolve, reject) => {
+      const req = request(
+        {
+          hostname: '127.0.0.1',
+          port,
+          path: '/ingest',
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...headers },
+        },
+        (res) => {
+          let text = '';
+          res.on('data', (c) => (text += c));
+          res.on('end', () => resolve({ status: res.statusCode!, body: text }));
+        },
+      );
+      req.on('error', reject);
+      req.end(JSON.stringify(body));
+    });
+  try {
+    expect((await call(packet(id))).status).toBe(401);
+    expect(
+      (await call(packet(id), { Authorization: 'Bearer ' + secret, Origin: 'http://example.com' }))
+        .status,
+    ).toBe(403);
+    expect((await call(packet(id), { Authorization: 'Bearer ' + secret })).status).toBe(200);
+    const duplicate = await call(packet(id), { Authorization: 'Bearer ' + secret });
+    expect(duplicate.status).toBe(409);
+    expect(duplicate.body).not.toContain(secret);
+    expect(
+      (
+        await call(
+          { profileId: id, padding: 'x'.repeat(66000) },
+          { Authorization: 'Bearer ' + secret },
+        )
+      ).status,
+    ).toBe(413);
+  } finally {
+    server.closeAllConnections();
+    await new Promise<void>((r) => server.close(() => r()));
+  }
+});
+
+it('skapar privat pluginfil utan att returnera nyckeln och bevarar befintlig nyckel', async () => {
+  const { s, id } = await fixture();
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'elrusty-event-key-'));
+  try {
+    const result = s.events.source.configure(root);
+    const file = JSON.parse(
+      fs.readFileSync(path.join(root, 'event-plugins', result.filename), 'utf8'),
+    );
+    expect(file.ProfileId).toBe(id);
+    expect(file.Key).toMatch(/^[a-f0-9]{64}$/);
+    expect(JSON.stringify(result)).not.toContain(file.Key);
+    expect(JSON.stringify(s.snapshot())).not.toContain(file.Key);
+    s.events.source.configure(root);
+    expect(s.config.eventKeys![id]).toBe(file.Key);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });

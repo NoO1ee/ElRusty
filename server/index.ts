@@ -1,3 +1,4 @@
+import { createEventReceiver } from './event-source.ts';
 import { LiveWorld } from './world.ts';
 import { PairingManager } from './pairing.ts';
 import { resolve } from 'node:path';
@@ -33,6 +34,12 @@ server.on('error', () => {
   console.error('ElRusty kunde inte starta. Är porten upptagen?');
   void shutdown(1);
 });
+const eventReceiver = createEventReceiver(service);
+eventReceiver.listen(5184, '127.0.0.1');
+eventReceiver.on('error', () => {
+  console.error('Eventmottagaren kunde inte starta på localhost:5184.');
+  void shutdown(1);
+});
 let stopping = false;
 async function shutdown(code = 0) {
   if (stopping) return;
@@ -40,6 +47,8 @@ async function shutdown(code = 0) {
   await pairing.close();
   service.close();
   await bot.close();
+  eventReceiver.close();
+  eventReceiver.closeAllConnections();
   server.close();
   server.closeAllConnections();
   db.close();

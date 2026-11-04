@@ -2,6 +2,7 @@ import { GRID_SIZE, gridCount, gridLocation } from './world';
 export type EventType = 'cargo' | 'heli' | 'smalloil' | 'largeoil';
 export type EventStatus = 'active' | 'hacking' | 'unlocked' | 'ended' | 'destroyed';
 export interface GameEvent {
+  current?: boolean;
   id: string;
   type: EventType;
   source: 'team' | 'server';
@@ -42,7 +43,7 @@ export const eventStatusNames: Record<EventStatus, string> = {
   destroyed: 'förstörd',
 };
 export function eventFresh(e: GameEvent, now: number, serverFresh: boolean) {
-  return e.source === 'server' ? serverFresh : now - e.observedAt <= 900000;
+  return e.source === 'server' ? serverFresh && e.current !== false : now - e.observedAt <= 900000;
 }
 export function eventLocation(e: GameEvent, mapSize: number) {
   return (

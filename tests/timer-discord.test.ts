@@ -141,3 +141,24 @@ it('Rust-avbrott stoppar inte en redan köad Discord-avisering för samma profil
   await vi.advanceTimersByTimeAsync(1000);
   expect(channel.send).toHaveBeenCalledTimes(2);
 });
+
+it('eventnotiser håller en sekund mellan sändningar och släpper kön vid Discord-avbrott', async () => {
+  const { s, client, channel } = await fixture();
+  const event = {
+    id: 'one',
+    profileId: s.config.activeProfileId!,
+    at: Date.now(),
+    kind: 'info' as const,
+    text: 'Cargo · serverbekräftat',
+  };
+  s.emit('gameEvent', event);
+  s.emit('gameEvent', { ...event, id: 'two' });
+  s.emit('gameEvent', { ...event, id: 'three' });
+  await flush();
+  expect(channel.send).toHaveBeenCalledOnce();
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(channel.send).toHaveBeenCalledTimes(2);
+  client.emit('shardDisconnect', { code: 1006 });
+  await vi.advanceTimersByTimeAsync(3000);
+  expect(channel.send).toHaveBeenCalledTimes(2);
+});
