@@ -1,4 +1,4 @@
-import { GRID_SIZE, gridCount, gridLocation } from './world';
+import { GRID_SIZE, gridCount, gridLocation } from './world.ts';
 export type EventType = 'cargo' | 'heli' | 'smalloil' | 'largeoil';
 export type EventStatus = 'active' | 'hacking' | 'unlocked' | 'ended' | 'destroyed';
 export interface GameEvent {

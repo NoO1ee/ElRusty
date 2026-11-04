@@ -17,6 +17,7 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: node --experimental-transform-types --input-type=module -e "await import('./server/event-engine.ts'); await import('./server/http.ts');"
       - run: pnpm check
       - run: pnpm test
       - run: pnpm build
