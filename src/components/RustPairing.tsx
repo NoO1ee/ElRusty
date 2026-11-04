@@ -9,7 +9,7 @@ export function RustPairing({
   disabled: boolean;
   act: (path: string, body?: unknown) => Promise<void>;
 }) {
-  const pair = status || {
+  const pair: PairingStatus = status || {
     status: 'idle',
     hasRegistration: false,
     running: false,
@@ -55,8 +55,15 @@ export function RustPairing({
             Registreringen är sparad. Registrera på nytt endast om kontot eller
             anslutningsuppgifterna behöver förnyas.
           </p>
+          {pair.canRegister === false && (
+            <p>
+              ElRusty körs utan skrivbord, till exempel på Pi. Förnya registreringen på din
+              Windows-dator och flytta den privata registreringen säkert till Pi:n. Den befintliga
+              mottagningen fungerar utan webbläsare.
+            </p>
+          )}
           <button
-            disabled={disabled || pair.status === 'registering'}
+            disabled={disabled || pair.status === 'registering' || pair.canRegister === false}
             onClick={() => void act('pairing/register')}
           >
             Registrera på nytt
@@ -76,8 +83,9 @@ export function RustPairing({
         </div>
       </div>
       <p>
-        Koppla ditt Rust+-konto och ta emot servern direkt här. Ingen terminal eller kopiering av
-        token behövs.
+        {pair.canRegister === false
+          ? 'ElRusty körs på Pi eller en dator utan skrivbord. Brave på din Windows-dator kan inte öppnas av Pi-tjänsten. Registrera på Windows-datorn och flytta den privata Rust+-registreringen säkert till Pi:n; därefter tar den emot parningar här.'
+          : 'Koppla ditt Rust+-konto och ta emot servern direkt här. Ingen kopiering av token behövs.'}
       </p>
       <ol className="pairing-steps">
         <li className={pair.hasRegistration ? 'done' : ''}>
@@ -85,12 +93,13 @@ export function RustPairing({
           <div>
             <h3>Registrera Rust+</h3>
             <p>
-              Ett separat fönster i Brave, Chrome eller Edge öppnas för Steam-inloggning. När du är
-              klar återgår du hit.
+              {pair.canRegister === false
+                ? 'Inloggning kräver en lokal ElRusty-tjänst på datorn med Brave, Chrome eller Edge. SSH-tunneln öppnar inte någon webbläsare på datorn. Har du redan registrerat där kan den privata konfigurationen återanvändas.'
+                : 'Ett separat fönster i Brave, Chrome eller Edge öppnas på datorn där tjänsten körs. När du är klar återgår du hit.'}
             </p>
             <button
               className={pair.hasRegistration ? '' : 'primary'}
-              disabled={disabled || pair.status === 'registering'}
+              disabled={disabled || pair.status === 'registering' || pair.canRegister === false}
               onClick={() => void act('pairing/register')}
             >
               {pair.hasRegistration ? 'Registrera på nytt' : 'Registrera Rust+'}

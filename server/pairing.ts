@@ -61,6 +61,7 @@ export class PairingManager {
       ...this.service.pairing,
       ...patch,
       hasRegistration: this.registered(),
+      canRegister: this.canRegister,
       candidates: [...this.candidates].map(([id, { profile: p, expires }]) => ({
         id,
         name: p.name,

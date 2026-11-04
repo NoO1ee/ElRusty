@@ -139,6 +139,7 @@ export interface DevicePairingCandidate {
   expiresAt: number;
 }
 export interface PairingStatus {
+  canRegister?: boolean;
   devices?: DevicePairingCandidate[];
   warning?: string;
   status: 'idle' | 'registering' | 'registered' | 'listening' | 'error';

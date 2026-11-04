@@ -283,6 +283,7 @@ it.each([
 it('automatisk mottagning kräver ingen inloggning på huvudlös tjänst och saknar tiominutersgräns', async () => {
   vi.useFakeTimers();
   const { manager, spawn, children, service } = setup(true, false);
+  expect(service.pairing.canRegister).toBe(false);
   manager.enable();
   manager.enable();
   expect(spawn).toHaveBeenCalledTimes(1);

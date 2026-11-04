@@ -914,3 +914,22 @@ test('serverguiden skapar privat pluginfil utan att visa anslutningsnyckeln', as
   );
   await expect(page.getByText(/Nyckeln visas inte här/)).toBeVisible();
 });
+
+test('Pi-parning förklarar varför en Windows-webbläsare inte öppnas', async ({ page }) => {
+  const state = initial();
+  state.pairing = {
+    status: 'idle',
+    message: 'Registrering saknas.',
+    hasRegistration: false,
+    canRegister: false,
+    running: false,
+    candidates: [],
+  };
+  await page.route('**/api/live/**', async (route) => route.fulfill({ json: state }));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Live', exact: true }).click();
+  await page.getByRole('button', { name: 'Inställningar', exact: true }).click();
+  await page.getByRole('button', { name: 'Rust+-parning', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Registrera Rust+', exact: true })).toBeDisabled();
+  await expect(page.getByText(/Brave på din Windows-dator kan inte öppnas/)).toBeVisible();
+});

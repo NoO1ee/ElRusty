@@ -217,3 +217,7 @@ Fortsatta begränsningar: seriell smältkö, gemensam lagerbudget, tre crafter-r
 - Privat localhost-mottagare, nycklar per profil, baslinjer och sekvenskontroll utan återspelade notiser.
 - Installationsguide och Windows-skript för plugin och separat Pi-tunnel vid inloggning.
 - Lokal kompilering och verklig hook-verifiering genomförda på en isolerad Rust/Oxide-server.
+## 0.19.1 — 2026-11-04
+
+- Rust+-guiden skiljer lokal skrivbordsregistrering från parningsmottagning på Pi. Registreringsknappar spärras med förklaring när tjänsten saknar skrivbord.
+- Brave väljs fortsatt på Windows; en befintlig privat registrering kan återanvändas på Pi utan ny inloggning.
