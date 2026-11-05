@@ -161,3 +161,40 @@ it('stoppar överstora källsvar', async () => {
   );
   await expect(directory.list(new URLSearchParams())).rejects.toThrow('kunde inte hämtas');
 });
+
+it('gruppfilter använder exakt rapporterad gräns före sidindelning och skiljer okänt från stora grupper', async () => {
+  const rows = Array.from({ length: 65 }, (_, i) => row('duo' + i, { team: 2 }));
+  rows.push(
+    row('solo', { team: 1 }),
+    row('trio', { team: 3 }),
+    row('eight', { team: 8 }),
+    row('large', { team: 12 }),
+  );
+  for (const [i, team] of [0, null, undefined, -1, 2.5, '2', 1001].entries())
+    rows.push(row('unknown' + i, { team }));
+  const directory = new ServerDirectory(
+    async () => new Response(JSON.stringify(payload(rows))),
+    () => now,
+  );
+  expect(parseDirectoryQuery(new URLSearchParams()).group).toBe('all');
+  for (const group of ['__proto__', '-1', '2.5', 'solo', '9'])
+    expect(() => parseDirectoryQuery(new URLSearchParams({ group }))).toThrow('gruppgräns');
+  const duo = await directory.list(new URLSearchParams('group=2&page=2&day=thu&minPlayers=40'));
+  expect(duo.total).toBe(65);
+  expect(duo.servers).toHaveLength(15);
+  expect(duo.servers.every((s) => s.groupLimit === 2)).toBe(true);
+  expect((await directory.list(new URLSearchParams('group=1'))).servers.map((s) => s.id)).toEqual([
+    'solo',
+  ]);
+  expect((await directory.list(new URLSearchParams('group=3'))).servers.map((s) => s.id)).toEqual([
+    'trio',
+  ]);
+  expect((await directory.list(new URLSearchParams('group=8'))).servers.map((s) => s.id)).toEqual([
+    'eight',
+  ]);
+  expect(
+    (await directory.list(new URLSearchParams('group=9plus'))).servers.map((s) => s.id),
+  ).toEqual(['large']);
+  expect((await directory.list(new URLSearchParams('group=unknown'))).total).toBe(7);
+  expect((await directory.list(new URLSearchParams())).total).toBe(rows.length);
+});

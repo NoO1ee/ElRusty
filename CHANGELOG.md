@@ -1,5 +1,10 @@
 # Ändringslogg
 
+## 0.20.1 — 2026-11-05
+
+- Serverlistan filtrerar på rapporterad gruppgräns: Solo, Duo, Trio, Quad, max 5–8, över 8 eller okänd. Valet sparas med övriga filter och varje server visar sin rapporterade gräns.
+- Saknad eller nollställd gräns tolkas inte som verifierat obegränsade grupper.
+
 ## 0.13.1 — 2026-11-01
 
 - Synlig papperskorg på sparade enhetskort för borttagning från ElRusty. Enheten i spelet påverkas inte.
@@ -37,14 +42,12 @@
 - Ägarbehörigheter, 10s–7d, max 20 aktiva per profil och skydd mot utskick till fel server. Framtida timers fortsätter över omstart och wipe.
 - Automatiska tester för migration, dubbla schedulers, kvoter, avbrott, API-skydd och browserflöden. Verkliga spel-/Discord-aviseringar återstår att användarverifiera.
 
-
 ## 0.10.0 — 2026-11-01
 
 - Nya teamkommandon: !wipe, !death, !online, !offline, !alive, !steamid, !prox och !uptime. !where utan namn visar avsändarens position.
 - Gemensam kommandokatalog i webbpanelen och !help, med grupp-/detaljhjälp. Oförändrade styrbehörigheter och ingen ny !team.
 - Saknad/felaktig tid eller position ger tydliga svar. !death använder endast sparad dödsplats för parade kontot.
 - Förtydligat att vanilla-Rust+ inte längre skickar event-/butiksmarkörer efter Power Trip (2026-08-06). Automatiska Cargo-/Oil Rig-kommandon ingår inte; manuella teamrapporter skjuts upp enligt användarens val.
-
 
 ## 0.9.2 — 2026-11-01
 
@@ -54,13 +57,11 @@
 - Protokollfel kan ange ett verifierat schemafältnamn utan råa payloads, token eller partiella objekt.
 - Testat dödsbroadcast, återspawn, waypoints och wipe-/serverisolering. Nästa verkliga dödsfall behöver slutverifieras i spelet.
 
-
 ## 0.9.1 — 2026-11-01
 
 - Kartvyn efterliknar Rust+-appens presentation: större kartyta, flytande lager och navigeringsknappar, utökat läge och nordindikator.
 - Tydliga monumentnamn med överlappningsskydd ersätter likadana prickar. Teamnamn, butiker och event har särskilda markörer med bibehållen serverdata.
 - Öppningsvyn fokuserar ön; Visa hela kartan visar åter hela bilden.
-
 
 ## 0.9.0 — 2026-11-01
 
@@ -68,7 +69,6 @@
 - Valbar Discord↔Rust-textchatt med deduplicering, neutraliserade mentions, begränsade köer och avbrottsskydd. Saknat Message Content Intent pausar chatten men behåller övriga botfunktioner.
 - Nya domän-, protokoll- och browserprov samt korrigerade kartetiketter.
 - Riktig Discord, ledarskapsbyte och chatt i spelet återstår att användarverifiera.
-
 
 ## 0.8.0 — 2026-10-31
 
@@ -217,6 +217,7 @@ Fortsatta begränsningar: seriell smältkö, gemensam lagerbudget, tre crafter-r
 - Privat localhost-mottagare, nycklar per profil, baslinjer och sekvenskontroll utan återspelade notiser.
 - Installationsguide och Windows-skript för plugin och separat Pi-tunnel vid inloggning.
 - Lokal kompilering och verklig hook-verifiering genomförda på en isolerad Rust/Oxide-server.
+
 ## 0.19.1 — 2026-11-04
 
 - Rust+-guiden skiljer lokal skrivbordsregistrering från parningsmottagning på Pi. Registreringsknappar spärras med förklaring när tjänsten saknar skrivbord.

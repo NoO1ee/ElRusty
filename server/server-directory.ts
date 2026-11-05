@@ -3,6 +3,7 @@ import { insist } from './validation.ts';
 import {
   serverRegions,
   wipeDays,
+  groupLimits,
   selectedWipe,
   type DirectoryQuery,
   type DirectoryServer,
@@ -19,6 +20,7 @@ export function parseDirectoryQuery(params: URLSearchParams): DirectoryQuery {
   const q = (params.get('q') || '').trim(),
     region = params.get('region') || 'EU',
     day = params.get('day') || 'all',
+    group = params.get('group') || 'all',
     sort = params.get('sort') || 'players-desc';
   const minText = params.get('minPlayers') || '0',
     pageText = params.get('page') || '1';
@@ -27,6 +29,7 @@ export function parseDirectoryQuery(params: URLSearchParams): DirectoryQuery {
     Object.hasOwn(serverRegions, region) && Object.hasOwn(wipeDays, day),
     'Ogiltig region eller wipedag.',
   );
+  insist(Object.hasOwn(groupLimits, group), 'Ogiltig gruppgräns.');
   insist(['players-desc', 'players-asc', 'wipe', 'name'].includes(sort), 'Ogiltig sortering.');
   insist(/^\d{1,6}$/.test(minText) && /^\d{1,5}$/.test(pageText), 'Ogiltig population eller sida.');
   const minPlayers = Number(minText),
@@ -36,6 +39,7 @@ export function parseDirectoryQuery(params: URLSearchParams): DirectoryQuery {
     q,
     region: region as DirectoryQuery['region'],
     day: day as DirectoryQuery['day'],
+    group: group as DirectoryQuery['group'],
     minPlayers,
     sort: sort as DirectoryQuery['sort'],
     page,
@@ -93,6 +97,8 @@ export function normalizeDirectory(payload: any, now: number) {
       players: row.p,
       maxPlayers: row.mp,
       queue: integer(row.q) ? row.q : null,
+      // Zero/missing is not a verified unlimited group size.
+      groupLimit: integer(row.team, 1000) && row.team > 0 ? row.team : null,
       wipes,
       scheduleSource:
         row.src === 'user'
@@ -174,6 +180,12 @@ export class ServerDirectory {
         (s) =>
           (query.region === 'all' || s.region === query.region) &&
           s.players >= query.minPlayers &&
+          (query.group === 'all' ||
+            (query.group === 'unknown'
+              ? s.groupLimit === null
+              : query.group === '9plus'
+                ? s.groupLimit !== null && s.groupLimit > 8
+                : s.groupLimit === Number(query.group))) &&
           (!search || s.name.toLocaleLowerCase('sv-SE').includes(search)),
       )
       .map((s) => ({ ...s, displayWipe: selectedWipe(s, query.day, now) }))

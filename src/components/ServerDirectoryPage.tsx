@@ -3,6 +3,8 @@ import { Search, RefreshCw, Users, CalendarDays, Copy, ExternalLink, Globe } fro
 import {
   serverRegions,
   wipeDays,
+  groupLimits,
+  groupLimitLabel,
   defaultDirectoryQuery,
   directoryParams,
   type DirectoryQuery,
@@ -19,6 +21,7 @@ function initialQuery(): DirectoryQuery {
       q: typeof saved.q === 'string' ? saved.q.slice(0, 80) : '',
       region: Object.hasOwn(serverRegions, saved.region) ? saved.region : 'EU',
       day: Object.hasOwn(wipeDays, saved.day) ? saved.day : 'all',
+      group: Object.hasOwn(groupLimits, saved.group) ? saved.group : 'all',
       minPlayers:
         Number.isSafeInteger(saved.minPlayers) &&
         saved.minPlayers >= 0 &&
@@ -101,7 +104,9 @@ export function ServerDirectoryPage() {
             <h1>
               <Globe size={28} /> Servrar
             </h1>
-            <p>Hitta en server efter population och kommande deklarerade wipedagar.</p>
+            <p>
+              Hitta en server efter gruppstorlek, population och kommande deklarerade wipedagar.
+            </p>
           </div>
           <button disabled={loading} onClick={() => setTick((t) => t + 1)}>
             <RefreshCw size={15} /> Uppdatera serverlistan
@@ -147,6 +152,22 @@ export function ServerDirectoryPage() {
                   {label}
                 </option>
               ))}
+            </select>
+          </label>
+          <label>
+            Gruppgräns
+            <select
+              aria-label="Gruppgräns"
+              value={query.group}
+              onChange={(e) => change({ group: e.target.value as DirectoryQuery['group'] })}
+            >
+              {Object.entries(groupLimits)
+                .sort(([a], [b]) => (a === 'all' ? -1 : b === 'all' ? 1 : 0))
+                .map(([id, label]) => (
+                  <option key={id} value={id}>
+                    {label}
+                  </option>
+                ))}
             </select>
           </label>
           <label>
@@ -214,6 +235,7 @@ export function ServerDirectoryPage() {
                   <small>
                     {server.region ? serverRegions[server.region] : 'Region okänd'}
                     {server.country ? ' · ' + server.country : ''} · {address}
+                    {' · ' + groupLimitLabel(server.groupLimit)}
                   </small>
                 </div>
                 <div className="directory-pop">
@@ -293,8 +315,8 @@ export function ServerDirectoryPage() {
               <CalendarDays size={30} />
               <h2>Inga servrar matchar</h2>
               <p>
-                Prova en annan wipedag eller sänk minsta population. Servrar utan deklarerat schema
-                visas när Alla wipedagar är valt.
+                Prova en annan gruppgräns eller wipedag, eller sänk minsta population. Servrar utan
+                deklarerat schema visas när Alla wipedagar är valt.
               </p>
               <button onClick={() => setQuery(defaultDirectoryQuery)}>Återställ filter</button>
             </div>
@@ -340,8 +362,9 @@ export function ServerDirectoryPage() {
             kan släpa efter; källan uppdateras med 1–10 minuters intervall.
           </span>
           <span>
-            Att hitta en server lägger inte till någon Rust+-parning. Anslut i spelet och para sedan
-            via Live.
+            Gruppgränsen är källans rapporterade maxstorlek, inte en kontroll av serverns regler.
+            Ingen rapporterad gräns betyder inte säkert obegränsat. Att hitta en server lägger inte
+            till någon Rust+-parning. Anslut i spelet och para sedan via Live.
           </span>
         </footer>
       </div>

@@ -18,6 +18,24 @@ export const wipeDays = {
   sat: 'Lördag',
   sun: 'Söndag',
 } as const;
+export const groupLimits = {
+  all: 'Alla gruppstorlekar',
+  '1': 'Solo (max 1)',
+  '2': 'Duo (max 2)',
+  '3': 'Trio (max 3)',
+  '4': 'Quad (max 4)',
+  '5': 'Max 5',
+  '6': 'Max 6',
+  '7': 'Max 7',
+  '8': 'Max 8',
+  '9plus': 'Gräns över 8',
+  unknown: 'Ingen rapporterad gräns',
+} as const;
+export type GroupLimit = keyof typeof groupLimits;
+export function groupLimitLabel(limit: number | null) {
+  if (limit === null) return 'Gruppgräns okänd';
+  return groupLimits[String(limit) as GroupLimit] || 'Max ' + limit + ' i grupp';
+}
 export type ServerRegion = keyof typeof serverRegions;
 export type WipeDay = keyof typeof wipeDays;
 export type DirectorySort = 'players-desc' | 'players-asc' | 'wipe' | 'name';
@@ -25,6 +43,7 @@ export interface DirectoryQuery {
   q: string;
   region: ServerRegion;
   day: WipeDay;
+  group: GroupLimit;
   minPlayers: number;
   sort: DirectorySort;
   page: number;
@@ -43,6 +62,7 @@ export interface DirectoryServer {
   players: number;
   maxPlayers: number;
   queue: number | null;
+  groupLimit: number | null;
   wipes: DirectoryWipe[];
   scheduleSource: 'declared' | 'estimated' | 'unknown';
   lastWipeAt: number | null;
@@ -63,6 +83,7 @@ export const defaultDirectoryQuery: DirectoryQuery = {
   q: '',
   region: 'EU',
   day: 'all',
+  group: 'all',
   minPlayers: 0,
   sort: 'players-desc',
   page: 1,

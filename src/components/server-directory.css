@@ -8,7 +8,10 @@
 }
 .directory-filters {
   display: grid;
-  grid-template-columns: minmax(220px, 2fr) repeat(2, minmax(130px, 1fr)) 110px minmax(180px, 1.3fr);
+  grid-template-columns: minmax(180px, 1.6fr) repeat(2, minmax(100px, 0.8fr)) minmax(
+      140px,
+      1fr
+    ) 100px minmax(180px, 1.2fr);
   gap: 14px;
   padding: 20px;
   background: linear-gradient(135deg, #152133, #101722);

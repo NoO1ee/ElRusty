@@ -16,10 +16,16 @@ Populationen är källans senaste observation, inte en direkt livefråga till va
 
 ## API och drift
 
-`GET /api/servers` tar `q`, `region`, `day`, `minPlayers`, `sort` och `page`. Standardsökning: Europa, alla wipedagar, minst noll spelare, flest spelare och sida 1. Resultatet innehåller högst 50 normaliserade rader, totalt antal matchningar, sidor, tidsstämplar och flagga för inaktuell data. Filter och sortering sker över hela källdatamängden före sidindelningen.
+`GET /api/servers` tar `q`, `region`, `day`, `group`, `minPlayers`, `sort` och `page`. Standardsökning: Europa, alla wipedagar, minst noll spelare, flest spelare och sida 1. Resultatet innehåller högst 50 normaliserade rader, totalt antal matchningar, sidor, tidsstämplar och flagga för inaktuell data. Filter och sortering sker över hela källdatamängden före sidindelningen.
 
 Tjänsten delar en minnescache i fem minuter mellan alla sökningar och samlar samtidiga hämtningar i ett anrop. Webbvyn uppdaterar resultatet varje minut medan den visas. Inget hämtas när vyn inte används och cachen är tom. Vid källfel bromsas nya försök i en minut; eventuell tidigare lista behålls med varning. Mer än 15 minuter gammal källdata märks som potentiellt inaktuell.
 
 Hämtningen går endast till den fasta HTTPS-adressen, tillåter inga omdirigeringar, begränsas till 15 sekunder och 24 MiB avkodat innehåll, och validerar radernas adresser, portar och fält. Host/Origin-skydd gäller även den lokala list-endpointen. Inga Rust+-token, Discord-token eller privata serverprofiler skickas till datakällan. Sökningar och filter skickas bara till ElRusty och tillämpas lokalt på den hämtade listan. Ingen ny SQLite-tabell eller migrering behövs.
 
 Tester täcker deklarationsstatus, svensk veckodag vid midnatt, flera framtida datum, ogiltig data, sortering/sidindelning, cache, samtidighet, storleksgräns, säkra fel och API-skydd. Webbläsartester täcker EU-standard, filter, sparade val, kopierad anslutningsadress samt inaktuell data och återställning efter fel.
+
+## Gruppgräns — 0.20.1
+
+Gruppfiltret använder Wipe Boards numeriska `team`-fält. Solo/Duo/Trio/Quad avser exakt rapporterad maxstorlek 1/2/3/4, inte alla servrar där en sådan grupp får plats. Max 5–8 och gränser över 8 stöds också. Noll, saknade och ogiltiga värden visas som okänd gruppgräns; vi antar inte att dessa servrar tillåter obegränsat stora grupper. Uppgiften är källans klassificering och inte en verifiering av serverreglerna. Servernamn tolkas inte på nytt av ElRusty.
+
+API-parametern `group` accepterar `all` (standard), `1`–`8`, `9plus` och `unknown`. Den kombineras med region, wipedag, sökning och population före sidindelning. Äldre sparade filter utan gruppval får standardvärdet `all`.
