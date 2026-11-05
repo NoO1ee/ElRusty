@@ -1,5 +1,11 @@
 # Ändringslogg
 
+## 0.20.2 — 2026-11-05
+
+- Servertyp-filter för Vanilla, Modded och Official. Källans typ och Official-flagga används, så en officiell server kan även matcha Vanilla eller Modded.
+- Servertyp visas på varje rad och filtervalet sparas tillsammans med övriga serverfilter.
+
+
 ## 0.20.1 — 2026-11-05
 
 - Serverlistan filtrerar på rapporterad gruppgräns: Solo, Duo, Trio, Quad, max 5–8, över 8 eller okänd. Valet sparas med övriga filter och varje server visar sin rapporterade gräns.

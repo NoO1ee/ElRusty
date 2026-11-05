@@ -16,7 +16,7 @@ Populationen är källans senaste observation, inte en direkt livefråga till va
 
 ## API och drift
 
-`GET /api/servers` tar `q`, `region`, `day`, `group`, `minPlayers`, `sort` och `page`. Standardsökning: Europa, alla wipedagar, minst noll spelare, flest spelare och sida 1. Resultatet innehåller högst 50 normaliserade rader, totalt antal matchningar, sidor, tidsstämplar och flagga för inaktuell data. Filter och sortering sker över hela källdatamängden före sidindelningen.
+`GET /api/servers` tar `q`, `region`, `day`, `group`, `type`, `minPlayers`, `sort` och `page`. Standardsökning: Europa, alla wipedagar, minst noll spelare, flest spelare och sida 1. Resultatet innehåller högst 50 normaliserade rader, totalt antal matchningar, sidor, tidsstämplar och flagga för inaktuell data. Filter och sortering sker över hela källdatamängden före sidindelningen.
 
 Tjänsten delar en minnescache i fem minuter mellan alla sökningar och samlar samtidiga hämtningar i ett anrop. Webbvyn uppdaterar resultatet varje minut medan den visas. Inget hämtas när vyn inte används och cachen är tom. Vid källfel bromsas nya försök i en minut; eventuell tidigare lista behålls med varning. Mer än 15 minuter gammal källdata märks som potentiellt inaktuell.
 
@@ -29,3 +29,9 @@ Tester täcker deklarationsstatus, svensk veckodag vid midnatt, flera framtida d
 Gruppfiltret använder Wipe Boards numeriska `team`-fält. Solo/Duo/Trio/Quad avser exakt rapporterad maxstorlek 1/2/3/4, inte alla servrar där en sådan grupp får plats. Max 5–8 och gränser över 8 stöds också. Noll, saknade och ogiltiga värden visas som okänd gruppgräns; vi antar inte att dessa servrar tillåter obegränsat stora grupper. Uppgiften är källans klassificering och inte en verifiering av serverreglerna. Servernamn tolkas inte på nytt av ElRusty.
 
 API-parametern `group` accepterar `all` (standard), `1`–`8`, `9plus` och `unknown`. Den kombineras med region, wipedag, sökning och population före sidindelning. Äldre sparade filter utan gruppval får standardvärdet `all`.
+
+## Servertyp — 0.20.2
+
+Filtret **Servertyp** väljer Alla servertyper, Vanilla, Modded eller Official. Vanilla och Modded matchar källans `type`-fält exakt. Official matchar booleska `official=true` eller `type=official`. Official är därmed en separat status: officiella servrar som källan klassar som Vanilla/Modded kan även visas under respektive filter. Okända typer och Community finns kvar under Alla servertyper; de gissas inte från namn eller gather rate. Klassificeringen är källans uppgift, inte en egen kontroll av serverinställningarna.
+
+API-parametern `type` accepterar `all` (standard), `vanilla`, `modded`, `official`. Den kombineras med alla andra filter före sidindelning, sparas i webbläsaren och äldre sparade filter får `all`.

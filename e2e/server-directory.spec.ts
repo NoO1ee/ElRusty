@@ -34,6 +34,8 @@ const first: DirectoryServer & { displayWipe: any } = {
   maxPlayers: 200,
   queue: 3,
   groupLimit: 2,
+  serverType: 'vanilla',
+  official: false,
   scheduleSource: 'declared',
   lastWipeAt: null,
   wipes: [],
@@ -47,6 +49,8 @@ const second = {
   players: 80,
   queue: 0,
   groupLimit: null,
+  serverType: 'official' as const,
+  official: true,
   scheduleSource: 'unknown' as const,
   displayWipe: null,
 };
@@ -82,9 +86,13 @@ test('serverlista har EU-standard, deklarerat wipefilter, sortering och kopierin
     requests.push(url);
     await route.fulfill({
       json: response(
-        url.searchParams.get('day') === 'thu' || url.searchParams.get('group') === '2'
-          ? [first]
-          : [first, second],
+        [first, second].filter(
+          (s) =>
+            (url.searchParams.get('day') !== 'thu' || s.id === first.id) &&
+            (url.searchParams.get('group') !== '2' || s.groupLimit === 2) &&
+            (url.searchParams.get('type') !== 'vanilla' || s.serverType === 'vanilla') &&
+            (url.searchParams.get('type') !== 'official' || s.official),
+        ),
       ),
     });
   });
@@ -96,6 +104,16 @@ test('serverlista har EU-standard, deklarerat wipefilter, sortering och kopierin
   );
   await expect(page.getByText('Inget deklarerat schema', { exact: true })).toBeVisible();
   await page.screenshot({ path: 'test-results/server-directory.png', fullPage: true });
+  await page.getByLabel('Servertyp', { exact: true }).selectOption('official');
+  await expect(page.getByRole('region', { name: 'Serverresultat' })).not.toContainText(
+    'Rustoria EU Main',
+  );
+  await expect(page.getByRole('region', { name: 'Serverresultat' })).toContainText('Facepunch EU');
+  await page.getByLabel('Servertyp', { exact: true }).selectOption('vanilla');
+  await expect(page.getByRole('region', { name: 'Serverresultat' })).not.toContainText(
+    'Facepunch EU',
+  );
+  await expect.poll(() => requests.at(-1)?.searchParams.get('type')).toBe('vanilla');
   await page.getByLabel('Gruppgräns').selectOption('2');
   await expect(page.getByRole('region', { name: 'Serverresultat' })).not.toContainText(
     'Facepunch EU',
@@ -120,6 +138,7 @@ test('serverlista har EU-standard, deklarerat wipefilter, sortering och kopierin
   await page.getByRole('button', { name: 'Servrar', exact: true }).click();
   await expect(page.getByLabel('Deklarerad wipedag')).toHaveValue('thu');
   await expect(page.getByLabel('Gruppgräns')).toHaveValue('2');
+  await expect(page.getByLabel('Servertyp', { exact: true })).toHaveValue('vanilla');
   await expect(page.getByLabel('Sök server', { exact: true })).toHaveValue('Rustoria');
 });
 test('serverlista visar inaktuell data och begripliga fel utan att tappa sista listan', async ({

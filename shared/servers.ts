@@ -31,6 +31,13 @@ export const groupLimits = {
   '9plus': 'Gräns över 8',
   unknown: 'Ingen rapporterad gräns',
 } as const;
+export const serverTypes = {
+  all: 'Alla servertyper',
+  vanilla: 'Vanilla',
+  modded: 'Modded',
+  official: 'Official',
+} as const;
+export type ServerTypeFilter = keyof typeof serverTypes;
 export type GroupLimit = keyof typeof groupLimits;
 export function groupLimitLabel(limit: number | null) {
   if (limit === null) return 'Gruppgräns okänd';
@@ -44,6 +51,7 @@ export interface DirectoryQuery {
   region: ServerRegion;
   day: WipeDay;
   group: GroupLimit;
+  type: ServerTypeFilter;
   minPlayers: number;
   sort: DirectorySort;
   page: number;
@@ -63,6 +71,8 @@ export interface DirectoryServer {
   maxPlayers: number;
   queue: number | null;
   groupLimit: number | null;
+  serverType: 'vanilla' | 'modded' | 'community' | 'official' | null;
+  official: boolean;
   wipes: DirectoryWipe[];
   scheduleSource: 'declared' | 'estimated' | 'unknown';
   lastWipeAt: number | null;
@@ -84,6 +94,7 @@ export const defaultDirectoryQuery: DirectoryQuery = {
   region: 'EU',
   day: 'all',
   group: 'all',
+  type: 'all',
   minPlayers: 0,
   sort: 'players-desc',
   page: 1,

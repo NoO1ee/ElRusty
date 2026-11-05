@@ -4,6 +4,7 @@ import {
   serverRegions,
   wipeDays,
   groupLimits,
+  serverTypes,
   selectedWipe,
   type DirectoryQuery,
   type DirectoryServer,
@@ -21,6 +22,7 @@ export function parseDirectoryQuery(params: URLSearchParams): DirectoryQuery {
     region = params.get('region') || 'EU',
     day = params.get('day') || 'all',
     group = params.get('group') || 'all',
+    type = params.get('type') || 'all',
     sort = params.get('sort') || 'players-desc';
   const minText = params.get('minPlayers') || '0',
     pageText = params.get('page') || '1';
@@ -30,6 +32,7 @@ export function parseDirectoryQuery(params: URLSearchParams): DirectoryQuery {
     'Ogiltig region eller wipedag.',
   );
   insist(Object.hasOwn(groupLimits, group), 'Ogiltig gruppgräns.');
+  insist(Object.hasOwn(serverTypes, type), 'Ogiltig servertyp.');
   insist(['players-desc', 'players-asc', 'wipe', 'name'].includes(sort), 'Ogiltig sortering.');
   insist(/^\d{1,6}$/.test(minText) && /^\d{1,5}$/.test(pageText), 'Ogiltig population eller sida.');
   const minPlayers = Number(minText),
@@ -40,6 +43,7 @@ export function parseDirectoryQuery(params: URLSearchParams): DirectoryQuery {
     region: region as DirectoryQuery['region'],
     day: day as DirectoryQuery['day'],
     group: group as DirectoryQuery['group'],
+    type: type as DirectoryQuery['type'],
     minPlayers,
     sort: sort as DirectoryQuery['sort'],
     page,
@@ -99,6 +103,10 @@ export function normalizeDirectory(payload: any, now: number) {
       queue: integer(row.q) ? row.q : null,
       // Zero/missing is not a verified unlimited group size.
       groupLimit: integer(row.team, 1000) && row.team > 0 ? row.team : null,
+      serverType: ['vanilla', 'modded', 'community', 'official'].includes(row.type)
+        ? row.type
+        : null,
+      official: row.official === true || row.type === 'official',
       wipes,
       scheduleSource:
         row.src === 'user'
@@ -180,6 +188,8 @@ export class ServerDirectory {
         (s) =>
           (query.region === 'all' || s.region === query.region) &&
           s.players >= query.minPlayers &&
+          (query.type === 'all' ||
+            (query.type === 'official' ? s.official : s.serverType === query.type)) &&
           (query.group === 'all' ||
             (query.group === 'unknown'
               ? s.groupLimit === null

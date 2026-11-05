@@ -198,3 +198,34 @@ it('gruppfilter använder exakt rapporterad gräns före sidindelning och skilje
   expect((await directory.list(new URLSearchParams('group=unknown'))).total).toBe(7);
   expect((await directory.list(new URLSearchParams())).total).toBe(rows.length);
 });
+
+it('servertyp och Official filtreras efter källfält utan gissningar från namn', async () => {
+  const rows = [
+    row('vanilla', { type: 'vanilla', official: false }),
+    row('modded', { type: 'modded', official: false }),
+    row('official', { type: 'official', official: true }),
+    row('officialVanilla', { type: 'vanilla', official: true, team: 2 }),
+    row('officialModded', { type: 'modded', official: true }),
+    row('community', { type: 'community', official: false }),
+    row('unknown', { type: 'Vanilla', official: 'true', n: 'Official Vanilla Modded' }),
+    row('missing'),
+  ];
+  const directory = new ServerDirectory(
+    async () => new Response(JSON.stringify(payload(rows))),
+    () => now,
+  );
+  expect(parseDirectoryQuery(new URLSearchParams()).type).toBe('all');
+  for (const type of ['__proto__', 'community', 'Vanilla', 'evil'])
+    expect(() => parseDirectoryQuery(new URLSearchParams({ type }))).toThrow('servertyp');
+  const ids = async (params: string) =>
+    (await directory.list(new URLSearchParams(params))).servers.map((s) => s.id).sort();
+  expect(await ids('type=vanilla')).toEqual(['officialVanilla', 'vanilla']);
+  expect(await ids('type=modded')).toEqual(['modded', 'officialModded']);
+  expect(await ids('type=official')).toEqual(['official', 'officialModded', 'officialVanilla']);
+  expect(await ids('type=official&group=2&day=thu&minPlayers=20')).toEqual(['officialVanilla']);
+  expect((await directory.list(new URLSearchParams())).total).toBe(8);
+  const unknown = (await directory.list(new URLSearchParams('q=Official%20Vanilla%20Modded')))
+    .servers[0];
+  expect(unknown.serverType).toBeNull();
+  expect(unknown.official).toBe(false);
+});

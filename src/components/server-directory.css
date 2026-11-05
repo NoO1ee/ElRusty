@@ -8,15 +8,15 @@
 }
 .directory-filters {
   display: grid;
-  grid-template-columns: minmax(180px, 1.6fr) repeat(2, minmax(100px, 0.8fr)) minmax(
-      140px,
-      1fr
-    ) 100px minmax(180px, 1.2fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
   padding: 20px;
   background: linear-gradient(135deg, #152133, #101722);
   border: 1px solid var(--border);
   border-radius: 14px;
+}
+.directory-search {
+  grid-column: span 2;
 }
 .directory-filters label {
   display: grid;

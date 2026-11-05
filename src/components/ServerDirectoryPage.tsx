@@ -4,6 +4,7 @@ import {
   serverRegions,
   wipeDays,
   groupLimits,
+  serverTypes,
   groupLimitLabel,
   defaultDirectoryQuery,
   directoryParams,
@@ -22,6 +23,7 @@ function initialQuery(): DirectoryQuery {
       region: Object.hasOwn(serverRegions, saved.region) ? saved.region : 'EU',
       day: Object.hasOwn(wipeDays, saved.day) ? saved.day : 'all',
       group: Object.hasOwn(groupLimits, saved.group) ? saved.group : 'all',
+      type: Object.hasOwn(serverTypes, saved.type) ? saved.type : 'all',
       minPlayers:
         Number.isSafeInteger(saved.minPlayers) &&
         saved.minPlayers >= 0 &&
@@ -105,7 +107,8 @@ export function ServerDirectoryPage() {
               <Globe size={28} /> Servrar
             </h1>
             <p>
-              Hitta en server efter gruppstorlek, population och kommande deklarerade wipedagar.
+              Hitta en server efter servertyp, gruppstorlek, population och kommande deklarerade
+              wipedagar.
             </p>
           </div>
           <button disabled={loading} onClick={() => setTick((t) => t + 1)}>
@@ -168,6 +171,20 @@ export function ServerDirectoryPage() {
                     {label}
                   </option>
                 ))}
+            </select>
+          </label>
+          <label>
+            Servertyp
+            <select
+              aria-label="Servertyp"
+              value={query.type}
+              onChange={(e) => change({ type: e.target.value as DirectoryQuery['type'] })}
+            >
+              {Object.entries(serverTypes).map(([id, label]) => (
+                <option key={id} value={id}>
+                  {label}
+                </option>
+              ))}
             </select>
           </label>
           <label>
@@ -236,6 +253,13 @@ export function ServerDirectoryPage() {
                     {server.region ? serverRegions[server.region] : 'Region okänd'}
                     {server.country ? ' · ' + server.country : ''} · {address}
                     {' · ' + groupLimitLabel(server.groupLimit)}
+                    {' · ' +
+                      (server.serverType === 'community'
+                        ? 'Community'
+                        : server.serverType
+                          ? serverTypes[server.serverType]
+                          : 'Typ okänd')}
+                    {server.official && server.serverType !== 'official' ? ' · Official' : ''}
                   </small>
                 </div>
                 <div className="directory-pop">
@@ -315,8 +339,8 @@ export function ServerDirectoryPage() {
               <CalendarDays size={30} />
               <h2>Inga servrar matchar</h2>
               <p>
-                Prova en annan gruppgräns eller wipedag, eller sänk minsta population. Servrar utan
-                deklarerat schema visas när Alla wipedagar är valt.
+                Prova en annan servertyp, gruppgräns eller wipedag, eller sänk minsta population.
+                Servrar utan deklarerat schema visas när Alla wipedagar är valt.
               </p>
               <button onClick={() => setQuery(defaultDirectoryQuery)}>Återställ filter</button>
             </div>
@@ -362,9 +386,10 @@ export function ServerDirectoryPage() {
             kan släpa efter; källan uppdateras med 1–10 minuters intervall.
           </span>
           <span>
-            Gruppgränsen är källans rapporterade maxstorlek, inte en kontroll av serverns regler.
-            Ingen rapporterad gräns betyder inte säkert obegränsat. Att hitta en server lägger inte
-            till någon Rust+-parning. Anslut i spelet och para sedan via Live.
+            Servertyp och Official-status följer källans klassificering. Official kan också vara
+            Vanilla eller Modded. Gruppgränsen är källans rapporterade maxstorlek, inte en kontroll
+            av serverns regler. Ingen rapporterad gräns betyder inte säkert obegränsat. Att hitta en
+            server lägger inte till någon Rust+-parning. Anslut i spelet och para sedan via Live.
           </span>
         </footer>
       </div>
