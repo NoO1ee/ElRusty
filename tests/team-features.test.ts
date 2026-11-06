@@ -3,9 +3,18 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { LiveDB } from '../server/db';
 import { LiveService } from '../server/service';
 import { Avatars } from '../server/avatars';
+import { sameTeamWipe } from '../server/team-observations';
 import type { Member } from '../shared/live';
 const owner = '76561198000000000',
   friend = '76561198000000001';
+it('seed som blir tillgänglig efter transportbyte är inte en ny wipe', () => {
+  expect(sameTeamWipe('profile:100::4500', 'profile:100:123:4500')).toBe(true);
+  expect(sameTeamWipe('profile:100:123:4500', 'profile:100::4500')).toBe(true);
+  expect(sameTeamWipe('profile:100:123:4500', 'profile:101:123:4500')).toBe(false);
+  expect(sameTeamWipe('profile:100:123:4500', 'profile:100:456:4500')).toBe(false);
+  expect(sameTeamWipe('profile:100::4500', 'other:100:123:4500')).toBe(false);
+  expect(sameTeamWipe('profile:100::4500', 'profile:100:123:3500')).toBe(false);
+});
 class Fake extends EventEmitter {
   members: Member[] = [
     {
@@ -65,6 +74,20 @@ afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+});
+it('migrerar och sparar befintliga observationer när bara seed blir känd', async () => {
+  const { s, db, id } = await setup();
+  s.config.teamObservations = {
+    [id]: {
+      wipeKey: `${id}:1::3500`,
+      members: { [owner]: { name: 'Owner', onlineMs: 9000, afkMs: 500 } },
+    },
+  };
+  s.observations.start(id, `${id}:1:123:3500`);
+  expect(s.observations.snapshot(owner)).toMatchObject({ onlineMs: 9000, afkMs: 500 });
+  expect(db.load().teamObservations?.[id].wipeKey).toBe(`${id}:1:123:3500`);
+  s.observations.start(id, `${id}:2:123:3500`);
+  expect(s.observations.snapshot(owner)).toBeUndefined();
 });
 it('historik är endast visning, live dedupliceras och chattext sparas aldrig i konfigurationen', async () => {
   const { s, a, db } = await setup();

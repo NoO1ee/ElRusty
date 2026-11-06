@@ -2,6 +2,23 @@ import type { LiveService } from './service.ts';
 import type { Member, TeamObservation, SavedTeamObservations } from '../shared/live.ts';
 import type { LastDeath } from '../shared/team-map.ts';
 import { gridLocation } from '../shared/world.ts';
+export function sameTeamWipe(previous: string, next: string): boolean {
+  if (previous === next) return true;
+  const a = previous.split(':'),
+    b = next.split(':');
+  return (
+    a.length === 4 &&
+    b.length === 4 &&
+    a[0] === b[0] &&
+    /^\d+$/.test(a[1]) &&
+    Number(a[1]) > 0 &&
+    a[1] === b[1] &&
+    /^\d+$/.test(a[3]) &&
+    Number(a[3]) > 0 &&
+    a[3] === b[3] &&
+    (a[2] === '' || b[2] === '' || a[2] === b[2])
+  );
+}
 export class TeamObservations {
   private profileId: string | null = null;
   private wipeKey = '';
@@ -23,7 +40,8 @@ export class TeamObservations {
     this.profileId = id;
     this.wipeKey = wipeKey;
     const old = this.service.config.teamObservations?.[id];
-    this.data = old?.wipeKey === wipeKey ? old : { wipeKey, members: {} };
+    this.data =
+      old && sameTeamWipe(old.wipeKey, wipeKey) ? { ...old, wipeKey } : { wipeKey, members: {} };
     this.savedAt = this.monotonic();
     if (old && old.wipeKey !== wipeKey) {
       this.dirty = true;
