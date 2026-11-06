@@ -3,6 +3,9 @@ import { normalizeTeamInfo } from './team-info.ts';
 import type { TeamMapNote } from '../shared/team-map.ts';
 import type { ServerInfo, MapData, MapMarker } from '../shared/world.ts';
 import RustPlus from '@liamcottle/rustplus.js';
+import { configureRelay } from './rust-relay.ts';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { EventEmitter } from 'node:events';
 import type { PrivateProfile } from './db.ts';
 import type { Entity, Member } from '../shared/live.ts';
@@ -46,6 +49,7 @@ export class RustConnection extends EventEmitter implements RustAdapter {
     return this.notes;
   }
   private stopped = false;
+  private relayUnavailable = false;
   private waiting = new Set<(reason: Error) => void>();
   constructor(profile: PrivateProfile) {
     super();
@@ -57,8 +61,23 @@ export class RustConnection extends EventEmitter implements RustAdapter {
       profile.playerToken,
       profile.useProxy,
     );
+    if (profile.serverId) {
+      try {
+        const registration = JSON.parse(
+          readFileSync(
+            resolve(process.env.ELRUSTY_DATA_DIR || '.private', 'rustplus.config.json'),
+            'utf8',
+          ),
+        );
+        configureRelay(this.client, profile.serverId, registration.rustplus_auth_token);
+      } catch {
+        this.relayUnavailable = true;
+      }
+    }
   }
   open(): Promise<void> {
+    if (this.relayUnavailable)
+      return Promise.reject(new Error('Rust+-registrering saknas för reläanslutningen.'));
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.close();
@@ -237,14 +256,12 @@ export class RustConnection extends EventEmitter implements RustAdapter {
   }
   async chatHistory(): Promise<ChatMessage[]> {
     const r = await this.request({ getTeamChat: {} });
-    return (r.teamChat?.messages || [])
-      .slice(-100)
-      .map((m: any) => ({
-        steamId: String(m.steamId),
-        name: String(m.name || 'Spelare'),
-        message: String(m.message || ''),
-        time: Number(m.time),
-      }));
+    return (r.teamChat?.messages || []).slice(-100).map((m: any) => ({
+      steamId: String(m.steamId),
+      name: String(m.name || 'Spelare'),
+      message: String(m.message || ''),
+      time: Number(m.time),
+    }));
   }
   async chat(message: string) {
     await this.request({ sendTeamMessage: { message } });

@@ -3,6 +3,7 @@ import type { TeamMapNote, LastDeath } from './team-map';
 import type { WorldSnapshot } from './world';
 export type DeviceType = 'switch' | 'alarm' | 'storage';
 export interface Profile {
+  serverId?: string;
   controlSteamIds?: string[];
   id: string;
   name: string;

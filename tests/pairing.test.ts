@@ -171,6 +171,22 @@ it('autentiseringsbryggan accepterar endast Facepunchs huvudkontext', () => {
   expect(authFromBinding(AUTH_ORIGIN, true, 'bad')).toBeNull();
   expect(authBridgeScript).toContain('window.top === window');
 });
+it('läser server-ID-parningar utan äldre IP och port', () => {
+  const notice = {
+    id: 'f7c76182-05fe-477e-b0cb-1aa40bda0fd0',
+    type: 'server',
+    name: 'Server',
+    playerId: '76561198000000000',
+    playerToken: '123456',
+  };
+  expect(serverNotification({ body: notice })).toMatchObject({
+    serverId: notice.id,
+    host: 'companion-rust.facepunch.com',
+    port: 443,
+    playerToken: '123456',
+  });
+  expect(serverNotification({ body: { ...notice, id: 'invalid' } })).toBeNull();
+});
 it('läser FCM appData och ignorerar larm eller bristfälliga serverparningar', () => {
   const body = JSON.stringify({ ...incoming, ip: incoming.host });
   expect(serverNotification({ appData: [{ key: 'body', value: body }] })).toMatchObject({

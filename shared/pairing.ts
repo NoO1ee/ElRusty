@@ -2,6 +2,13 @@ export function parsePairing(raw: string) {
   let p = JSON.parse(raw);
   if (p?.body) p = typeof p.body === 'string' ? JSON.parse(p.body) : p.body;
   if (!p || typeof p !== 'object' || Array.isArray(p)) throw new Error('Ogiltig parningsfil.');
+  const serverId =
+    typeof p.id === 'string' && /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(p.id)
+      ? p.id
+      : undefined;
+  if (serverId && p.ip === undefined && p.port === undefined) {
+    p = { ...p, ip: 'companion-rust.facepunch.com', port: 443 };
+  }
   if (typeof p.playerId !== 'string' || !/^\d{17}$/.test(p.playerId))
     throw new Error('playerId måste vara SteamID64 som en textsträng, inte ett avrundat JSON-tal.');
   if (
@@ -24,6 +31,7 @@ export function parsePairing(raw: string) {
   )
     throw new Error('Parningen behöver ip, port, playerId och playerToken.');
   return {
+    ...(serverId ? { serverId } : {}),
     name: typeof p.name === 'string' ? p.name : 'Min Rust-server',
     host: p.ip,
     port,

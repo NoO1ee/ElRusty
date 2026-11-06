@@ -184,8 +184,9 @@ export class PairingManager {
           this.publish({});
           const duplicate = [...this.candidates].find(
             ([, c]) =>
-              c.profile.host === p.host &&
-              c.profile.port === p.port &&
+              (c.profile.serverId && p.serverId
+                ? c.profile.serverId === p.serverId
+                : c.profile.host === p.host && c.profile.port === p.port) &&
               c.profile.playerId === p.playerId,
           );
           if (!duplicate && this.candidates.size >= 20) return;
@@ -345,7 +346,10 @@ export class PairingManager {
     insist(c && c.expires > Date.now(), 'Serverparningen har gått ut. Para servern igen.');
     const p = c.profile,
       existing = this.service.config.profiles.find(
-        (x) => x.host === p.host && x.port === p.port && x.playerId === p.playerId,
+        (x) =>
+          (x.serverId && p.serverId
+            ? x.serverId === p.serverId
+            : x.host === p.host && x.port === p.port) && x.playerId === p.playerId,
       );
     const profileId = this.service.saveProfile(p, existing?.id);
     if (this.automatic) {

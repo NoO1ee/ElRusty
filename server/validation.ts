@@ -55,7 +55,15 @@ export function profile(value: unknown, previous?: PrivateProfile): PrivateProfi
     'PlayerToken måste vara ett giltigt int32-tal.',
   );
   insist(b.useProxy === undefined || typeof b.useProxy === 'boolean', 'Ogiltigt proxyval.');
+  const serverId = b.serverId === undefined ? previous?.serverId : b.serverId;
+  insist(
+    serverId === undefined ||
+      (typeof serverId === 'string' &&
+        /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(serverId)),
+    'Ogiltigt Rust+ server-ID.',
+  );
   return {
+    ...(serverId ? { serverId } : {}),
     controlSteamIds: previous?.controlSteamIds || [],
     id: previous?.id || crypto.randomUUID(),
     name: text(b.name),
